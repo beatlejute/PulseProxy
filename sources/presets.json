@@ -1,0 +1,399 @@
+{
+  "presets": [
+    {
+      "name": "Facebook",
+      "domains": [
+        "facebook.com",
+        "*.facebook.com",
+        "fbcdn.net",
+        "*.fbcdn.net",
+        "fb.com",
+        "*.fb.com"
+      ]
+    },
+    {
+      "name": "Instagram",
+      "domains": [
+        "instagram.com",
+        "*.instagram.com",
+        "cdninstagram.com",
+        "*.cdninstagram.com",
+        "igcdn.com",
+        "*.igcdn.com"
+      ]
+    },
+    {
+      "name": "Telegram",
+      "domains": [
+        "telegram.org",
+        "*.telegram.org",
+        "telegram.me",
+        "*.telegram.me",
+        "t.me",
+        "*.t.me"
+      ]
+    },
+    {
+      "name": "WhatsApp",
+      "domains": [
+        "whatsapp.com",
+        "*.whatsapp.com",
+        "wa.me",
+        "*.wa.me",
+        "whatsapp.net",
+        "*.whatsapp.net"
+      ]
+    },
+    {
+      "name": "Twitter/X",
+      "domains": [
+        "twitter.com",
+        "*.twitter.com",
+        "x.com",
+        "*.x.com",
+        "t.co",
+        "*.t.co",
+        "twimg.com",
+        "*.twimg.com",
+        "twitterrific.com",
+        "*.twitterrific.com"
+      ]
+    },
+    {
+      "name": "TikTok",
+      "domains": [
+        "tiktok.com",
+        "*.tiktok.com",
+        "douyin.com",
+        "*.douyin.com",
+        "tiktokcdn.com",
+        "*.tiktokcdn.com"
+      ]
+    },
+    {
+      "name": "YouTube",
+      "domains": [
+        "youtube.com",
+        "*.youtube.com",
+        "youtu.be",
+        "*.youtu.be",
+        "googlevideo.com",
+        "*.googlevideo.com",
+        "ytimg.com",
+        "*.ytimg.com",
+        "yt.be",
+        "*.yt.be",
+        "youtube-nocookie.com",
+        "*.youtube-nocookie.com"
+      ]
+    },
+    {
+      "name": "Netflix",
+      "domains": [
+        "netflix.com",
+        "*.netflix.com",
+        "nflxext.com",
+        "*.nflxext.com",
+        "nflximg.com",
+        "*.nflximg.com",
+        "nflxso.net",
+        "*.nflxso.net"
+      ]
+    },
+    {
+      "name": "BBC iPlayer",
+      "domains": [
+        "bbc.com",
+        "*.bbc.com",
+        "bbci.co.uk",
+        "*.bbci.co.uk",
+        "bbc.co.uk",
+        "*.bbc.co.uk"
+      ]
+    },
+    {
+      "name": "ChatGPT",
+      "domains": [
+        "openai.com",
+        "*.openai.com",
+        "chatgpt.com",
+        "*.chatgpt.com",
+        "oaistatic.com",
+        "*.oaistatic.com",
+        "oaiusercontent.com",
+        "*.oaiusercontent.com"
+      ]
+    },
+    {
+      "name": "Google",
+      "domains": [
+        "google.com",
+        "*.google.com",
+        "googleapis.com",
+        "*.googleapis.com",
+        "googleusercontent.com",
+        "*.googleusercontent.com",
+        "gstatic.com",
+        "*.gstatic.com",
+        "google-analytics.com",
+        "*.google-analytics.com"
+      ]
+    },
+    {
+      "name": "Reddit",
+      "domains": [
+        "reddit.com",
+        "*.reddit.com",
+        "redditmedia.com",
+        "*.redditmedia.com",
+        "redditsstatic.com",
+        "*.redditsstatic.com",
+        "redd.it",
+        "*.redd.it"
+      ]
+    },
+    {
+      "name": "Discord",
+      "domains": [
+        "discord.com",
+        "*.discord.com",
+        "discordapp.com",
+        "*.discordapp.com",
+        "cdn.discordapp.com",
+        "*.cdn.discordapp.com"
+      ]
+    },
+    {
+      "name": "Twitch",
+      "domains": [
+        "twitch.tv",
+        "*.twitch.tv",
+        "twitchcdn.net",
+        "*.twitchcdn.net",
+        "jtvnw.net",
+        "*.jtvnw.net",
+        "ttvnw.net",
+        "*.ttvnw.net"
+      ]
+    },
+    {
+      "name": "LinkedIn",
+      "domains": [
+        "linkedin.com",
+        "*.linkedin.com",
+        "licdn.com",
+        "*.licdn.com"
+      ]
+    },
+    {
+      "name": "Spotify",
+      "domains": [
+        "spotify.com",
+        "*.spotify.com",
+        "spoti.fi",
+        "*.spoti.fi",
+        "spotifycdn.com",
+        "*.spotifycdn.com",
+        "scdn.co",
+        "*.scdn.co"
+      ]
+    },
+    {
+      "name": "HBO Max",
+      "domains": [
+        "max.com",
+        "*.max.com",
+        "hbomax.com",
+        "*.hbomax.com",
+        "hbomaxcdn.com",
+        "*.hbomaxcdn.com"
+      ]
+    },
+    {
+      "name": "Disney+",
+      "domains": [
+        "disneyplus.com",
+        "*.disneyplus.com",
+        "bamgrid.com",
+        "*.bamgrid.com",
+        "starplus.com",
+        "*.starplus.com"
+      ]
+    },
+    {
+      "name": "Amazon Prime",
+      "domains": [
+        "primevideo.com",
+        "*.primevideo.com",
+        "amazon.com",
+        "*.amazon.com",
+        "amazonvideo.com",
+        "*.amazonvideo.com"
+      ]
+    },
+    {
+      "name": "GitHub",
+      "domains": [
+        "github.com",
+        "*.github.com",
+        "githubusercontent.com",
+        "*.githubusercontent.com",
+        "raw.githubusercontent.com",
+        "*.raw.githubusercontent.com",
+        "ghcr.io",
+        "*.ghcr.io"
+      ]
+    },
+    {
+      "name": "Signal",
+      "domains": [
+        "signal.org",
+        "*.signal.org",
+        "signalusers.org",
+        "*.signalusers.org"
+      ]
+    },
+    {
+      "name": "DuckDuckGo",
+      "domains": [
+        "duckduckgo.com",
+        "*.duckduckgo.com"
+      ]
+    },
+    {
+      "name": "CNN",
+      "domains": [
+        "cnn.com",
+        "*.cnn.com",
+        "cnncdn.com",
+        "*.cnncdn.com"
+      ]
+    },
+    {
+      "name": "BBC News",
+      "domains": [
+        "bbc.com",
+        "*.bbc.com",
+        "bbcnewsworld.com",
+        "*.bbcnewsworld.com"
+      ]
+    },
+    {
+      "name": "Tor Browser",
+      "domains": [
+        "torproject.org",
+        "*.torproject.org"
+      ]
+    },
+    {
+      "name": "Coinbase",
+      "domains": [
+        "coinbase.com",
+        "*.coinbase.com"
+      ]
+    },
+    {
+      "name": "Binance",
+      "domains": [
+        "binance.com",
+        "*.binance.com",
+        "binance.us",
+        "*.binance.us"
+      ]
+    },
+    {
+      "name": "Coursera",
+      "domains": [
+        "coursera.org",
+        "*.coursera.org"
+      ]
+    },
+    {
+      "name": "Udemy",
+      "domains": [
+        "udemy.com",
+        "*.udemy.com"
+      ]
+    },
+    {
+      "name": "Dropbox",
+      "domains": [
+        "dropbox.com",
+        "*.dropbox.com",
+        "dropboxusercontent.com",
+        "*.dropboxusercontent.com"
+      ]
+    },
+    {
+      "name": "Snapchat",
+      "domains": [
+        "snapchat.com",
+        "*.snapchat.com",
+        "snap.com",
+        "*.snap.com"
+      ]
+    },
+    {
+      "name": "Pinterest",
+      "domains": [
+        "pinterest.com",
+        "*.pinterest.com",
+        "pinimg.com",
+        "*.pinimg.com"
+      ]
+    },
+    {
+      "name": "Viber",
+      "domains": [
+        "viber.com",
+        "*.viber.com"
+      ]
+    },
+    {
+      "name": "Skype",
+      "domains": [
+        "skype.com",
+        "*.skype.com"
+      ]
+    },
+    {
+      "name": "PayPal",
+      "domains": [
+        "paypal.com",
+        "*.paypal.com",
+        "paypalobjects.com",
+        "*.paypalobjects.com"
+      ]
+    },
+    {
+      "name": "Stripe",
+      "domains": [
+        "stripe.com",
+        "*.stripe.com"
+      ]
+    },
+    {
+      "name": "DeepSeek",
+      "domains": [
+        "deepseek.com",
+        "*.deepseek.com"
+      ]
+    },
+    {
+      "name": "Perplexity",
+      "domains": [
+        "perplexity.ai",
+        "*.perplexity.ai"
+      ]
+    },
+    {
+      "name": "Claude AI",
+      "domains": [
+        "claude.ai",
+        "*.claude.ai",
+        "anthropic.com",
+        "*.anthropic.com"
+      ]
+    }
+  ]
+}

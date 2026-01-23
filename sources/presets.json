@@ -1,48 +1,45 @@
 {
   "presets": [
     {
-      "name": "Facebook",
+      "name": "Netflix",
       "domains": [
-        "facebook.com",
-        "*.facebook.com",
-        "fbcdn.net",
-        "*.fbcdn.net",
-        "fb.com",
-        "*.fb.com"
+        "netflix.com",
+        "*.netflix.com",
+        "*.nflxvideo.net",
+        "*.nflximg.net"
       ]
     },
     {
-      "name": "Instagram",
+      "name": "YouTube",
       "domains": [
-        "instagram.com",
-        "*.instagram.com",
-        "cdninstagram.com",
-        "*.cdninstagram.com",
-        "igcdn.com",
-        "*.igcdn.com"
+        "youtube.com",
+        "*.youtube.com",
+        "*.googlevideo.com",
+        "*.ytimg.com"
       ]
     },
     {
-      "name": "Telegram",
+      "name": "Spotify",
       "domains": [
-        "telegram.org",
-        "*.telegram.org",
-        "telegram.me",
-        "*.telegram.me",
-        "t.me",
-        "*.t.me"
+        "spotify.com",
+        "*.spotify.com",
+        "*.scdn.co",
+        "*.spotifycdn.com"
       ]
     },
     {
-      "name": "WhatsApp",
+      "name": "Discord",
       "domains": [
-        "whatsapp.com",
-        "*.whatsapp.com",
-        "wa.me",
-        "*.wa.me",
-        "whatsapp.net",
-        "*.whatsapp.net"
+        "discord.com",
+        "*.discord.com",
+        "*.discord.gg",
+        "*.discordapp.com",
+        "*.discordapp.net"
       ]
+    },
+    {
+      "name": "Twitch",
+      "domains": ["twitch.tv", "*.twitch.tv", "*.twitchcdn.net", "*.jtvnw.net"]
     },
     {
       "name": "Twitter/X",
@@ -51,184 +48,69 @@
         "*.twitter.com",
         "x.com",
         "*.x.com",
-        "t.co",
-        "*.t.co",
-        "twimg.com",
-        "*.twimg.com",
-        "twitterrific.com",
-        "*.twitterrific.com"
+        "*.twimg.com"
       ]
+    },
+    {
+      "name": "Instagram",
+      "domains": ["instagram.com", "*.instagram.com", "*.cdninstagram.com"]
+    },
+    {
+      "name": "Facebook",
+      "domains": ["facebook.com", "*.facebook.com", "*.fbcdn.net"]
     },
     {
       "name": "TikTok",
       "domains": [
         "tiktok.com",
         "*.tiktok.com",
-        "douyin.com",
-        "*.douyin.com",
-        "tiktokcdn.com",
-        "*.tiktokcdn.com"
+        "*.tiktokcdn.com",
+        "*.byteoversea.com"
       ]
     },
     {
-      "name": "YouTube",
-      "domains": [
-        "youtube.com",
-        "*.youtube.com",
-        "youtu.be",
-        "*.youtu.be",
-        "googlevideo.com",
-        "*.googlevideo.com",
-        "ytimg.com",
-        "*.ytimg.com",
-        "yt.be",
-        "*.yt.be",
-        "youtube-nocookie.com",
-        "*.youtube-nocookie.com"
-      ]
-    },
-    {
-      "name": "Netflix",
-      "domains": [
-        "netflix.com",
-        "*.netflix.com",
-        "nflxext.com",
-        "*.nflxext.com",
-        "nflximg.com",
-        "*.nflximg.com",
-        "nflxso.net",
-        "*.nflxso.net"
-      ]
-    },
-    {
-      "name": "BBC iPlayer",
-      "domains": [
-        "bbc.com",
-        "*.bbc.com",
-        "bbci.co.uk",
-        "*.bbci.co.uk",
-        "bbc.co.uk",
-        "*.bbc.co.uk"
-      ]
-    },
-    {
-      "name": "ChatGPT",
-      "domains": [
-        "openai.com",
-        "*.openai.com",
-        "chatgpt.com",
-        "*.chatgpt.com",
-        "oaistatic.com",
-        "*.oaistatic.com",
-        "oaiusercontent.com",
-        "*.oaiusercontent.com"
-      ]
-    },
-    {
-      "name": "Google",
-      "domains": [
-        "google.com",
-        "*.google.com",
-        "googleapis.com",
-        "*.googleapis.com",
-        "googleusercontent.com",
-        "*.googleusercontent.com",
-        "gstatic.com",
-        "*.gstatic.com",
-        "google-analytics.com",
-        "*.google-analytics.com"
-      ]
+      "name": "LinkedIn",
+      "domains": ["linkedin.com", "*.linkedin.com", "*.licdn.com"]
     },
     {
       "name": "Reddit",
       "domains": [
         "reddit.com",
         "*.reddit.com",
-        "redditmedia.com",
-        "*.redditmedia.com",
-        "redditsstatic.com",
-        "*.redditsstatic.com",
-        "redd.it",
-        "*.redd.it"
+        "*.redd.it",
+        "*.redditmedia.com"
       ]
     },
     {
-      "name": "Discord",
+      "name": "Steam",
       "domains": [
-        "discord.com",
-        "*.discord.com",
-        "discordapp.com",
-        "*.discordapp.com",
-        "cdn.discordapp.com",
-        "*.cdn.discordapp.com"
+        "steampowered.com",
+        "*.steampowered.com",
+        "steamcommunity.com",
+        "*.steamcommunity.com",
+        "*.steamstatic.com",
+        "*.steamcontent.com"
       ]
     },
     {
-      "name": "Twitch",
-      "domains": [
-        "twitch.tv",
-        "*.twitch.tv",
-        "twitchcdn.net",
-        "*.twitchcdn.net",
-        "jtvnw.net",
-        "*.jtvnw.net",
-        "ttvnw.net",
-        "*.ttvnw.net"
-      ]
+      "name": "Epic Games",
+      "domains": ["epicgames.com", "*.epicgames.com", "*.unrealengine.com"]
     },
     {
-      "name": "LinkedIn",
-      "domains": [
-        "linkedin.com",
-        "*.linkedin.com",
-        "licdn.com",
-        "*.licdn.com"
-      ]
+      "name": "Amazon",
+      "domains": ["amazon.com", "*.amazon.com", "*.amazonaws.com"]
     },
     {
-      "name": "Spotify",
-      "domains": [
-        "spotify.com",
-        "*.spotify.com",
-        "spoti.fi",
-        "*.spoti.fi",
-        "spotifycdn.com",
-        "*.spotifycdn.com",
-        "scdn.co",
-        "*.scdn.co"
-      ]
+      "name": "ChatGPT",
+      "domains": ["openai.com", "*.openai.com", "chat.openai.com"]
     },
     {
-      "name": "HBO Max",
+      "name": "Claude",
       "domains": [
-        "max.com",
-        "*.max.com",
-        "hbomax.com",
-        "*.hbomax.com",
-        "hbomaxcdn.com",
-        "*.hbomaxcdn.com"
-      ]
-    },
-    {
-      "name": "Disney+",
-      "domains": [
-        "disneyplus.com",
-        "*.disneyplus.com",
-        "bamgrid.com",
-        "*.bamgrid.com",
-        "starplus.com",
-        "*.starplus.com"
-      ]
-    },
-    {
-      "name": "Amazon Prime",
-      "domains": [
-        "primevideo.com",
-        "*.primevideo.com",
-        "amazon.com",
-        "*.amazon.com",
-        "amazonvideo.com",
-        "*.amazonvideo.com"
+        "anthropic.com",
+        "*.anthropic.com",
+        "claude.ai",
+        "*.claude.ai"
       ]
     },
     {
@@ -236,163 +118,32 @@
       "domains": [
         "github.com",
         "*.github.com",
-        "githubusercontent.com",
         "*.githubusercontent.com",
-        "raw.githubusercontent.com",
-        "*.raw.githubusercontent.com",
-        "ghcr.io",
-        "*.ghcr.io"
+        "*.githubassets.com"
       ]
     },
     {
-      "name": "Signal",
+      "name": "Google Services",
       "domains": [
-        "signal.org",
-        "*.signal.org",
-        "signalusers.org",
-        "*.signalusers.org"
+        "google.com",
+        "*.google.com",
+        "*.googleapis.com",
+        "*.gstatic.com"
       ]
     },
     {
-      "name": "DuckDuckGo",
+      "name": "Opera",
       "domains": [
-        "duckduckgo.com",
-        "*.duckduckgo.com"
+        "opera.com",
+        "*.opera.com",
+        "*.operacdn.com"
       ]
     },
     {
-      "name": "CNN",
+      "name": "RuTracker",
       "domains": [
-        "cnn.com",
-        "*.cnn.com",
-        "cnncdn.com",
-        "*.cnncdn.com"
-      ]
-    },
-    {
-      "name": "BBC News",
-      "domains": [
-        "bbc.com",
-        "*.bbc.com",
-        "bbcnewsworld.com",
-        "*.bbcnewsworld.com"
-      ]
-    },
-    {
-      "name": "Tor Browser",
-      "domains": [
-        "torproject.org",
-        "*.torproject.org"
-      ]
-    },
-    {
-      "name": "Coinbase",
-      "domains": [
-        "coinbase.com",
-        "*.coinbase.com"
-      ]
-    },
-    {
-      "name": "Binance",
-      "domains": [
-        "binance.com",
-        "*.binance.com",
-        "binance.us",
-        "*.binance.us"
-      ]
-    },
-    {
-      "name": "Coursera",
-      "domains": [
-        "coursera.org",
-        "*.coursera.org"
-      ]
-    },
-    {
-      "name": "Udemy",
-      "domains": [
-        "udemy.com",
-        "*.udemy.com"
-      ]
-    },
-    {
-      "name": "Dropbox",
-      "domains": [
-        "dropbox.com",
-        "*.dropbox.com",
-        "dropboxusercontent.com",
-        "*.dropboxusercontent.com"
-      ]
-    },
-    {
-      "name": "Snapchat",
-      "domains": [
-        "snapchat.com",
-        "*.snapchat.com",
-        "snap.com",
-        "*.snap.com"
-      ]
-    },
-    {
-      "name": "Pinterest",
-      "domains": [
-        "pinterest.com",
-        "*.pinterest.com",
-        "pinimg.com",
-        "*.pinimg.com"
-      ]
-    },
-    {
-      "name": "Viber",
-      "domains": [
-        "viber.com",
-        "*.viber.com"
-      ]
-    },
-    {
-      "name": "Skype",
-      "domains": [
-        "skype.com",
-        "*.skype.com"
-      ]
-    },
-    {
-      "name": "PayPal",
-      "domains": [
-        "paypal.com",
-        "*.paypal.com",
-        "paypalobjects.com",
-        "*.paypalobjects.com"
-      ]
-    },
-    {
-      "name": "Stripe",
-      "domains": [
-        "stripe.com",
-        "*.stripe.com"
-      ]
-    },
-    {
-      "name": "DeepSeek",
-      "domains": [
-        "deepseek.com",
-        "*.deepseek.com"
-      ]
-    },
-    {
-      "name": "Perplexity",
-      "domains": [
-        "perplexity.ai",
-        "*.perplexity.ai"
-      ]
-    },
-    {
-      "name": "Claude AI",
-      "domains": [
-        "claude.ai",
-        "*.claude.ai",
-        "anthropic.com",
-        "*.anthropic.com"
+        "rutracker.org",
+        "rutracker.cc"
       ]
     }
   ]

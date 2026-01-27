@@ -132,6 +132,18 @@
       ]
     },
     {
+      "name": "Google Gemini & AI Studio",
+      "domains": [
+        "aistudio.google.com",
+        "gemini.google.com",
+        "generativelanguage.googleapis.com",
+        "cloudaicompanion.googleapis.com",
+        "cloudcode-pa.googleapis.com",
+        "accounts.google.com",
+        "console.cloud.google.com"
+      ]
+    },
+    {
       "name": "Opera",
       "domains": [
         "opera.com",

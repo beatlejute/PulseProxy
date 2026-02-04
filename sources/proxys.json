@@ -31,61 +31,59 @@
     }
   ],
   "socks5": [
-    [
-      {
-        "ip": "174.138.61.184:1080",
-        "score": 3.8,
-        "type": "Corporate",
-        "country": "US"
-      },
-      {
-        "ip": "193.233.254.8:1080",
-        "score": 4.5,
-        "type": "Residential",
-        "country": "DE"
-      },
-      {
-        "ip": "193.233.254.9:1080",
-        "score": 4.3,
-        "type": "Residential",
-        "country": "DE"
-      },
-      {
-        "ip": "194.163.182.6:1080",
-        "score": 3.6,
-        "type": "Corporate",
-        "country": "DE"
-      },
-      {
-        "ip": "5.255.113.177:1080",
-        "score": 4,
-        "type": "Corporate",
-        "country": "NL"
-      },
-      {
-        "ip": "5.255.117.250:1080",
-        "score": 3.8,
-        "type": "Corporate",
-        "country": "NL"
-      },
-      {
-        "ip": "185.194.217.97:1080",
-        "score": 3.8,
-        "type": "Corporate",
-        "country": "DE"
-      },
-      {
-        "ip": "36.255.98.182:4036",
-        "score": 4,
-        "type": "Corporate",
-        "country": "LT"
-      },
-      {
-        "ip": "141.11.42.163:1080",
-        "score": 3.8,
-        "type": "Corporate",
-        "country": "TW"
-      }
-    ]
+    {
+      "ip": "174.138.61.184:1080",
+      "score": 3.8,
+      "type": "Corporate",
+      "country": "US"
+    },
+    {
+      "ip": "193.233.254.8:1080",
+      "score": 4.5,
+      "type": "Residential",
+      "country": "DE"
+    },
+    {
+      "ip": "193.233.254.9:1080",
+      "score": 4.3,
+      "type": "Residential",
+      "country": "DE"
+    },
+    {
+      "ip": "194.163.182.6:1080",
+      "score": 3.6,
+      "type": "Corporate",
+      "country": "DE"
+    },
+    {
+      "ip": "5.255.113.177:1080",
+      "score": 4,
+      "type": "Corporate",
+      "country": "NL"
+    },
+    {
+      "ip": "5.255.117.250:1080",
+      "score": 3.8,
+      "type": "Corporate",
+      "country": "NL"
+    },
+    {
+      "ip": "185.194.217.97:1080",
+      "score": 3.8,
+      "type": "Corporate",
+      "country": "DE"
+    },
+    {
+      "ip": "36.255.98.182:4036",
+      "score": 4,
+      "type": "Corporate",
+      "country": "LT"
+    },
+    {
+      "ip": "141.11.42.163:1080",
+      "score": 3.8,
+      "type": "Corporate",
+      "country": "TW"
+    }
   ]
 }

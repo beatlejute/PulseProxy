@@ -17,20 +17,18 @@
     { "ip": "200.174.198.32:8888", "score": 3.1, "type": "Residential", "country": "BR" }
   ],
   "socks4": [
-    [
-      {
-        "ip": "193.233.254.7:1080",
-        "score": 4.3,
-        "type": "Residential",
-        "country": "DE"
-      },
-      {
-        "ip": "193.233.254.9:1080",
-        "score": 4.3,
-        "type": "Residential",
-        "country": "DE"
-      }
-    ]
+    {
+      "ip": "193.233.254.7:1080",
+      "score": 4.3,
+      "type": "Residential",
+      "country": "DE"
+    },
+    {
+      "ip": "193.233.254.9:1080",
+      "score": 4.3,
+      "type": "Residential",
+      "country": "DE"
+    }
   ],
   "socks5": [
     [

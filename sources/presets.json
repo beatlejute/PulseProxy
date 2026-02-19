@@ -157,6 +157,831 @@
         "rutracker.org",
         "rutracker.cc"
       ]
+    },
+    {
+      "name": "Grok",
+      "domains": [
+        "x.ai",
+        "*.x.ai",
+        "grok.com",
+        "*.grok.com"
+      ]
+    },
+    {
+      "name": "Pornhub",
+      "domains": [
+        "pornhub.com",
+        "*.pornhub.com",
+        "*.phncdn.com"
+      ]
+    },
+    {
+      "name": "XVideos",
+      "domains": [
+        "xvideos.com",
+        "*.xvideos.com",
+        "*.xvideos-cdn.com"
+      ]
+    },
+    {
+      "name": "xHamster",
+      "domains": [
+        "xhamster.com",
+        "*.xhamster.com",
+        "*.xhcdn.com"
+      ]
+    },
+    {
+      "name": "RedTube",
+      "domains": [
+        "redtube.com",
+        "*.redtube.com"
+      ]
+    },
+    {
+      "name": "YouPorn",
+      "domains": [
+        "youporn.com",
+        "*.youporn.com"
+      ]
+    },
+    {
+      "name": "Roo Code",
+      "domains": [
+        "roocode.com",
+        "*.roocode.com",
+        "roocline.dev",
+        "*.roocline.dev"
+      ]
+    },
+    {
+      "name": "Disney+",
+      "domains": [
+        "disneyplus.com",
+        "*.disneyplus.com",
+        "*.bamgrid.com",
+        "*.dssott.com",
+        "*.disney-plus.net"
+      ]
+    },
+    {
+      "name": "HBO Max",
+      "domains": [
+        "max.com",
+        "*.max.com",
+        "hbomax.com",
+        "*.hbomax.com"
+      ]
+    },
+    {
+      "name": "Hulu",
+      "domains": [
+        "hulu.com",
+        "*.hulu.com",
+        "*.hulustream.com"
+      ]
+    },
+    {
+      "name": "Apple TV+",
+      "domains": [
+        "tv.apple.com",
+        "*.apple.com"
+      ]
+    },
+    {
+      "name": "Crunchyroll",
+      "domains": [
+        "crunchyroll.com",
+        "*.crunchyroll.com",
+        "*.vrv.co"
+      ]
+    },
+    {
+      "name": "Paramount+",
+      "domains": [
+        "paramountplus.com",
+        "*.paramountplus.com"
+      ]
+    },
+    {
+      "name": "Telegram",
+      "domains": [
+        "telegram.org",
+        "*.telegram.org",
+        "t.me",
+        "*.t.me",
+        "telegram.me"
+      ]
+    },
+    {
+      "name": "WhatsApp",
+      "domains": [
+        "whatsapp.com",
+        "*.whatsapp.com",
+        "*.whatsapp.net"
+      ]
+    },
+    {
+      "name": "Signal",
+      "domains": [
+        "signal.org",
+        "*.signal.org"
+      ]
+    },
+    {
+      "name": "Slack",
+      "domains": [
+        "slack.com",
+        "*.slack.com",
+        "*.slack-edge.com",
+        "*.slack-msgs.com"
+      ]
+    },
+    {
+      "name": "Apple Music",
+      "domains": [
+        "music.apple.com",
+        "*.apple.com"
+      ]
+    },
+    {
+      "name": "SoundCloud",
+      "domains": [
+        "soundcloud.com",
+        "*.soundcloud.com",
+        "*.sndcdn.com"
+      ]
+    },
+    {
+      "name": "Deezer",
+      "domains": [
+        "deezer.com",
+        "*.deezer.com",
+        "*.dzcdn.net"
+      ]
+    },
+    {
+      "name": "Riot Games",
+      "domains": [
+        "riotgames.com",
+        "*.riotgames.com",
+        "*.leagueoflegends.com",
+        "*.riotcdn.net",
+        "*.valorant.com"
+      ]
+    },
+    {
+      "name": "Roblox",
+      "domains": [
+        "roblox.com",
+        "*.roblox.com",
+        "*.rbxcdn.com"
+      ]
+    },
+    {
+      "name": "EA",
+      "domains": [
+        "ea.com",
+        "*.ea.com",
+        "origin.com",
+        "*.origin.com"
+      ]
+    },
+    {
+      "name": "PlayStation",
+      "domains": [
+        "playstation.com",
+        "*.playstation.com",
+        "*.playstation.net",
+        "*.sonyentertainmentnetwork.com"
+      ]
+    },
+    {
+      "name": "Xbox",
+      "domains": [
+        "xbox.com",
+        "*.xbox.com",
+        "*.xboxlive.com"
+      ]
+    },
+    {
+      "name": "DeepSeek",
+      "domains": [
+        "deepseek.com",
+        "*.deepseek.com"
+      ]
+    },
+    {
+      "name": "Perplexity",
+      "domains": [
+        "perplexity.ai",
+        "*.perplexity.ai"
+      ]
+    },
+    {
+      "name": "Midjourney",
+      "domains": [
+        "midjourney.com",
+        "*.midjourney.com"
+      ]
+    },
+    {
+      "name": "Microsoft Copilot",
+      "domains": [
+        "copilot.microsoft.com",
+        "*.copilot.microsoft.com",
+        "copilot.cloud.microsoft"
+      ]
+    },
+    {
+      "name": "Cursor",
+      "domains": [
+        "cursor.com",
+        "*.cursor.com",
+        "cursor.sh",
+        "*.cursor.sh"
+      ]
+    },
+    {
+      "name": "Microsoft 365",
+      "domains": [
+        "office.com",
+        "*.office.com",
+        "*.office365.com",
+        "*.microsoftonline.com",
+        "*.sharepoint.com",
+        "onedrive.live.com"
+      ]
+    },
+    {
+      "name": "Dropbox",
+      "domains": [
+        "dropbox.com",
+        "*.dropbox.com",
+        "*.dropboxstatic.com"
+      ]
+    },
+    {
+      "name": "Notion",
+      "domains": [
+        "notion.so",
+        "*.notion.so",
+        "*.notion.site"
+      ]
+    },
+    {
+      "name": "Zoom",
+      "domains": [
+        "zoom.us",
+        "*.zoom.us",
+        "*.zoomcdn.com"
+      ]
+    },
+    {
+      "name": "Pinterest",
+      "domains": [
+        "pinterest.com",
+        "*.pinterest.com",
+        "*.pinimg.com"
+      ]
+    },
+    {
+      "name": "Snapchat",
+      "domains": [
+        "snapchat.com",
+        "*.snapchat.com",
+        "*.snap.com",
+        "*.snapkit.co"
+      ]
+    },
+    {
+      "name": "VK",
+      "domains": [
+        "vk.com",
+        "*.vk.com",
+        "*.vkontakte.ru",
+        "*.userapi.com",
+        "vk.me",
+        "*.vk.me"
+      ]
+    },
+    {
+      "name": "Medium",
+      "domains": [
+        "medium.com",
+        "*.medium.com"
+      ]
+    },
+    {
+      "name": "eBay",
+      "domains": [
+        "ebay.com",
+        "*.ebay.com",
+        "*.ebaystatic.com",
+        "*.ebayimg.com"
+      ]
+    },
+    {
+      "name": "AliExpress",
+      "domains": [
+        "aliexpress.com",
+        "*.aliexpress.com",
+        "*.alicdn.com"
+      ]
+    },
+    {
+      "name": "Wikipedia",
+      "domains": [
+        "wikipedia.org",
+        "*.wikipedia.org",
+        "*.wikimedia.org"
+      ]
+    },
+    {
+      "name": "Cloudflare",
+      "domains": [
+        "cloudflare.com",
+        "*.cloudflare.com",
+        "*.cloudflare-dns.com",
+        "one.one.one.one"
+      ]
+    },
+    {
+      "name": "iCloud",
+      "domains": [
+        "icloud.com",
+        "*.icloud.com",
+        "*.icloud-content.com",
+        "*.apple-cloudkit.com"
+      ]
+    },
+    {
+      "name": "GitLab",
+      "domains": [
+        "gitlab.com",
+        "*.gitlab.com",
+        "*.gitlab.io"
+      ]
+    },
+    {
+      "name": "Bitbucket",
+      "domains": [
+        "bitbucket.org",
+        "*.bitbucket.org",
+        "*.bitbucket.io"
+      ]
+    },
+    {
+      "name": "Stack Overflow",
+      "domains": [
+        "stackoverflow.com",
+        "*.stackoverflow.com",
+        "*.sstatic.net",
+        "stackexchange.com",
+        "*.stackexchange.com"
+      ]
+    },
+    {
+      "name": "Vercel",
+      "domains": [
+        "vercel.com",
+        "*.vercel.com",
+        "*.vercel.app"
+      ]
+    },
+    {
+      "name": "Netlify",
+      "domains": [
+        "netlify.com",
+        "*.netlify.com",
+        "*.netlify.app"
+      ]
+    },
+    {
+      "name": "JetBrains",
+      "domains": [
+        "jetbrains.com",
+        "*.jetbrains.com"
+      ]
+    },
+    {
+      "name": "Replit",
+      "domains": [
+        "replit.com",
+        "*.replit.com",
+        "*.repl.co"
+      ]
+    },
+    {
+      "name": "Figma",
+      "domains": [
+        "figma.com",
+        "*.figma.com"
+      ]
+    },
+    {
+      "name": "Docker Hub",
+      "domains": [
+        "docker.com",
+        "*.docker.com",
+        "*.docker.io"
+      ]
+    },
+    {
+      "name": "Hugging Face",
+      "domains": [
+        "huggingface.co",
+        "*.huggingface.co"
+      ]
+    },
+    {
+      "name": "Stability AI",
+      "domains": [
+        "stability.ai",
+        "*.stability.ai"
+      ]
+    },
+    {
+      "name": "Mistral AI",
+      "domains": [
+        "mistral.ai",
+        "*.mistral.ai"
+      ]
+    },
+    {
+      "name": "Replicate",
+      "domains": [
+        "replicate.com",
+        "*.replicate.com",
+        "*.replicate.delivery"
+      ]
+    },
+    {
+      "name": "AWS",
+      "domains": [
+        "aws.amazon.com",
+        "*.aws.amazon.com",
+        "*.awsstatic.com",
+        "console.aws.amazon.com"
+      ]
+    },
+    {
+      "name": "Azure",
+      "domains": [
+        "azure.microsoft.com",
+        "*.azure.com",
+        "*.azure.net",
+        "portal.azure.com"
+      ]
+    },
+    {
+      "name": "Google Cloud",
+      "domains": [
+        "cloud.google.com",
+        "*.cloud.google.com",
+        "*.googleusercontent.com"
+      ]
+    },
+    {
+      "name": "DigitalOcean",
+      "domains": [
+        "digitalocean.com",
+        "*.digitalocean.com",
+        "*.digitaloceanspaces.com"
+      ]
+    },
+    {
+      "name": "Vimeo",
+      "domains": [
+        "vimeo.com",
+        "*.vimeo.com",
+        "*.vimeocdn.com"
+      ]
+    },
+    {
+      "name": "Dailymotion",
+      "domains": [
+        "dailymotion.com",
+        "*.dailymotion.com",
+        "*.dmcdn.net"
+      ]
+    },
+    {
+      "name": "Bilibili",
+      "domains": [
+        "bilibili.com",
+        "*.bilibili.com",
+        "*.bilivideo.com",
+        "*.hdslb.com"
+      ]
+    },
+    {
+      "name": "Viber",
+      "domains": [
+        "viber.com",
+        "*.viber.com"
+      ]
+    },
+    {
+      "name": "Skype",
+      "domains": [
+        "skype.com",
+        "*.skype.com",
+        "*.skypeecs-prod-usw-0.cloudapp.net"
+      ]
+    },
+    {
+      "name": "Microsoft Teams",
+      "domains": [
+        "teams.microsoft.com",
+        "*.teams.microsoft.com",
+        "*.teams.cloud.microsoft"
+      ]
+    },
+    {
+      "name": "Google Meet",
+      "domains": [
+        "meet.google.com",
+        "*.meet.google.com"
+      ]
+    },
+    {
+      "name": "Tidal",
+      "domains": [
+        "tidal.com",
+        "*.tidal.com"
+      ]
+    },
+    {
+      "name": "Yandex Music",
+      "domains": [
+        "music.yandex.ru",
+        "*.music.yandex.ru"
+      ]
+    },
+    {
+      "name": "Pandora",
+      "domains": [
+        "pandora.com",
+        "*.pandora.com"
+      ]
+    },
+    {
+      "name": "Battle.net",
+      "domains": [
+        "battle.net",
+        "*.battle.net",
+        "*.blizzard.com"
+      ]
+    },
+    {
+      "name": "GOG",
+      "domains": [
+        "gog.com",
+        "*.gog.com"
+      ]
+    },
+    {
+      "name": "Ubisoft",
+      "domains": [
+        "ubisoft.com",
+        "*.ubisoft.com",
+        "*.ubi.com"
+      ]
+    },
+    {
+      "name": "Nintendo",
+      "domains": [
+        "nintendo.com",
+        "*.nintendo.com",
+        "*.nintendo.net"
+      ]
+    },
+    {
+      "name": "Yandex",
+      "domains": [
+        "yandex.ru",
+        "*.yandex.ru",
+        "yandex.com",
+        "*.yandex.com",
+        "*.yandex.net"
+      ]
+    },
+    {
+      "name": "Mail.ru",
+      "domains": [
+        "mail.ru",
+        "*.mail.ru",
+        "*.mycdn.me"
+      ]
+    },
+    {
+      "name": "Ozon",
+      "domains": [
+        "ozon.ru",
+        "*.ozon.ru",
+        "*.ozone.ru"
+      ]
+    },
+    {
+      "name": "Wildberries",
+      "domains": [
+        "wildberries.ru",
+        "*.wildberries.ru",
+        "*.wbstatic.net",
+        "*.wbbasket.ru"
+      ]
+    },
+    {
+      "name": "Avito",
+      "domains": [
+        "avito.ru",
+        "*.avito.ru",
+        "*.avito.st"
+      ]
+    },
+    {
+      "name": "Кинопоиск",
+      "domains": [
+        "kinopoisk.ru",
+        "*.kinopoisk.ru",
+        "hd.kinopoisk.ru"
+      ]
+    },
+    {
+      "name": "PayPal",
+      "domains": [
+        "paypal.com",
+        "*.paypal.com",
+        "*.paypalobjects.com"
+      ]
+    },
+    {
+      "name": "Binance",
+      "domains": [
+        "binance.com",
+        "*.binance.com",
+        "*.bnbstatic.com"
+      ]
+    },
+    {
+      "name": "Coinbase",
+      "domains": [
+        "coinbase.com",
+        "*.coinbase.com"
+      ]
+    },
+    {
+      "name": "Atlassian",
+      "domains": [
+        "atlassian.com",
+        "*.atlassian.com",
+        "*.atlassian.net",
+        "*.jira.com",
+        "trello.com",
+        "*.trello.com"
+      ]
+    },
+    {
+      "name": "Asana",
+      "domains": [
+        "asana.com",
+        "*.asana.com"
+      ]
+    },
+    {
+      "name": "Canva",
+      "domains": [
+        "canva.com",
+        "*.canva.com"
+      ]
+    },
+    {
+      "name": "Adobe Creative Cloud",
+      "domains": [
+        "adobe.com",
+        "*.adobe.com",
+        "*.adobelogin.com",
+        "*.adobe.io"
+      ]
+    },
+    {
+      "name": "Grammarly",
+      "domains": [
+        "grammarly.com",
+        "*.grammarly.com"
+      ]
+    },
+    {
+      "name": "ProtonMail / VPN",
+      "domains": [
+        "proton.me",
+        "*.proton.me",
+        "protonmail.com",
+        "*.protonmail.com",
+        "protonvpn.com",
+        "*.protonvpn.com"
+      ]
+    },
+    {
+      "name": "NordVPN",
+      "domains": [
+        "nordvpn.com",
+        "*.nordvpn.com"
+      ]
+    },
+    {
+      "name": "Mullvad",
+      "domains": [
+        "mullvad.net",
+        "*.mullvad.net"
+      ]
+    },
+    {
+      "name": "MEGA",
+      "domains": [
+        "mega.nz",
+        "*.mega.nz",
+        "mega.io",
+        "*.mega.io"
+      ]
+    },
+    {
+      "name": "pCloud",
+      "domains": [
+        "pcloud.com",
+        "*.pcloud.com"
+      ]
+    },
+    {
+      "name": "The Pirate Bay",
+      "domains": [
+        "thepiratebay.org",
+        "*.thepiratebay.org"
+      ]
+    },
+    {
+      "name": "1337x",
+      "domains": [
+        "1337x.to",
+        "*.1337x.to"
+      ]
+    },
+    {
+      "name": "YTS",
+      "domains": [
+        "yts.mx",
+        "*.yts.mx"
+      ]
+    },
+    {
+      "name": "EZTV",
+      "domains": [
+        "eztv.re",
+        "*.eztv.re"
+      ]
+    },
+    {
+      "name": "Nyaa",
+      "domains": [
+        "nyaa.si",
+        "*.nyaa.si"
+      ]
+    },
+    {
+      "name": "TorrentGalaxy",
+      "domains": [
+        "torrentgalaxy.to",
+        "*.torrentgalaxy.to"
+      ]
+    },
+    {
+      "name": "LimeTorrents",
+      "domains": [
+        "limetorrents.lol",
+        "*.limetorrents.lol"
+      ]
+    },
+    {
+      "name": "Kinozal",
+      "domains": [
+        "kinozal.tv",
+        "*.kinozal.tv"
+      ]
+    },
+    {
+      "name": "NNM-Club",
+      "domains": [
+        "nnmclub.to",
+        "*.nnmclub.to"
+      ]
+    },
+    {
+      "name": "RuTor",
+      "domains": [
+        "rutor.info",
+        "*.rutor.info"
+      ]
     }
   ]
 }

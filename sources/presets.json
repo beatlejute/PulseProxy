@@ -982,6 +982,17 @@
         "rutor.info",
         "*.rutor.info"
       ]
+    },
+    {
+      "name": "OpenClaw",
+      "domains": [
+        "openclaw.ai",
+        "*.openclaw.ai",
+        "openclaws.io",
+        "*.openclaws.io",
+        "open-claw.org",
+        "*.open-claw.org"
+      ]
     }
   ]
 }

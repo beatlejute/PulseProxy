@@ -1,0 +1,493 @@
+{
+  "extensionName": {
+    "message": "PulseProxy VPN",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Extensão simples de alternância de proxy",
+    "description": "Extension description"
+  },
+  "buttonConnect": {
+    "message": "Conectar",
+    "description": "Connect button text"
+  },
+  "buttonConnected": {
+    "message": "Conectado",
+    "description": "Connected button text"
+  },
+  "buttonConnecting": {
+    "message": "Conectando...",
+    "description": "Connecting button text"
+  },
+  "buttonError": {
+    "message": "Erro",
+    "description": "Error button text"
+  },
+  "labelDomains": {
+    "message": "Domínios (um por linha):",
+    "description": "Label for domains textarea"
+  },
+  "labelProxy": {
+    "message": "Proxy (host:porta):",
+    "description": "Label for proxy input"
+  },
+  "buttonSaveDomains": {
+    "message": "Salvar domínios",
+    "description": "Save domains button text"
+  },
+  "buttonSaveProxy": {
+    "message": "Salvar proxy",
+    "description": "Save proxy button text"
+  },
+  "statusSaved": {
+    "message": "Salvo",
+    "description": "Saved status text"
+  },
+  "labelLanguage": {
+    "message": "Idioma:",
+    "description": "Label for language selector"
+  },
+  "placeholderDomain": {
+    "message": "exemplo.com (domínio exato)\n*.exemplo.com (todos subdomínios)",
+    "description": "Placeholder for domain input showing format examples: exact domain match, wildcard for all subdomains"
+  },
+  "placeholderProxy": {
+    "message": "127.0.0.1:8080",
+    "description": "Placeholder for proxy input"
+  },
+  "labelSync": {
+    "message": "Sincronizar configurações",
+    "description": "Label for sync toggle"
+  },
+  "syncEnableConfirm": {
+    "message": "Ativar sincronização? Suas configurações estarão disponíveis em todos os dispositivos com esta conta.",
+    "description": "Confirmation message when enabling sync"
+  },
+  "syncDisableConfirm": {
+    "message": "Desativar sincronização? As configurações serão armazenadas apenas neste dispositivo.",
+    "description": "Confirmation message when disabling sync"
+  },
+  "syncEnabled": {
+    "message": "Sincronização ativada",
+    "description": "Status message when sync is enabled"
+  },
+  "syncDisabled": {
+    "message": "Sincronização desativada",
+    "description": "Status message when sync is disabled"
+  },
+  "labelPresets": {
+    "message": "Predefinições:",
+    "description": "Label for presets section"
+  },
+  "buttonAddPreset": {
+    "message": "+ Adicionar predefinição",
+    "description": "Add preset button text"
+  },
+  "presetNamePlaceholder": {
+    "message": "Nome da predefinição",
+    "description": "Placeholder for preset name input"
+  },
+  "presetDefault": {
+    "message": "Padrão",
+    "description": "Badge for default preset"
+  },
+  "buttonDeletePreset": {
+    "message": "Excluir",
+    "description": "Delete preset button text"
+  },
+  "confirmDeletePreset": {
+    "message": "Excluir esta predefinição?",
+    "description": "Confirmation message when deleting preset"
+  },
+  "tabProxy": {
+    "message": "Proxy",
+    "description": "Tab label for proxy settings"
+  },
+  "tabPresets": {
+    "message": "Predefinições",
+    "description": "Tab label for presets"
+  },
+  "tabSettings": {
+    "message": "Config.",
+    "description": "Tab label for settings"
+  },
+  "buttonAddProxy": {
+    "message": "Adicionar proxy",
+    "description": "Add proxy button text"
+  },
+  "labelProxyType": {
+    "message": "Tipo:",
+    "description": "Label for proxy type selector"
+  },
+  "labelProxyHost": {
+    "message": "Host:",
+    "description": "Label for proxy host input"
+  },
+  "labelProxyPort": {
+    "message": "Porta:",
+    "description": "Label for proxy port input"
+  },
+  "labelProxyUsername": {
+    "message": "Usuário:",
+    "description": "Label for proxy username input"
+  },
+  "labelProxyPassword": {
+    "message": "Senha:",
+    "description": "Label for proxy password input"
+  },
+  "labelProxyName": {
+    "message": "Nome:",
+    "description": "Label for proxy name input"
+  },
+  "labelSelectProxy": {
+    "message": "Proxy:",
+    "description": "Label for proxy selector in preset"
+  },
+  "proxyDefault": {
+    "message": "Padrão",
+    "description": "Default proxy option"
+  },
+  "proxyNone": {
+    "message": "Não selecionado",
+    "description": "No proxy selected option"
+  },
+  "buttonSetDefault": {
+    "message": "Definir como padrão",
+    "description": "Set as default proxy button"
+  },
+  "confirmDeleteProxy": {
+    "message": "Excluir este proxy?",
+    "description": "Confirmation message when deleting proxy"
+  },
+  "proxyTypeHttp": {
+    "message": "HTTP",
+    "description": "HTTP proxy type label"
+  },
+  "proxyTypeHttps": {
+    "message": "HTTPS",
+    "description": "HTTPS proxy type label"
+  },
+  "proxyTypeSocks4": {
+    "message": "SOCKS4",
+    "description": "SOCKS4 proxy type label"
+  },
+  "proxyTypeSocks5": {
+    "message": "SOCKS5",
+    "description": "SOCKS5 proxy type label"
+  },
+  "buttonSaveProxyServer": {
+    "message": "Salvar",
+    "description": "Save proxy server button"
+  },
+  "buttonCancelProxy": {
+    "message": "Cancelar",
+    "description": "Cancel proxy form button"
+  },
+  "buttonEditProxy": {
+    "message": "Editar",
+    "description": "Edit proxy button"
+  },
+  "buttonDeleteProxy": {
+    "message": "Excluir",
+    "description": "Delete proxy button"
+  },
+  "editProxy": {
+    "message": "Editar proxy",
+    "description": "Edit proxy modal title"
+  },
+  "addProxy": {
+    "message": "Adicionar proxy",
+    "description": "Add proxy modal title"
+  },
+  "proxyValidationError": {
+    "message": "Insira host e porta válidos (1-65535)",
+    "description": "Proxy validation error message"
+  },
+  "deleteProxyConfirm": {
+    "message": "Excluir proxy",
+    "description": "Delete proxy confirmation prefix"
+  },
+  "proxyServersTitle": {
+    "message": "Servidores proxy",
+    "description": "Proxy servers list title"
+  },
+  "defaultProxy": {
+    "message": "Padrão",
+    "description": "Default proxy badge"
+  },
+  "setDefault": {
+    "message": "Padrão",
+    "description": "Set as default button"
+  },
+  "proxyName": {
+    "message": "Nome (opcional)",
+    "description": "Proxy name field label"
+  },
+  "proxyType": {
+    "message": "Tipo",
+    "description": "Proxy type field label"
+  },
+  "proxyHost": {
+    "message": "Host",
+    "description": "Proxy host field label"
+  },
+  "proxyPort": {
+    "message": "Porta",
+    "description": "Proxy port field label"
+  },
+  "proxyAuth": {
+    "message": "Autenticação",
+    "description": "Proxy auth checkbox label"
+  },
+  "proxyUsername": {
+    "message": "Usuário",
+    "description": "Proxy username field label"
+  },
+  "proxyPassword": {
+    "message": "Senha",
+    "description": "Proxy password field label"
+  },
+  "cancel": {
+    "message": "Cancelar",
+    "description": "Cancel button"
+  },
+  "save": {
+    "message": "Salvar",
+    "description": "Save button"
+  },
+  "noProxiesConfigured": {
+    "message": "Nenhum servidor proxy configurado. Deseja adicionar um?",
+    "description": "Message shown when trying to enable proxy without any configured"
+  },
+  "labelProxyByDefault": {
+    "message": "Usar proxy para todos os sites por padrão",
+    "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "ignoreListName": {
+    "message": "Lista de exclusão",
+    "description": "Name for the ignore list preset that bypasses proxy"
+  },
+  "placeholderIgnoreList": {
+    "message": "exemplo.com (domínio exato)\n*.exemplo.com (todos subdomínios)\n\nEstes domínios ignorarão o proxy",
+    "description": "Placeholder for ignore list domains input"
+  },
+  "labelImportExport": {
+    "message": "Importar/Exportar",
+    "description": "Label for import/export section"
+  },
+  "buttonExport": {
+    "message": "Exportar configurações",
+    "description": "Export settings button text"
+  },
+  "buttonImport": {
+    "message": "Importar configurações",
+    "description": "Import settings button text"
+  },
+  "exportError": {
+    "message": "Falha ao exportar",
+    "description": "Error message when export fails"
+  },
+  "importValidationError": {
+    "message": "Formato de arquivo inválido",
+    "description": "Error message when import validation fails"
+  },
+  "importConfirm": {
+    "message": "Importar configurações? Isso substituirá todas as configurações atuais.",
+    "description": "Confirmation message before importing settings"
+  },
+  "importSuccess": {
+    "message": "Configurações importadas com sucesso",
+    "description": "Success message after importing settings"
+  },
+  "invalidJson": {
+    "message": "Formato JSON inválido",
+    "description": "Error when JSON parsing fails"
+  },
+  "invalidStructure": {
+    "message": "Estrutura de arquivo inválida",
+    "description": "Error when file structure is invalid"
+  },
+  "missingVersion": {
+    "message": "Informação de versão ausente",
+    "description": "Error when version is missing"
+  },
+  "newerVersion": {
+    "message": "Arquivo criado com versão mais recente",
+    "description": "Warning when file version is newer"
+  },
+  "missingData": {
+    "message": "Seção de dados ausente",
+    "description": "Error when data section is missing"
+  },
+  "invalidPresets": {
+    "message": "Formato de predefinições inválido",
+    "description": "Error when presets format is invalid"
+  },
+  "invalidPresetStructure": {
+    "message": "Estrutura de predefinição inválida",
+    "description": "Error when preset structure is invalid"
+  },
+  "invalidProxies": {
+    "message": "Formato de proxy inválido",
+    "description": "Error when proxies format is invalid"
+  },
+  "invalidProxyStructure": {
+    "message": "Estrutura de proxy inválida",
+    "description": "Error when proxy structure is invalid"
+  },
+  "presetTypeDialogTitle": {
+    "message": "Adicionar predefinição",
+    "description": "Title for preset type selection dialog"
+  },
+  "presetTypeCreateOwn": {
+    "message": "Criar personalizado",
+    "description": "Option to create custom preset"
+  },
+  "presetTypeSelectPreset": {
+    "message": "Escolher de modelos",
+    "description": "Option to select from preset templates"
+  },
+  "presetListTitle": {
+    "message": "Modelos de predefinições",
+    "description": "Title for preset templates list modal"
+  },
+  "presetSearchPlaceholder": {
+    "message": "Pesquisar por nome...",
+    "description": "Placeholder for preset search input"
+  },
+  "presetListLoading": {
+    "message": "Carregando...",
+    "description": "Loading state text for preset list"
+  },
+  "presetListError": {
+    "message": "Falha ao carregar predefinições",
+    "description": "Error message when preset loading fails"
+  },
+  "presetListEmpty": {
+    "message": "Nenhuma predefinição encontrada",
+    "description": "Message when no presets found"
+  },
+  "presetListRetry": {
+    "message": "Tentar novamente",
+    "description": "Retry button text"
+  },
+  "presetDomainsCount": {
+    "message": "$COUNT$ domínios",
+    "description": "Domains count label",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "proxyTypeDialogTitle": {
+    "message": "Adicionar proxy",
+    "description": "Title for proxy type selection dialog"
+  },
+  "proxyTypeAddOwn": {
+    "message": "Adicionar personalizado",
+    "description": "Option to add custom proxy"
+  },
+  "proxyTypeSelectPublic": {
+    "message": "Selecionar dos públicos",
+    "description": "Option to select from public proxies"
+  },
+  "publicProxiesTitle": {
+    "message": "Proxies públicos",
+    "description": "Title for public proxies modal"
+  },
+  "filterProtocol": {
+    "message": "Protocolo",
+    "description": "Protocol filter label"
+  },
+  "filterConnectionType": {
+    "message": "Tipo",
+    "description": "Connection type filter label"
+  },
+  "filterCountry": {
+    "message": "País",
+    "description": "Country filter label"
+  },
+  "filterMinScore": {
+    "message": "Pont. mín.",
+    "description": "Minimum score filter label"
+  },
+  "filterAll": {
+    "message": "Todos",
+    "description": "All filter option"
+  },
+  "connectionTypeResidential": {
+    "message": "Residencial",
+    "description": "Residential connection type"
+  },
+  "connectionTypeCorporate": {
+    "message": "Corporativo",
+    "description": "Corporate connection type"
+  },
+  "connectionTypeMobile": {
+    "message": "Móvel",
+    "description": "Mobile connection type"
+  },
+  "publicProxySearchPlaceholder": {
+    "message": "Pesquisar por IP...",
+    "description": "Placeholder for public proxy search input"
+  },
+  "publicProxiesLoading": {
+    "message": "Carregando...",
+    "description": "Loading state for public proxies"
+  },
+  "publicProxiesError": {
+    "message": "Falha ao carregar proxies",
+    "description": "Error message when loading public proxies fails"
+  },
+  "publicProxiesEmpty": {
+    "message": "Nenhum proxy encontrado",
+    "description": "Message when no public proxies found"
+  },
+  "publicProxiesRetry": {
+    "message": "Tentar novamente",
+    "description": "Retry button text"
+  },
+  "publicProxiesWarning": {
+    "message": "Proxies públicos podem ser lentos, instáveis e inseguros. Use por sua conta e risco.",
+    "description": "Warning message about public proxies"
+  },
+  "publicProxiesRecommendation": {
+    "message": "Recomendamos comprar proxies confiáveis e acessíveis",
+    "description": "Recommendation to buy reliable proxies"
+  },
+  "proxyFormRecommendation": {
+    "message": "Precisa de proxies confiáveis e acessíveis?",
+    "description": "Recommendation link in proxy form"
+  },
+  "promoLink": {
+    "message": "Comprar proxies",
+    "description": "Promo link text at the bottom of popup"
+  },
+  "alertTitle": {
+    "message": "Alerta",
+    "description": "Title for alert dialog"
+  },
+  "confirmTitle": {
+    "message": "Confirmar",
+    "description": "Title for confirmation dialog"
+  },
+  "ok": {
+    "message": "OK",
+    "description": "OK button text"
+  },
+  "proxyErrorTitle": {
+    "message": "Falha na conexão",
+    "description": "Error banner title when proxy connection fails"
+  }
+,
+  "checkProxy": { "message": "Verificar" },
+  "checkProxyChecking": { "message": "Verificando..." },
+  "checkProxyOk": { "message": "Conectado" },
+  "checkProxyError": { "message": "Falha" },
+  "checkProxyTimeout": { "message": "Timeout" }
+,
+  "proxyCheckFailedTitle": { "message": "Verificação falhou" },
+  "saveAnyway": { "message": "Salvar mesmo assim" }
+}

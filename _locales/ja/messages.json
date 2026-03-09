@@ -1,0 +1,493 @@
+{
+  "extensionName": {
+    "message": "PulseProxy VPN",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "シンプルなプロキシ切り替え拡張機能",
+    "description": "Extension description"
+  },
+  "buttonConnect": {
+    "message": "接続",
+    "description": "Connect button text"
+  },
+  "buttonConnected": {
+    "message": "接続済み",
+    "description": "Connected button text"
+  },
+  "buttonConnecting": {
+    "message": "接続中...",
+    "description": "Connecting button text"
+  },
+  "buttonError": {
+    "message": "エラー",
+    "description": "Error button text"
+  },
+  "labelDomains": {
+    "message": "ドメイン（1行に1つ）:",
+    "description": "Label for domains textarea"
+  },
+  "labelProxy": {
+    "message": "プロキシ（ホスト:ポート）:",
+    "description": "Label for proxy input"
+  },
+  "buttonSaveDomains": {
+    "message": "ドメインを保存",
+    "description": "Save domains button text"
+  },
+  "buttonSaveProxy": {
+    "message": "プロキシを保存",
+    "description": "Save proxy button text"
+  },
+  "statusSaved": {
+    "message": "保存しました",
+    "description": "Saved status text"
+  },
+  "labelLanguage": {
+    "message": "言語:",
+    "description": "Label for language selector"
+  },
+  "placeholderDomain": {
+    "message": "example.com (完全一致)\n*.example.com (全サブドメイン)",
+    "description": "Placeholder for domain input showing format examples: exact domain match, wildcard for all subdomains"
+  },
+  "placeholderProxy": {
+    "message": "127.0.0.1:8080",
+    "description": "Placeholder for proxy input"
+  },
+  "labelSync": {
+    "message": "設定を同期",
+    "description": "Label for sync toggle"
+  },
+  "syncEnableConfirm": {
+    "message": "同期を有効にしますか？このアカウントを使用するすべてのデバイスで設定が利用可能になります。",
+    "description": "Confirmation message when enabling sync"
+  },
+  "syncDisableConfirm": {
+    "message": "同期を無効にしますか？設定はこのデバイスにのみ保存されます。",
+    "description": "Confirmation message when disabling sync"
+  },
+  "syncEnabled": {
+    "message": "同期が有効",
+    "description": "Status message when sync is enabled"
+  },
+  "syncDisabled": {
+    "message": "同期が無効",
+    "description": "Status message when sync is disabled"
+  },
+  "labelPresets": {
+    "message": "プリセット:",
+    "description": "Label for presets section"
+  },
+  "buttonAddPreset": {
+    "message": "+ プリセットを追加",
+    "description": "Add preset button text"
+  },
+  "presetNamePlaceholder": {
+    "message": "プリセット名",
+    "description": "Placeholder for preset name input"
+  },
+  "presetDefault": {
+    "message": "デフォルト",
+    "description": "Badge for default preset"
+  },
+  "buttonDeletePreset": {
+    "message": "削除",
+    "description": "Delete preset button text"
+  },
+  "confirmDeletePreset": {
+    "message": "このプリセットを削除しますか？",
+    "description": "Confirmation message when deleting preset"
+  },
+  "tabProxy": {
+    "message": "プロキシ",
+    "description": "Tab label for proxy settings"
+  },
+  "tabPresets": {
+    "message": "プリセット",
+    "description": "Tab label for presets"
+  },
+  "tabSettings": {
+    "message": "設定",
+    "description": "Tab label for settings"
+  },
+  "buttonAddProxy": {
+    "message": "プロキシを追加",
+    "description": "Add proxy button text"
+  },
+  "labelProxyType": {
+    "message": "タイプ:",
+    "description": "Label for proxy type selector"
+  },
+  "labelProxyHost": {
+    "message": "ホスト:",
+    "description": "Label for proxy host input"
+  },
+  "labelProxyPort": {
+    "message": "ポート:",
+    "description": "Label for proxy port input"
+  },
+  "labelProxyUsername": {
+    "message": "ユーザー名:",
+    "description": "Label for proxy username input"
+  },
+  "labelProxyPassword": {
+    "message": "パスワード:",
+    "description": "Label for proxy password input"
+  },
+  "labelProxyName": {
+    "message": "名前:",
+    "description": "Label for proxy name input"
+  },
+  "labelSelectProxy": {
+    "message": "プロキシ:",
+    "description": "Label for proxy selector in preset"
+  },
+  "proxyDefault": {
+    "message": "デフォルト",
+    "description": "Default proxy option"
+  },
+  "proxyNone": {
+    "message": "未選択",
+    "description": "No proxy selected option"
+  },
+  "buttonSetDefault": {
+    "message": "デフォルトに設定",
+    "description": "Set as default proxy button"
+  },
+  "confirmDeleteProxy": {
+    "message": "このプロキシを削除しますか？",
+    "description": "Confirmation message when deleting proxy"
+  },
+  "proxyTypeHttp": {
+    "message": "HTTP",
+    "description": "HTTP proxy type label"
+  },
+  "proxyTypeHttps": {
+    "message": "HTTPS",
+    "description": "HTTPS proxy type label"
+  },
+  "proxyTypeSocks4": {
+    "message": "SOCKS4",
+    "description": "SOCKS4 proxy type label"
+  },
+  "proxyTypeSocks5": {
+    "message": "SOCKS5",
+    "description": "SOCKS5 proxy type label"
+  },
+  "buttonSaveProxyServer": {
+    "message": "保存",
+    "description": "Save proxy server button"
+  },
+  "buttonCancelProxy": {
+    "message": "キャンセル",
+    "description": "Cancel proxy form button"
+  },
+  "buttonEditProxy": {
+    "message": "編集",
+    "description": "Edit proxy button"
+  },
+  "buttonDeleteProxy": {
+    "message": "削除",
+    "description": "Delete proxy button"
+  },
+  "editProxy": {
+    "message": "プロキシを編集",
+    "description": "Edit proxy modal title"
+  },
+  "addProxy": {
+    "message": "プロキシを追加",
+    "description": "Add proxy modal title"
+  },
+  "proxyValidationError": {
+    "message": "有効なホストとポート（1-65535）を入力してください",
+    "description": "Proxy validation error message"
+  },
+  "deleteProxyConfirm": {
+    "message": "プロキシを削除",
+    "description": "Delete proxy confirmation prefix"
+  },
+  "proxyServersTitle": {
+    "message": "プロキシサーバー",
+    "description": "Proxy servers list title"
+  },
+  "defaultProxy": {
+    "message": "デフォルト",
+    "description": "Default proxy badge"
+  },
+  "setDefault": {
+    "message": "デフォルト",
+    "description": "Set as default button"
+  },
+  "proxyName": {
+    "message": "名前（任意）",
+    "description": "Proxy name field label"
+  },
+  "proxyType": {
+    "message": "タイプ",
+    "description": "Proxy type field label"
+  },
+  "proxyHost": {
+    "message": "ホスト",
+    "description": "Proxy host field label"
+  },
+  "proxyPort": {
+    "message": "ポート",
+    "description": "Proxy port field label"
+  },
+  "proxyAuth": {
+    "message": "認証",
+    "description": "Proxy auth checkbox label"
+  },
+  "proxyUsername": {
+    "message": "ユーザー名",
+    "description": "Proxy username field label"
+  },
+  "proxyPassword": {
+    "message": "パスワード",
+    "description": "Proxy password field label"
+  },
+  "cancel": {
+    "message": "キャンセル",
+    "description": "Cancel button"
+  },
+  "save": {
+    "message": "保存",
+    "description": "Save button"
+  },
+  "noProxiesConfigured": {
+    "message": "プロキシサーバーが設定されていません。追加しますか？",
+    "description": "Message shown when trying to enable proxy without any configured"
+  },
+  "labelProxyByDefault": {
+    "message": "デフォルトで全サイトをプロキシ経由",
+    "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "ignoreListName": {
+    "message": "除外リスト",
+    "description": "Name for the ignore list preset that bypasses proxy"
+  },
+  "placeholderIgnoreList": {
+    "message": "example.com (完全一致)\n*.example.com (全サブドメイン)\n\nこれらのドメインはプロキシをバイパスします",
+    "description": "Placeholder for ignore list domains input"
+  },
+  "labelImportExport": {
+    "message": "インポート/エクスポート",
+    "description": "Label for import/export section"
+  },
+  "buttonExport": {
+    "message": "設定をエクスポート",
+    "description": "Export settings button text"
+  },
+  "buttonImport": {
+    "message": "設定をインポート",
+    "description": "Import settings button text"
+  },
+  "exportError": {
+    "message": "エクスポートに失敗しました",
+    "description": "Error message when export fails"
+  },
+  "importValidationError": {
+    "message": "ファイル形式が無効です",
+    "description": "Error message when import validation fails"
+  },
+  "importConfirm": {
+    "message": "設定をインポートしますか？現在のすべての設定が置き換えられます。",
+    "description": "Confirmation message before importing settings"
+  },
+  "importSuccess": {
+    "message": "設定が正常にインポートされました",
+    "description": "Success message after importing settings"
+  },
+  "invalidJson": {
+    "message": "JSON形式が無効です",
+    "description": "Error when JSON parsing fails"
+  },
+  "invalidStructure": {
+    "message": "ファイル構造が無効です",
+    "description": "Error when file structure is invalid"
+  },
+  "missingVersion": {
+    "message": "バージョン情報がありません",
+    "description": "Error when version is missing"
+  },
+  "newerVersion": {
+    "message": "新しいバージョンで作成されたファイルです",
+    "description": "Warning when file version is newer"
+  },
+  "missingData": {
+    "message": "データセクションがありません",
+    "description": "Error when data section is missing"
+  },
+  "invalidPresets": {
+    "message": "プリセット形式が無効です",
+    "description": "Error when presets format is invalid"
+  },
+  "invalidPresetStructure": {
+    "message": "プリセット構造が無効です",
+    "description": "Error when preset structure is invalid"
+  },
+  "invalidProxies": {
+    "message": "プロキシ形式が無効です",
+    "description": "Error when proxies format is invalid"
+  },
+  "invalidProxyStructure": {
+    "message": "プロキシ構造が無効です",
+    "description": "Error when proxy structure is invalid"
+  },
+  "presetTypeDialogTitle": {
+    "message": "プリセットを追加",
+    "description": "Title for preset type selection dialog"
+  },
+  "presetTypeCreateOwn": {
+    "message": "カスタム作成",
+    "description": "Option to create custom preset"
+  },
+  "presetTypeSelectPreset": {
+    "message": "テンプレートから選択",
+    "description": "Option to select from preset templates"
+  },
+  "presetListTitle": {
+    "message": "プリセットテンプレート",
+    "description": "Title for preset templates list modal"
+  },
+  "presetSearchPlaceholder": {
+    "message": "名前で検索...",
+    "description": "Placeholder for preset search input"
+  },
+  "presetListLoading": {
+    "message": "読み込み中...",
+    "description": "Loading state text for preset list"
+  },
+  "presetListError": {
+    "message": "プリセットの読み込みに失敗しました",
+    "description": "Error message when preset loading fails"
+  },
+  "presetListEmpty": {
+    "message": "プリセットが見つかりません",
+    "description": "Message when no presets found"
+  },
+  "presetListRetry": {
+    "message": "再試行",
+    "description": "Retry button text"
+  },
+  "presetDomainsCount": {
+    "message": "$COUNT$ ドメイン",
+    "description": "Domains count label",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "proxyTypeDialogTitle": {
+    "message": "プロキシを追加",
+    "description": "Title for proxy type selection dialog"
+  },
+  "proxyTypeAddOwn": {
+    "message": "カスタムを追加",
+    "description": "Option to add custom proxy"
+  },
+  "proxyTypeSelectPublic": {
+    "message": "公開から選択",
+    "description": "Option to select from public proxies"
+  },
+  "publicProxiesTitle": {
+    "message": "公開プロキシ",
+    "description": "Title for public proxies modal"
+  },
+  "filterProtocol": {
+    "message": "プロトコル",
+    "description": "Protocol filter label"
+  },
+  "filterConnectionType": {
+    "message": "タイプ",
+    "description": "Connection type filter label"
+  },
+  "filterCountry": {
+    "message": "国",
+    "description": "Country filter label"
+  },
+  "filterMinScore": {
+    "message": "最低評価",
+    "description": "Minimum score filter label"
+  },
+  "filterAll": {
+    "message": "すべて",
+    "description": "All filter option"
+  },
+  "connectionTypeResidential": {
+    "message": "住宅",
+    "description": "Residential connection type"
+  },
+  "connectionTypeCorporate": {
+    "message": "企業",
+    "description": "Corporate connection type"
+  },
+  "connectionTypeMobile": {
+    "message": "モバイル",
+    "description": "Mobile connection type"
+  },
+  "publicProxySearchPlaceholder": {
+    "message": "IPで検索...",
+    "description": "Placeholder for public proxy search input"
+  },
+  "publicProxiesLoading": {
+    "message": "読み込み中...",
+    "description": "Loading state for public proxies"
+  },
+  "publicProxiesError": {
+    "message": "プロキシを読み込めませんでした",
+    "description": "Error message when loading public proxies fails"
+  },
+  "publicProxiesEmpty": {
+    "message": "プロキシが見つかりません",
+    "description": "Message when no public proxies found"
+  },
+  "publicProxiesRetry": {
+    "message": "再試行",
+    "description": "Retry button text"
+  },
+  "publicProxiesWarning": {
+    "message": "公開プロキシは遅く、不安定で、安全でない場合があります。自己責任でご利用ください。",
+    "description": "Warning message about public proxies"
+  },
+  "publicProxiesRecommendation": {
+    "message": "信頼性が高く手頃な価格のプロキシの購入をお勧めします",
+    "description": "Recommendation to buy reliable proxies"
+  },
+  "proxyFormRecommendation": {
+    "message": "信頼性が高く手頃なプロキシが必要ですか？",
+    "description": "Recommendation link in proxy form"
+  },
+  "promoLink": {
+    "message": "プロキシを購入",
+    "description": "Promo link text at the bottom of popup"
+  },
+  "alertTitle": {
+    "message": "警告",
+    "description": "Title for alert dialog"
+  },
+  "confirmTitle": {
+    "message": "確認",
+    "description": "Title for confirmation dialog"
+  },
+  "ok": {
+    "message": "OK",
+    "description": "OK button text"
+  },
+  "proxyErrorTitle": {
+    "message": "接続に失敗しました",
+    "description": "Error banner title when proxy connection fails"
+  }
+,
+  "checkProxy": { "message": "確認" },
+  "checkProxyChecking": { "message": "確認中..." },
+  "checkProxyOk": { "message": "接続済み" },
+  "checkProxyError": { "message": "失敗" },
+  "checkProxyTimeout": { "message": "タイムアウト" }
+,
+  "proxyCheckFailedTitle": { "message": "プロキシ確認失敗" },
+  "saveAnyway": { "message": "それでも保存" }
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=280, initial-scale=1.0, minimum-scale=1.0">
+    <title>Proxy Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <button id="main-button" class="main-button disconnected">
+            <svg class="shield-icon" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+                <!-- Щит -->
+                <path class="shield-bg" d="M50 0 L95 15 L95 55 C95 85 50 115 50 115 C50 115 5 85 5 55 L5 15 Z"/>
+                <!-- Линия пульса для connected/connecting -->
+                <g class="pulse-container">
+                    <clipPath id="pulse-clip">
+                        <rect x="20" y="30" width="60" height="60"/>
+                    </clipPath>
+                    <g clip-path="url(#pulse-clip)">
+                        <path class="pulse-line" d="M20 60 L35 60 L42 40 L50 80 L58 40 L65 60 L80 60 L95 60 L102 40 L110 80 L118 40 L125 60 L140 60"/>
+                    </g>
+                </g>
+                <!-- Прямая линия для disconnected/error -->
+                <line class="flat-line" x1="20" y1="60" x2="80" y2="60"/>
+                <!-- Бейдж с галочкой для connected -->
+                <g class="checkmark-badge">
+                    <circle cx="75" cy="95" r="12" class="badge-circle"/>
+                    <path class="checkmark" d="M69 95 L73 99 L81 91" />
+                </g>
+            </svg>
+        </button>
+
+        <!-- Error Banner -->
+        <div id="error-banner" class="public-proxies-warning" style="display:none;">
+            <span class="warning-icon">⚠️</span>
+            <div class="warning-content">
+                <span class="warning-title" data-i18n="proxyErrorTitle">Connection failed</span> <span id="error-proxy-label" class="error-proxy-label"></span>
+                <span class="warning-recommendation" data-i18n="publicProxiesWarning">Public proxies may be slow, unstable, and insecure. Use at your own risk.</span>
+                <span class="warning-recommendation"><span data-i18n="publicProxiesRecommendation">We recommend buying reliable and affordable proxies</span> <a href="https://app.proxy-cheap.com/r/MCk2IU" target="_blank" data-i18n="promoLink">Buy proxies</a></span>
+            </div>
+        </div>
+
+        <!-- SegmentedControl -->
+        <div id="segmented-control" class="segmented-control">
+            <button class="segment" data-tab="proxy" data-i18n="tabProxy">Proxy</button>
+            <button class="segment" data-tab="presets" data-i18n="tabPresets">Presets</button>
+            <button class="segment" data-tab="settings" data-i18n="tabSettings">Settings</button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="tab-contents">
+            <!-- Proxy Tab -->
+            <div id="tab-proxy" class="tab-content">
+                <div id="proxy-list-container"></div>
+            </div>
+
+            <!-- Presets Tab -->
+            <div id="tab-presets" class="tab-content">
+                <div class="setting-group presets-section">
+                    <button id="proxy-by-default-toggle" class="proxy-by-default-toggle" data-i18n="labelProxyByDefault">Proxy all sites by default</button>
+                    <button id="add-preset-button" class="add-preset-button" data-i18n="buttonAddPreset">+ Add Preset</button>
+                    <div id="presets-container">
+                        <div id="presets-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="tab-settings" class="tab-content">
+                <div class="setting-group language-selector">
+                    <label for="language-select" data-i18n="labelLanguage">Language:</label>
+                    <select id="language-select"></select>
+                </div>
+
+                <div class="setting-group sync-toggle">
+                    <input type="checkbox" id="sync-toggle" />
+                    <label for="sync-toggle" data-i18n="labelSync">Sync settings</label>
+                </div>
+
+                <!-- Секция импорта/экспорта -->
+                <div class="setting-group import-export-section">
+                    <div class="setting-label" data-i18n="labelImportExport">Import/Export</div>
+                    <div class="import-export-buttons">
+                        <button id="export-button" class="secondary-button" data-i18n="buttonExport">
+                            Export Settings
+                        </button>
+                        <button id="import-button" class="secondary-button" data-i18n="buttonImport">
+                            Import Settings
+                        </button>
+                    </div>
+                    <input type="file" id="import-file-input" accept=".json" style="display: none;" />
+                </div>
+            </div>
+        </div>
+        <a href="https://app.proxy-cheap.com/r/MCk2IU" target="_blank" class="promo-link" data-i18n="promoLink">Buy proxies</a>
+    </div>
+    <script type="module" src="dist/popup.js"></script>
+</body>
+</html>

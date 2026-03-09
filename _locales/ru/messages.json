@@ -1,0 +1,493 @@
+{
+  "extensionName": {
+    "message": "PulseProxy VPN",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Простое расширение для переключения прокси",
+    "description": "Extension description"
+  },
+  "buttonConnect": {
+    "message": "Подключить",
+    "description": "Connect button text"
+  },
+  "buttonConnected": {
+    "message": "Подключено",
+    "description": "Connected button text"
+  },
+  "buttonConnecting": {
+    "message": "Подключение...",
+    "description": "Connecting button text"
+  },
+  "buttonError": {
+    "message": "Ошибка",
+    "description": "Error button text"
+  },
+  "labelDomains": {
+    "message": "Домены (по одному на строку):",
+    "description": "Label for domains textarea"
+  },
+  "labelProxy": {
+    "message": "Прокси (хост:порт):",
+    "description": "Label for proxy input"
+  },
+  "buttonSaveDomains": {
+    "message": "Сохранить домены",
+    "description": "Save domains button text"
+  },
+  "buttonSaveProxy": {
+    "message": "Сохранить прокси",
+    "description": "Save proxy button text"
+  },
+  "statusSaved": {
+    "message": "Сохранено",
+    "description": "Saved status text"
+  },
+  "labelLanguage": {
+    "message": "Язык:",
+    "description": "Label for language selector"
+  },
+  "placeholderDomain": {
+    "message": "example.com (точный домен)\n*.example.com (все поддомены)",
+    "description": "Placeholder for domain input showing format examples: exact domain match, wildcard for all subdomains"
+  },
+  "placeholderProxy": {
+    "message": "127.0.0.1:8080",
+    "description": "Placeholder for proxy input"
+  },
+  "labelSync": {
+    "message": "Синхронизация настроек",
+    "description": "Label for sync toggle"
+  },
+  "syncEnableConfirm": {
+    "message": "Включить синхронизацию? Ваши настройки будут доступны на всех устройствах с этим аккаунтом.",
+    "description": "Confirmation message when enabling sync"
+  },
+  "syncDisableConfirm": {
+    "message": "Отключить синхронизацию? Настройки будут храниться только на этом устройстве.",
+    "description": "Confirmation message when disabling sync"
+  },
+  "syncEnabled": {
+    "message": "Синхронизация включена",
+    "description": "Status message when sync is enabled"
+  },
+  "syncDisabled": {
+    "message": "Синхронизация отключена",
+    "description": "Status message when sync is disabled"
+  },
+  "labelPresets": {
+    "message": "Пресеты:",
+    "description": "Label for presets section"
+  },
+  "buttonAddPreset": {
+    "message": "+ Добавить пресет",
+    "description": "Add preset button text"
+  },
+  "presetNamePlaceholder": {
+    "message": "Название пресета",
+    "description": "Placeholder for preset name input"
+  },
+  "presetDefault": {
+    "message": "По умолчанию",
+    "description": "Badge for default preset"
+  },
+  "buttonDeletePreset": {
+    "message": "Удалить",
+    "description": "Delete preset button text"
+  },
+  "confirmDeletePreset": {
+    "message": "Удалить этот пресет?",
+    "description": "Confirmation message when deleting preset"
+  },
+  "tabProxy": {
+    "message": "Прокси",
+    "description": "Tab label for proxy settings"
+  },
+  "tabPresets": {
+    "message": "Пресеты",
+    "description": "Tab label for presets"
+  },
+  "tabSettings": {
+    "message": "Настройки",
+    "description": "Tab label for settings"
+  },
+  "buttonAddProxy": {
+    "message": "Добавить прокси",
+    "description": "Add proxy button text"
+  },
+  "labelProxyType": {
+    "message": "Тип:",
+    "description": "Label for proxy type selector"
+  },
+  "labelProxyHost": {
+    "message": "Хост:",
+    "description": "Label for proxy host input"
+  },
+  "labelProxyPort": {
+    "message": "Порт:",
+    "description": "Label for proxy port input"
+  },
+  "labelProxyUsername": {
+    "message": "Логин:",
+    "description": "Label for proxy username input"
+  },
+  "labelProxyPassword": {
+    "message": "Пароль:",
+    "description": "Label for proxy password input"
+  },
+  "labelProxyName": {
+    "message": "Название:",
+    "description": "Label for proxy name input"
+  },
+  "labelSelectProxy": {
+    "message": "Прокси:",
+    "description": "Label for proxy selector in preset"
+  },
+  "proxyDefault": {
+    "message": "По умолчанию",
+    "description": "Default proxy option"
+  },
+  "proxyNone": {
+    "message": "Не выбрано",
+    "description": "No proxy selected option"
+  },
+  "buttonSetDefault": {
+    "message": "Сделать по умолчанию",
+    "description": "Set as default proxy button"
+  },
+  "confirmDeleteProxy": {
+    "message": "Удалить этот прокси?",
+    "description": "Confirmation message when deleting proxy"
+  },
+  "proxyTypeHttp": {
+    "message": "HTTP",
+    "description": "HTTP proxy type label"
+  },
+  "proxyTypeHttps": {
+    "message": "HTTPS",
+    "description": "HTTPS proxy type label"
+  },
+  "proxyTypeSocks4": {
+    "message": "SOCKS4",
+    "description": "SOCKS4 proxy type label"
+  },
+  "proxyTypeSocks5": {
+    "message": "SOCKS5",
+    "description": "SOCKS5 proxy type label"
+  },
+  "buttonSaveProxyServer": {
+    "message": "Сохранить",
+    "description": "Save proxy server button"
+  },
+  "buttonCancelProxy": {
+    "message": "Отмена",
+    "description": "Cancel proxy form button"
+  },
+  "buttonEditProxy": {
+    "message": "Редактировать",
+    "description": "Edit proxy button"
+  },
+  "buttonDeleteProxy": {
+    "message": "Удалить",
+    "description": "Delete proxy button"
+  },
+  "editProxy": {
+    "message": "Редактировать прокси",
+    "description": "Edit proxy modal title"
+  },
+  "addProxy": {
+    "message": "Добавить прокси",
+    "description": "Add proxy modal title"
+  },
+  "proxyValidationError": {
+    "message": "Введите корректный хост и порт (1-65535)",
+    "description": "Proxy validation error message"
+  },
+  "deleteProxyConfirm": {
+    "message": "Удалить прокси",
+    "description": "Delete proxy confirmation prefix"
+  },
+  "proxyServersTitle": {
+    "message": "Прокси-серверы",
+    "description": "Proxy servers list title"
+  },
+  "defaultProxy": {
+    "message": "По умолчанию",
+    "description": "Default proxy badge"
+  },
+  "setDefault": {
+    "message": "По умолчанию",
+    "description": "Set as default button"
+  },
+  "proxyName": {
+    "message": "Название (опционально)",
+    "description": "Proxy name field label"
+  },
+  "proxyType": {
+    "message": "Тип",
+    "description": "Proxy type field label"
+  },
+  "proxyHost": {
+    "message": "Хост",
+    "description": "Proxy host field label"
+  },
+  "proxyPort": {
+    "message": "Порт",
+    "description": "Proxy port field label"
+  },
+  "proxyAuth": {
+    "message": "Авторизация",
+    "description": "Proxy auth checkbox label"
+  },
+  "proxyUsername": {
+    "message": "Логин",
+    "description": "Proxy username field label"
+  },
+  "proxyPassword": {
+    "message": "Пароль",
+    "description": "Proxy password field label"
+  },
+  "cancel": {
+    "message": "Отмена",
+    "description": "Cancel button"
+  },
+  "save": {
+    "message": "Сохранить",
+    "description": "Save button"
+  },
+  "noProxiesConfigured": {
+    "message": "Прокси-серверы не настроены. Хотите добавить?",
+    "description": "Message shown when trying to enable proxy without any configured"
+  },
+  "labelProxyByDefault": {
+    "message": "Проксировать все сайты по умолчанию",
+    "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "ignoreListName": {
+    "message": "Список исключений",
+    "description": "Name for the ignore list preset that bypasses proxy"
+  },
+  "placeholderIgnoreList": {
+    "message": "example.com (точный домен)\n*.example.com (все поддомены)\n\nЭти домены будут работать напрямую, без прокси",
+    "description": "Placeholder for ignore list domains input"
+  },
+  "labelImportExport": {
+    "message": "Импорт/Экспорт",
+    "description": "Label for import/export section"
+  },
+  "buttonExport": {
+    "message": "Экспорт настроек",
+    "description": "Export settings button text"
+  },
+  "buttonImport": {
+    "message": "Импорт настроек",
+    "description": "Import settings button text"
+  },
+  "exportError": {
+    "message": "Не удалось экспортировать настройки",
+    "description": "Error message when export fails"
+  },
+  "importValidationError": {
+    "message": "Неверный формат файла",
+    "description": "Error message when import validation fails"
+  },
+  "importConfirm": {
+    "message": "Импортировать настройки? Это заменит все текущие настройки.",
+    "description": "Confirmation message before importing settings"
+  },
+  "importSuccess": {
+    "message": "Настройки успешно импортированы",
+    "description": "Success message after importing settings"
+  },
+  "invalidJson": {
+    "message": "Неверный формат JSON",
+    "description": "Error when JSON parsing fails"
+  },
+  "invalidStructure": {
+    "message": "Неверная структура файла",
+    "description": "Error when file structure is invalid"
+  },
+  "missingVersion": {
+    "message": "Отсутствует информация о версии",
+    "description": "Error when version is missing"
+  },
+  "newerVersion": {
+    "message": "Файл создан более новой версией",
+    "description": "Warning when file version is newer"
+  },
+  "missingData": {
+    "message": "Отсутствует секция данных",
+    "description": "Error when data section is missing"
+  },
+  "invalidPresets": {
+    "message": "Неверный формат пресетов",
+    "description": "Error when presets format is invalid"
+  },
+  "invalidPresetStructure": {
+    "message": "Неверная структура пресета",
+    "description": "Error when preset structure is invalid"
+  },
+  "invalidProxies": {
+    "message": "Неверный формат прокси",
+    "description": "Error when proxies format is invalid"
+  },
+  "invalidProxyStructure": {
+    "message": "Неверная структура прокси",
+    "description": "Error when proxy structure is invalid"
+  },
+  "presetTypeDialogTitle": {
+    "message": "Добавить пресет",
+    "description": "Title for preset type selection dialog"
+  },
+  "presetTypeCreateOwn": {
+    "message": "Создать свой",
+    "description": "Option to create custom preset"
+  },
+  "presetTypeSelectPreset": {
+    "message": "Выбрать из предустановленных",
+    "description": "Option to select from preset templates"
+  },
+  "presetListTitle": {
+    "message": "Предустановленные пресеты",
+    "description": "Title for preset templates list modal"
+  },
+  "presetSearchPlaceholder": {
+    "message": "Поиск по названию...",
+    "description": "Placeholder for preset search input"
+  },
+  "presetListLoading": {
+    "message": "Загрузка...",
+    "description": "Loading state text for preset list"
+  },
+  "presetListError": {
+    "message": "Не удалось загрузить пресеты",
+    "description": "Error message when preset loading fails"
+  },
+  "presetListEmpty": {
+    "message": "Пресеты не найдены",
+    "description": "Message when no presets found"
+  },
+  "presetListRetry": {
+    "message": "Повторить",
+    "description": "Retry button text"
+  },
+  "presetDomainsCount": {
+    "message": "$COUNT$ доменов",
+    "description": "Domains count label",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "proxyTypeDialogTitle": {
+    "message": "Добавить прокси",
+    "description": "Title for proxy type selection dialog"
+  },
+  "proxyTypeAddOwn": {
+    "message": "Добавить свой",
+    "description": "Option to add custom proxy"
+  },
+  "proxyTypeSelectPublic": {
+    "message": "Подобрать из публичных",
+    "description": "Option to select from public proxies"
+  },
+  "publicProxiesTitle": {
+    "message": "Публичные прокси",
+    "description": "Title for public proxies modal"
+  },
+  "filterProtocol": {
+    "message": "Протокол",
+    "description": "Protocol filter label"
+  },
+  "filterConnectionType": {
+    "message": "Тип",
+    "description": "Connection type filter label"
+  },
+  "filterCountry": {
+    "message": "Страна",
+    "description": "Country filter label"
+  },
+  "filterMinScore": {
+    "message": "Мин. рейтинг",
+    "description": "Minimum score filter label"
+  },
+  "filterAll": {
+    "message": "Все",
+    "description": "All filter option"
+  },
+  "connectionTypeResidential": {
+    "message": "Residential",
+    "description": "Residential connection type"
+  },
+  "connectionTypeCorporate": {
+    "message": "Corporate",
+    "description": "Corporate connection type"
+  },
+  "connectionTypeMobile": {
+    "message": "Mobile",
+    "description": "Mobile connection type"
+  },
+  "publicProxySearchPlaceholder": {
+    "message": "Поиск по IP...",
+    "description": "Placeholder for public proxy search input"
+  },
+  "publicProxiesLoading": {
+    "message": "Загрузка...",
+    "description": "Loading state for public proxies"
+  },
+  "publicProxiesError": {
+    "message": "Не удалось загрузить прокси",
+    "description": "Error message when loading public proxies fails"
+  },
+  "publicProxiesEmpty": {
+    "message": "Прокси не найдены",
+    "description": "Message when no public proxies found"
+  },
+  "publicProxiesRetry": {
+    "message": "Повторить",
+    "description": "Retry button text"
+  },
+  "publicProxiesWarning": {
+    "message": "Публичные прокси могут работать медленно, нестабильно и небезопасны. Используйте на свой страх и риск.",
+    "description": "Warning message about public proxies"
+  },
+  "publicProxiesRecommendation": {
+    "message": "Рекомендуем купить надёжные и недорогие прокси",
+    "description": "Recommendation to buy reliable proxies"
+  },
+  "proxyFormRecommendation": {
+    "message": "Нужны надёжные и недорогие прокси?",
+    "description": "Recommendation link in proxy form"
+  },
+  "promoLink": {
+    "message": "Купить прокси",
+    "description": "Promo link text at the bottom of popup"
+  },
+  "alertTitle": {
+    "message": "Предупреждение",
+    "description": "Title for alert dialog"
+  },
+  "confirmTitle": {
+    "message": "Подтверждение",
+    "description": "Title for confirmation dialog"
+  },
+  "ok": {
+    "message": "OK",
+    "description": "OK button text"
+  },
+  "proxyErrorTitle": {
+    "message": "Не удалось подключиться через прокси",
+    "description": "Error banner title when proxy connection fails"
+  }
+,
+  "checkProxy": { "message": "Проверить" },
+  "checkProxyChecking": { "message": "Проверка..." },
+  "checkProxyOk": { "message": "Подключено" },
+  "checkProxyError": { "message": "Ошибка" },
+  "checkProxyTimeout": { "message": "Таймаут" }
+,
+  "proxyCheckFailedTitle": { "message": "Проверка прокси не прошла" },
+  "saveAnyway": { "message": "Сохранить всё равно" }
+}

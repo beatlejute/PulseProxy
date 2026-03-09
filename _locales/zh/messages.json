@@ -1,0 +1,493 @@
+{
+  "extensionName": {
+    "message": "PulseProxy VPN",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "简单的代理切换扩展",
+    "description": "Extension description"
+  },
+  "buttonConnect": {
+    "message": "连接",
+    "description": "Connect button text"
+  },
+  "buttonConnected": {
+    "message": "已连接",
+    "description": "Connected button text"
+  },
+  "buttonConnecting": {
+    "message": "连接中...",
+    "description": "Connecting button text"
+  },
+  "buttonError": {
+    "message": "错误",
+    "description": "Error button text"
+  },
+  "labelDomains": {
+    "message": "域名（每行一个）:",
+    "description": "Label for domains textarea"
+  },
+  "labelProxy": {
+    "message": "代理（主机:端口）:",
+    "description": "Label for proxy input"
+  },
+  "buttonSaveDomains": {
+    "message": "保存域名",
+    "description": "Save domains button text"
+  },
+  "buttonSaveProxy": {
+    "message": "保存代理",
+    "description": "Save proxy button text"
+  },
+  "statusSaved": {
+    "message": "已保存",
+    "description": "Saved status text"
+  },
+  "labelLanguage": {
+    "message": "语言:",
+    "description": "Label for language selector"
+  },
+  "placeholderDomain": {
+    "message": "example.com (精确匹配)\n*.example.com (所有子域名)",
+    "description": "Placeholder for domain input showing format examples: exact domain match, wildcard for all subdomains"
+  },
+  "placeholderProxy": {
+    "message": "127.0.0.1:8080",
+    "description": "Placeholder for proxy input"
+  },
+  "labelSync": {
+    "message": "同步设置",
+    "description": "Label for sync toggle"
+  },
+  "syncEnableConfirm": {
+    "message": "启用同步？您的设置将在所有使用此账户的设备上可用。",
+    "description": "Confirmation message when enabling sync"
+  },
+  "syncDisableConfirm": {
+    "message": "禁用同步？设置将仅存储在此设备上。",
+    "description": "Confirmation message when disabling sync"
+  },
+  "syncEnabled": {
+    "message": "同步已启用",
+    "description": "Status message when sync is enabled"
+  },
+  "syncDisabled": {
+    "message": "同步已禁用",
+    "description": "Status message when sync is disabled"
+  },
+  "labelPresets": {
+    "message": "预设:",
+    "description": "Label for presets section"
+  },
+  "buttonAddPreset": {
+    "message": "+ 添加预设",
+    "description": "Add preset button text"
+  },
+  "presetNamePlaceholder": {
+    "message": "预设名称",
+    "description": "Placeholder for preset name input"
+  },
+  "presetDefault": {
+    "message": "默认",
+    "description": "Badge for default preset"
+  },
+  "buttonDeletePreset": {
+    "message": "删除",
+    "description": "Delete preset button text"
+  },
+  "confirmDeletePreset": {
+    "message": "删除此预设？",
+    "description": "Confirmation message when deleting preset"
+  },
+  "tabProxy": {
+    "message": "代理",
+    "description": "Tab label for proxy settings"
+  },
+  "tabPresets": {
+    "message": "预设",
+    "description": "Tab label for presets"
+  },
+  "tabSettings": {
+    "message": "设置",
+    "description": "Tab label for settings"
+  },
+  "buttonAddProxy": {
+    "message": "添加代理",
+    "description": "Add proxy button text"
+  },
+  "labelProxyType": {
+    "message": "类型:",
+    "description": "Label for proxy type selector"
+  },
+  "labelProxyHost": {
+    "message": "主机:",
+    "description": "Label for proxy host input"
+  },
+  "labelProxyPort": {
+    "message": "端口:",
+    "description": "Label for proxy port input"
+  },
+  "labelProxyUsername": {
+    "message": "用户名:",
+    "description": "Label for proxy username input"
+  },
+  "labelProxyPassword": {
+    "message": "密码:",
+    "description": "Label for proxy password input"
+  },
+  "labelProxyName": {
+    "message": "名称:",
+    "description": "Label for proxy name input"
+  },
+  "labelSelectProxy": {
+    "message": "代理:",
+    "description": "Label for proxy selector in preset"
+  },
+  "proxyDefault": {
+    "message": "默认",
+    "description": "Default proxy option"
+  },
+  "proxyNone": {
+    "message": "未选择",
+    "description": "No proxy selected option"
+  },
+  "buttonSetDefault": {
+    "message": "设为默认",
+    "description": "Set as default proxy button"
+  },
+  "confirmDeleteProxy": {
+    "message": "删除此代理？",
+    "description": "Confirmation message when deleting proxy"
+  },
+  "proxyTypeHttp": {
+    "message": "HTTP",
+    "description": "HTTP proxy type label"
+  },
+  "proxyTypeHttps": {
+    "message": "HTTPS",
+    "description": "HTTPS proxy type label"
+  },
+  "proxyTypeSocks4": {
+    "message": "SOCKS4",
+    "description": "SOCKS4 proxy type label"
+  },
+  "proxyTypeSocks5": {
+    "message": "SOCKS5",
+    "description": "SOCKS5 proxy type label"
+  },
+  "buttonSaveProxyServer": {
+    "message": "保存",
+    "description": "Save proxy server button"
+  },
+  "buttonCancelProxy": {
+    "message": "取消",
+    "description": "Cancel proxy form button"
+  },
+  "buttonEditProxy": {
+    "message": "编辑",
+    "description": "Edit proxy button"
+  },
+  "buttonDeleteProxy": {
+    "message": "删除",
+    "description": "Delete proxy button"
+  },
+  "editProxy": {
+    "message": "编辑代理",
+    "description": "Edit proxy modal title"
+  },
+  "addProxy": {
+    "message": "添加代理",
+    "description": "Add proxy modal title"
+  },
+  "proxyValidationError": {
+    "message": "请输入有效的主机和端口（1-65535）",
+    "description": "Proxy validation error message"
+  },
+  "deleteProxyConfirm": {
+    "message": "删除代理",
+    "description": "Delete proxy confirmation prefix"
+  },
+  "proxyServersTitle": {
+    "message": "代理服务器",
+    "description": "Proxy servers list title"
+  },
+  "defaultProxy": {
+    "message": "默认",
+    "description": "Default proxy badge"
+  },
+  "setDefault": {
+    "message": "默认",
+    "description": "Set as default button"
+  },
+  "proxyName": {
+    "message": "名称（可选）",
+    "description": "Proxy name field label"
+  },
+  "proxyType": {
+    "message": "类型",
+    "description": "Proxy type field label"
+  },
+  "proxyHost": {
+    "message": "主机",
+    "description": "Proxy host field label"
+  },
+  "proxyPort": {
+    "message": "端口",
+    "description": "Proxy port field label"
+  },
+  "proxyAuth": {
+    "message": "身份验证",
+    "description": "Proxy auth checkbox label"
+  },
+  "proxyUsername": {
+    "message": "用户名",
+    "description": "Proxy username field label"
+  },
+  "proxyPassword": {
+    "message": "密码",
+    "description": "Proxy password field label"
+  },
+  "cancel": {
+    "message": "取消",
+    "description": "Cancel button"
+  },
+  "save": {
+    "message": "保存",
+    "description": "Save button"
+  },
+  "noProxiesConfigured": {
+    "message": "未配置代理服务器。是否要添加一个？",
+    "description": "Message shown when trying to enable proxy without any configured"
+  },
+  "labelProxyByDefault": {
+    "message": "默认代理所有网站",
+    "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "ignoreListName": {
+    "message": "排除列表",
+    "description": "Name for the ignore list preset that bypasses proxy"
+  },
+  "placeholderIgnoreList": {
+    "message": "example.com (精确匹配)\n*.example.com (所有子域名)\n\n这些域名将绕过代理",
+    "description": "Placeholder for ignore list domains input"
+  },
+  "labelImportExport": {
+    "message": "导入/导出",
+    "description": "Label for import/export section"
+  },
+  "buttonExport": {
+    "message": "导出设置",
+    "description": "Export settings button text"
+  },
+  "buttonImport": {
+    "message": "导入设置",
+    "description": "Import settings button text"
+  },
+  "exportError": {
+    "message": "导出失败",
+    "description": "Error message when export fails"
+  },
+  "importValidationError": {
+    "message": "文件格式无效",
+    "description": "Error message when import validation fails"
+  },
+  "importConfirm": {
+    "message": "导入设置？这将替换所有当前设置。",
+    "description": "Confirmation message before importing settings"
+  },
+  "importSuccess": {
+    "message": "设置导入成功",
+    "description": "Success message after importing settings"
+  },
+  "invalidJson": {
+    "message": "JSON格式无效",
+    "description": "Error when JSON parsing fails"
+  },
+  "invalidStructure": {
+    "message": "文件结构无效",
+    "description": "Error when file structure is invalid"
+  },
+  "missingVersion": {
+    "message": "缺少版本信息",
+    "description": "Error when version is missing"
+  },
+  "newerVersion": {
+    "message": "文件由更新版本创建",
+    "description": "Warning when file version is newer"
+  },
+  "missingData": {
+    "message": "缺少数据部分",
+    "description": "Error when data section is missing"
+  },
+  "invalidPresets": {
+    "message": "预设格式无效",
+    "description": "Error when presets format is invalid"
+  },
+  "invalidPresetStructure": {
+    "message": "预设结构无效",
+    "description": "Error when preset structure is invalid"
+  },
+  "invalidProxies": {
+    "message": "代理格式无效",
+    "description": "Error when proxies format is invalid"
+  },
+  "invalidProxyStructure": {
+    "message": "代理结构无效",
+    "description": "Error when proxy structure is invalid"
+  },
+  "presetTypeDialogTitle": {
+    "message": "添加预设",
+    "description": "Title for preset type selection dialog"
+  },
+  "presetTypeCreateOwn": {
+    "message": "创建自定义",
+    "description": "Option to create custom preset"
+  },
+  "presetTypeSelectPreset": {
+    "message": "从模板选择",
+    "description": "Option to select from preset templates"
+  },
+  "presetListTitle": {
+    "message": "预设模板",
+    "description": "Title for preset templates list modal"
+  },
+  "presetSearchPlaceholder": {
+    "message": "按名称搜索...",
+    "description": "Placeholder for preset search input"
+  },
+  "presetListLoading": {
+    "message": "加载中...",
+    "description": "Loading state text for preset list"
+  },
+  "presetListError": {
+    "message": "加载预设失败",
+    "description": "Error message when preset loading fails"
+  },
+  "presetListEmpty": {
+    "message": "未找到预设",
+    "description": "Message when no presets found"
+  },
+  "presetListRetry": {
+    "message": "重试",
+    "description": "Retry button text"
+  },
+  "presetDomainsCount": {
+    "message": "$COUNT$ 个域名",
+    "description": "Domains count label",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "proxyTypeDialogTitle": {
+    "message": "添加代理",
+    "description": "Title for proxy type selection dialog"
+  },
+  "proxyTypeAddOwn": {
+    "message": "添加自定义",
+    "description": "Option to add custom proxy"
+  },
+  "proxyTypeSelectPublic": {
+    "message": "从公共代理选择",
+    "description": "Option to select from public proxies"
+  },
+  "publicProxiesTitle": {
+    "message": "公共代理",
+    "description": "Title for public proxies modal"
+  },
+  "filterProtocol": {
+    "message": "协议",
+    "description": "Protocol filter label"
+  },
+  "filterConnectionType": {
+    "message": "类型",
+    "description": "Connection type filter label"
+  },
+  "filterCountry": {
+    "message": "国家",
+    "description": "Country filter label"
+  },
+  "filterMinScore": {
+    "message": "最低评分",
+    "description": "Minimum score filter label"
+  },
+  "filterAll": {
+    "message": "全部",
+    "description": "All filter option"
+  },
+  "connectionTypeResidential": {
+    "message": "住宅",
+    "description": "Residential connection type"
+  },
+  "connectionTypeCorporate": {
+    "message": "企业",
+    "description": "Corporate connection type"
+  },
+  "connectionTypeMobile": {
+    "message": "移动",
+    "description": "Mobile connection type"
+  },
+  "publicProxySearchPlaceholder": {
+    "message": "按IP搜索...",
+    "description": "Placeholder for public proxy search input"
+  },
+  "publicProxiesLoading": {
+    "message": "加载中...",
+    "description": "Loading state for public proxies"
+  },
+  "publicProxiesError": {
+    "message": "无法加载代理",
+    "description": "Error message when loading public proxies fails"
+  },
+  "publicProxiesEmpty": {
+    "message": "未找到代理",
+    "description": "Message when no public proxies found"
+  },
+  "publicProxiesRetry": {
+    "message": "重试",
+    "description": "Retry button text"
+  },
+  "publicProxiesWarning": {
+    "message": "公共代理可能速度慢、不稳定且不安全。使用风险自负。",
+    "description": "Warning message about public proxies"
+  },
+  "publicProxiesRecommendation": {
+    "message": "我们建议购买可靠且价格实惠的代理",
+    "description": "Recommendation to buy reliable proxies"
+  },
+  "proxyFormRecommendation": {
+    "message": "需要可靠且价格实惠的代理吗？",
+    "description": "Recommendation link in proxy form"
+  },
+  "promoLink": {
+    "message": "购买代理",
+    "description": "Promo link text at the bottom of popup"
+  },
+  "alertTitle": {
+    "message": "警告",
+    "description": "Title for alert dialog"
+  },
+  "confirmTitle": {
+    "message": "确认",
+    "description": "Title for confirmation dialog"
+  },
+  "ok": {
+    "message": "确定",
+    "description": "OK button text"
+  },
+  "proxyErrorTitle": {
+    "message": "连接失败",
+    "description": "Error banner title when proxy connection fails"
+  }
+,
+  "checkProxy": { "message": "检查" },
+  "checkProxyChecking": { "message": "检查中..." },
+  "checkProxyOk": { "message": "已连接" },
+  "checkProxyError": { "message": "失败" },
+  "checkProxyTimeout": { "message": "超时" }
+,
+  "proxyCheckFailedTitle": { "message": "代理检查失败" },
+  "saveAnyway": { "message": "仍然保存" }
+}

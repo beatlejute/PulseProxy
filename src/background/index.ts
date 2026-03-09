@@ -84,6 +84,7 @@ chrome.webRequest.onErrorOccurred.addListener(
 
 // Proxy connectivity check
 const CHECK_PROXY_URL = 'http://cp.cloudflare.com/';
+const CHECK_PROXY_URL_FILTER = '*://cp.cloudflare.com/*';
 const CHECK_PROXY_TIMEOUT_MS = 10000;
 
 async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promise<CheckProxyResult> {
@@ -117,7 +118,7 @@ async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promis
         };
         chrome.webRequest.onAuthRequired.addListener(
             authListener,
-            { urls: [CHECK_PROXY_URL + '*'] },
+            { urls: [CHECK_PROXY_URL_FILTER] },
             ['asyncBlocking']
         );
     }
@@ -146,8 +147,8 @@ async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promis
             if (tabId !== null && details.tabId === tabId) done('error');
         };
 
-        chrome.webRequest.onCompleted.addListener(onCompleted, { urls: [CHECK_PROXY_URL + '*'] });
-        chrome.webRequest.onErrorOccurred.addListener(onError, { urls: [CHECK_PROXY_URL + '*'] });
+        chrome.webRequest.onCompleted.addListener(onCompleted, { urls: [CHECK_PROXY_URL_FILTER] });
+        chrome.webRequest.onErrorOccurred.addListener(onError, { urls: [CHECK_PROXY_URL_FILTER] });
 
         setTimeout(() => done('timeout'), CHECK_PROXY_TIMEOUT_MS);
 

@@ -34,3 +34,9 @@ npm-debug.log*
 
 # Proxy update scripts
 scripts/update-proxies.ts
+
+# AI files
+.workflow/
+.kilocode/
+QWEN.md
+CLAUDE.md

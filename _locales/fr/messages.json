@@ -488,6 +488,10 @@
   "checkProxyError": { "message": "Échec" },
   "checkProxyTimeout": { "message": "Délai dépassé" }
 ,
-  "proxyCheckFailedTitle": { "message": "Échec de la vérification" },
-  "saveAnyway": { "message": "Enregistrer quand même" }
+  "proxyCheckFailedTitle": { "message": "Le proxy ne semble pas fonctionner" },
+  "saveAnyway": { "message": "Enregistrer quand même" },
+  "labelVersion": {
+    "message": "Version",
+    "description": "Label for version display in settings"
+  }
 }

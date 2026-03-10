@@ -488,6 +488,10 @@
   "checkProxyError": { "message": "失敗" },
   "checkProxyTimeout": { "message": "タイムアウト" }
 ,
-  "proxyCheckFailedTitle": { "message": "プロキシ確認失敗" },
-  "saveAnyway": { "message": "それでも保存" }
+  "proxyCheckFailedTitle": { "message": "プロキシが動作していないようです" },
+  "saveAnyway": { "message": "それでも保存" },
+  "labelVersion": {
+    "message": "バージョン",
+    "description": "Label for version display in settings"
+  }
 }

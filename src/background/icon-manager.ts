@@ -29,6 +29,9 @@ class IconManagerService {
         if (state === ProxyState.CONNECTED) {
             return IconPaths.ENABLED;
         }
+        if (state === ProxyState.CONNECTING) {
+            return IconPaths.CONNECTING;
+        }
 
         return theme === 'light' ? IconPaths.DISABLED_LIGHT : IconPaths.DISABLED_DARK;
     }

@@ -217,7 +217,8 @@ export type I18nKey =
     | 'checkProxyError'
     | 'checkProxyTimeout'
     | 'proxyCheckFailedTitle'
-    | 'saveAnyway';
+    | 'saveAnyway'
+    | 'labelVersion';
 
 // Структура экспортируемых данных
 export interface ExportData {

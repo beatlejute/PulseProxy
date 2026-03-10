@@ -259,7 +259,7 @@ class ProxyListService {
         try {
             // Загружаем данные если нет в кэше
             if (!this.publicProxiesCache) {
-                const response = await fetch(PUBLIC_PROXIES_URL);
+                const response = await fetch(`${PUBLIC_PROXIES_URL}?_t=${Date.now()}`);
                 if (!response.ok) {
                     throw new Error('Failed to load proxies');
                 }

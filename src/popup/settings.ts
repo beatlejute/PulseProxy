@@ -24,6 +24,7 @@ class SettingsService {
         this.initLanguageSelector();
         this.initSyncToggle();
         this.initImportExport();
+        this.initVersion();
     }
 
     private initLanguageSelector(): void {
@@ -81,6 +82,13 @@ class SettingsService {
                 await showAlert(error instanceof Error ? error.message : 'Failed to change sync state');
             }
         });
+    }
+
+    private initVersion(): void {
+        const versionEl = document.getElementById('version-number');
+        if (versionEl) {
+            versionEl.textContent = chrome.runtime.getManifest().version;
+        }
     }
 
     private initImportExport(): void {

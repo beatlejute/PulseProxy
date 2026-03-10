@@ -20,6 +20,6 @@
     "background": {
         "service_worker": "dist/background.js"
     },
-    "permissions": ["proxy", "storage", "webRequest", "webRequestAuthProvider"],
+    "permissions": ["proxy", "storage", "webRequest", "webRequestAuthProvider", "webNavigation"],
     "host_permissions": ["<all_urls>"]
 }

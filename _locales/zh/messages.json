@@ -488,6 +488,10 @@
   "checkProxyError": { "message": "失败" },
   "checkProxyTimeout": { "message": "超时" }
 ,
-  "proxyCheckFailedTitle": { "message": "代理检查失败" },
-  "saveAnyway": { "message": "仍然保存" }
+  "proxyCheckFailedTitle": { "message": "代理似乎无法正常工作" },
+  "saveAnyway": { "message": "仍然保存" },
+  "labelVersion": {
+    "message": "版本",
+    "description": "Label for version display in settings"
+  }
 }

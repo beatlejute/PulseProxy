@@ -52,6 +52,7 @@ export const StorageKeys = {
 // Пути к иконкам
 export const IconPaths = {
     ENABLED: 'icons/icon128.png',
+    CONNECTING: 'icons/icon128-connecting.png',
     DISABLED_LIGHT: 'icons/icon128-disabled-light.png',
     DISABLED_DARK: 'icons/icon128-disabled-dark.png',
 } as const;

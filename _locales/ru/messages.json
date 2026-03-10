@@ -488,6 +488,10 @@
   "checkProxyError": { "message": "Ошибка" },
   "checkProxyTimeout": { "message": "Таймаут" }
 ,
-  "proxyCheckFailedTitle": { "message": "Проверка прокси не прошла" },
-  "saveAnyway": { "message": "Сохранить всё равно" }
+  "proxyCheckFailedTitle": { "message": "Похоже прокси не работает" },
+  "saveAnyway": { "message": "Сохранить всё равно" },
+  "labelVersion": {
+    "message": "Версия",
+    "description": "Label for version display in settings"
+  }
 }

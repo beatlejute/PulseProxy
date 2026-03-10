@@ -613,7 +613,7 @@ class PresetsService {
     }
 
     private async fetchPresetTemplates(): Promise<PresetTemplate[]> {
-        const response = await fetch(PRESET_TEMPLATES_URL);
+        const response = await fetch(`${PRESET_TEMPLATES_URL}?_t=${Date.now()}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }

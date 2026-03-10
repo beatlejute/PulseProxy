@@ -5,6 +5,7 @@ import { ProxyList } from './proxy-list';
 import { Presets } from './presets';
 import { Storage } from '../shared/storage';
 import { I18n } from '../shared/i18n';
+import { RemoteConfig } from '../shared/remote-config';
 import { ProxyState, StorageKeys, DOMIds } from '../shared/constants';
 import { ProxyStateType, StorageChanges } from '../types';
 import { showConfirm } from './dialog';
@@ -16,8 +17,9 @@ class PopupApp {
         // Инициализация Storage первым делом (для миграций)
         await Storage.init();
 
-        // Инициализация i18n
+        // Инициализация i18n и удалённого конфига
         await I18n.init();
+        await RemoteConfig.init();
 
         // Инициализация модулей
         UI.init();
@@ -26,8 +28,9 @@ class PopupApp {
         await ProxyList.init();
         await Presets.init();
 
-        // Применяем переводы
+        // Применяем переводы и реферальные ссылки
         I18n.applyTranslations();
+        this.updateReferralLinks();
 
         // Привязка событий
         this.bindMainButton();
@@ -62,6 +65,12 @@ class PopupApp {
 
         console.log('Popup: Toggling proxy to', newTargetState);
         await Storage.setTargetState(newTargetState);
+    }
+
+    private updateReferralLinks(): void {
+        document.querySelectorAll<HTMLAnchorElement>('a.referral-link').forEach(link => {
+            link.href = RemoteConfig.referralLink;
+        });
     }
 
     private async loadInitialState(): Promise<void> {

@@ -1,5 +1,6 @@
 import { Storage } from '../shared/storage';
 import { I18n } from '../shared/i18n';
+import { RemoteConfig } from '../shared/remote-config';
 import { ProxyServer, ProxyType, PublicProxy, PublicProxiesResponse, NormalizedPublicProxy, PublicProxyFilters } from '../types';
 import { adjustContainerHeight } from './dom-utils';
 import { showAlert, showConfirm } from './dialog';
@@ -179,7 +180,7 @@ class ProxyListService {
                         <span class="warning-icon">⚠️</span>
                         <div class="warning-content">
                             <span data-i18n="publicProxiesWarning">Public proxies may be slow, unstable, and insecure. Use at your own risk.</span>
-                            <span class="warning-recommendation"><a href="https://app.proxy-cheap.com/r/MCk2IU" target="_blank" rel="noopener noreferrer"><span data-i18n="publicProxiesRecommendation">We recommend buying reliable and affordable proxies:</span></a></span>
+                            <span class="warning-recommendation"><a href="${RemoteConfig.referralLink}" target="_blank" rel="noopener noreferrer" class="referral-link"><span data-i18n="publicProxiesRecommendation">We recommend buying reliable and affordable proxies:</span></a></span>
                         </div>
                     </div>
                     <div class="public-proxies-filters">
@@ -458,7 +459,7 @@ class ProxyListService {
         });
         if (result === 'ok') return true;
 
-        const htmlMessage = `<div class="public-proxies-warning" style="margin:0"><span class="warning-icon">⚠️</span><div class="warning-content"><span class="warning-title">${I18n.getMessage('proxyCheckFailedTitle')}</span><span>${I18n.getMessage('publicProxiesWarning')}</span><span class="warning-recommendation"><a href="https://app.proxy-cheap.com/r/MCk2IU" target="_blank">${I18n.getMessage('publicProxiesRecommendation')}</a></span></div></div>`;
+        const htmlMessage = `<div class="public-proxies-warning" style="margin:0"><span class="warning-icon">⚠️</span><div class="warning-content"><span class="warning-title">${I18n.getMessage('proxyCheckFailedTitle')}</span><span>${I18n.getMessage('publicProxiesWarning')}</span><span class="warning-recommendation"><a href="${RemoteConfig.referralLink}" target="_blank">${I18n.getMessage('publicProxiesRecommendation')}</a></span></div></div>`;
         return showConfirm('', {
             okText: I18n.getMessage('saveAnyway') || 'Save anyway',
             cancelText: I18n.getMessage('cancel') || 'Cancel',
@@ -504,7 +505,7 @@ class ProxyListService {
                 <div class="modal-body">
                     <div class="proxy-form-recommendation">
                         <span class="recommendation-icon">💡</span>
-                        <span><a href="https://app.proxy-cheap.com/r/MCk2IU" target="_blank" rel="noopener noreferrer" data-i18n="proxyFormRecommendation">Need reliable and affordable proxies?</a></span>
+                        <span><a href="${RemoteConfig.referralLink}" target="_blank" rel="noopener noreferrer" class="referral-link" data-i18n="proxyFormRecommendation">Need reliable and affordable proxies?</a></span>
                     </div>
                     <form class="proxy-form">
                         <div class="form-group">

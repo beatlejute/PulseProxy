@@ -1,6 +1,6 @@
 {
     "name": "pulse-proxy",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "description": "PulseProxy VPN - browser proxy management",
     "type": "module",
     "scripts": {

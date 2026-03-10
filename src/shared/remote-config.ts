@@ -1,0 +1,48 @@
+export interface RemoteConfig {
+    referralLink: string;
+}
+
+const CONFIG_PRIMARY_URL = 'https://raw.githubusercontent.com/beatlejute/PulseProxy/refs/heads/main/sources/config.json';
+const CONFIG_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/config.json';
+
+const DEFAULT_CONFIG: RemoteConfig = {
+    referralLink: '#',
+};
+
+class RemoteConfigService {
+    private config: RemoteConfig = DEFAULT_CONFIG;
+    private loaded = false;
+
+    async init(): Promise<void> {
+        try {
+            this.config = await this.fetchConfig();
+        } catch (error) {
+            console.warn('RemoteConfig: Failed to load config, using defaults:', error);
+        }
+        this.loaded = true;
+    }
+
+    private async fetchConfig(): Promise<RemoteConfig> {
+        const cacheBuster = `?_t=${Date.now()}`;
+        try {
+            const response = await fetch(`${CONFIG_PRIMARY_URL}${cacheBuster}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } catch (primaryError) {
+            console.warn('RemoteConfig: Primary source unavailable, trying fallback:', primaryError);
+            const response = await fetch(`${CONFIG_FALLBACK_URL}${cacheBuster}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        }
+    }
+
+    get referralLink(): string {
+        return this.config.referralLink;
+    }
+
+    get isLoaded(): boolean {
+        return this.loaded;
+    }
+}
+
+export const RemoteConfig = new RemoteConfigService();

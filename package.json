@@ -11,7 +11,7 @@
         "test": "jest",
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
-        "package": "npm run build && node scripts/package.js",
+        "package": "npm run build && node scripts/package.cjs",
         "update-proxies": "npx tsx scripts/update-proxies.ts"
     },
     "devDependencies": {

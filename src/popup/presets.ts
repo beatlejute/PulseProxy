@@ -5,7 +5,8 @@ import { DEFAULT_PRESET_ID } from '../shared/constants';
 import { adjustContainerHeight } from './dom-utils';
 import { showAlert, showConfirm } from './dialog';
 
-const PRESET_TEMPLATES_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/presets.json';
+const PRESET_TEMPLATES_PRIMARY_URL = 'https://raw.githubusercontent.com/beatlejute/PulseProxy/refs/heads/main/sources/presets.json';
+const PRESET_TEMPLATES_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/presets.json';
 
 class PresetsService {
     private container: HTMLElement | null = null;
@@ -613,12 +614,21 @@ class PresetsService {
     }
 
     private async fetchPresetTemplates(): Promise<PresetTemplate[]> {
-        const response = await fetch(`${PRESET_TEMPLATES_URL}?_t=${Date.now()}`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const cacheBuster = `?_t=${Date.now()}`;
+        try {
+            const response = await fetch(`${PRESET_TEMPLATES_PRIMARY_URL}${cacheBuster}`);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data: PresetTemplatesResponse = await response.json();
+            return data.presets || [];
+        } catch (primaryError) {
+            console.warn('Presets: Primary source unavailable, trying fallback:', primaryError);
+            const response = await fetch(`${PRESET_TEMPLATES_FALLBACK_URL}${cacheBuster}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data: PresetTemplatesResponse = await response.json();
+            return data.presets || [];
         }
-        const data: PresetTemplatesResponse = await response.json();
-        return data.presets || [];
     }
 
     private filterPresetTemplates(templates: PresetTemplate[], query: string): PresetTemplate[] {

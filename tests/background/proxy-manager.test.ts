@@ -423,10 +423,10 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 challenger: { host: 'unknown.proxy.com', port: 9999 },
             });
 
-            expect(result).toBeUndefined();
+            expect(result).toEqual({ cancel: true });
         });
 
-        it('should return undefined when no challenger provided', async () => {
+        it('should return cancel when no challenger provided', async () => {
             mockHelpers.setLocalStorageData({
                 targetState: 'disconnected',
                 migrationCompleted: true,
@@ -447,7 +447,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 timeStamp: Date.now(),
             });
 
-            expect(result).toBeUndefined();
+            expect(result).toEqual({ cancel: true });
         });
     });
 
@@ -505,7 +505,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 challenger: { host: 'proxy1.com', port: 8080 },
             });
 
-            expect(result).toBeUndefined();
+            expect(result).toEqual({ cancel: true });
         });
 
         it('should reload credentials on enable()', async () => {
@@ -718,7 +718,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 challenger: { host: 'proxy.com', port: 8080 },
             });
 
-            expect(result).toBeUndefined();
+            expect(result).toEqual({ cancel: true });
         });
 
         it('should handle proxy with only password (no username)', async () => {
@@ -745,7 +745,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 challenger: { host: 'proxy.com', port: 8080 },
             });
 
-            expect(result).toBeUndefined();
+            expect(result).toEqual({ cancel: true });
         });
     });
 

@@ -39,16 +39,16 @@ describe('icon-manager.ts - IconManagerService', () => {
             expect(path).toBe('icons/icon128-disabled-light.png');
         });
 
-        it('should return dark disabled icon when state is connecting and theme is dark', () => {
+        it('should return connecting icon when state is connecting and theme is dark', () => {
             const path = IconManager.getIconPath('connecting', 'dark');
-            
-            expect(path).toBe('icons/icon128-disabled-dark.png');
+
+            expect(path).toBe('icons/icon128-connecting.png');
         });
 
-        it('should return light disabled icon when state is connecting and theme is light', () => {
+        it('should return connecting icon when state is connecting and theme is light', () => {
             const path = IconManager.getIconPath('connecting', 'light');
-            
-            expect(path).toBe('icons/icon128-disabled-light.png');
+
+            expect(path).toBe('icons/icon128-connecting.png');
         });
 
         it('should return dark disabled icon when state is error and theme is dark', () => {

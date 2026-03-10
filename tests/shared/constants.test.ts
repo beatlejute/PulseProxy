@@ -94,10 +94,11 @@ describe('constants.ts', () => {
             expect(LOCAL_STORAGE_KEYS).toContain('currentState');
             expect(LOCAL_STORAGE_KEYS).toContain('targetState');
             expect(LOCAL_STORAGE_KEYS).toContain('migrationCompleted');
+            expect(LOCAL_STORAGE_KEYS).toContain('errorProxy');
         });
 
-        it('should have 3 keys', () => {
-            expect(LOCAL_STORAGE_KEYS).toHaveLength(3);
+        it('should have 4 keys', () => {
+            expect(LOCAL_STORAGE_KEYS).toHaveLength(4);
         });
     });
 
@@ -112,22 +113,24 @@ describe('constants.ts', () => {
             expect(StorageKeys.SYNC_ENABLED).toBe('syncEnabled');
             expect(StorageKeys.MIGRATION_COMPLETED).toBe('migrationCompleted');
             expect(StorageKeys.PROXY_BY_DEFAULT).toBe('proxyByDefault');
+            expect(StorageKeys.ERROR_PROXY).toBe('errorProxy');
         });
 
-        it('should have 9 keys', () => {
-            expect(Object.keys(StorageKeys)).toHaveLength(9);
+        it('should have 10 keys', () => {
+            expect(Object.keys(StorageKeys)).toHaveLength(10);
         });
     });
 
     describe('IconPaths', () => {
         it('should have correct paths', () => {
             expect(IconPaths.ENABLED).toBe('icons/icon128.png');
+            expect(IconPaths.CONNECTING).toBe('icons/icon128-connecting.png');
             expect(IconPaths.DISABLED_LIGHT).toBe('icons/icon128-disabled-light.png');
             expect(IconPaths.DISABLED_DARK).toBe('icons/icon128-disabled-dark.png');
         });
 
-        it('should have 3 icon paths', () => {
-            expect(Object.keys(IconPaths)).toHaveLength(3);
+        it('should have 4 icon paths', () => {
+            expect(Object.keys(IconPaths)).toHaveLength(4);
         });
 
         it('should have .png extension for all paths', () => {

@@ -13,6 +13,6 @@
         "sourceMap": true,
         "lib": ["ES2020", "DOM"]
     },
-    "include": ["src/**/*", "sources/**/*.ts", "scripts/update-proxies.ts"],
-    "exclude": ["node_modules", "dist"]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "dist", "scripts"]
 }

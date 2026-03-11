@@ -32,6 +32,16 @@ import { Storage } from '../../src/shared/storage';
 import { I18n } from '../../src/shared/i18n';
 import { ProxyServer } from '../../src/types';
 import { showConfirm, showAlert } from '../../src/popup/dialog';
+import {
+    countryCodeToFlag,
+    clearPublicProxiesCache,
+    normalizeProxies,
+    filterPublicProxies,
+    getFiltersFromBody,
+    getConnectionTypeLabel,
+    createPublicProxyItem,
+    renderPublicProxiesList,
+} from '../../src/popup/public-proxies-modal';
 
 describe('proxy-list.ts - ProxyListService', () => {
     // Вспомогательная функция для создания тестового прокси
@@ -383,7 +393,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             const closeBtn = document.querySelector('.modal-close') as HTMLButtonElement;
             closeBtn.click();
 
-            expect(document.querySelector('.modal-overlay')).toBeNull();
+            expect(document.querySelector('.proxy-type-modal')).toBeNull();
         });
 
         it('should open custom proxy form on first option click', async () => {
@@ -731,7 +741,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             const closeBtn = document.querySelector('.modal-close') as HTMLButtonElement;
             closeBtn.click();
 
-            expect(document.querySelector('.modal-overlay')).toBeNull();
+            expect(document.querySelector('.proxy-form-modal')).toBeNull();
         });
 
         it('should show validation error for invalid port in edit mode', async () => {
@@ -995,22 +1005,22 @@ describe('proxy-list.ts - ProxyListService', () => {
 
     describe('countryCodeToFlag()', () => {
         it('should convert US country code to US flag emoji', () => {
-            const result = (ProxyList as any).countryCodeToFlag('US');
+            const result = countryCodeToFlag('US');
             expect(result).toBe('🇺🇸');
         });
 
         it('should convert RU country code to Russian flag emoji', () => {
-            const result = (ProxyList as any).countryCodeToFlag('RU');
+            const result = countryCodeToFlag('RU');
             expect(result).toBe('🇷🇺');
         });
 
         it('should convert DE country code to German flag emoji', () => {
-            const result = (ProxyList as any).countryCodeToFlag('DE');
+            const result = countryCodeToFlag('DE');
             expect(result).toBe('🇩🇪');
         });
 
         it('should handle lowercase country codes', () => {
-            const result = (ProxyList as any).countryCodeToFlag('gb');
+            const result = countryCodeToFlag('gb');
             expect(result).toBe('🇬🇧');
         });
     });
@@ -1030,7 +1040,7 @@ describe('proxy-list.ts - ProxyListService', () => {
                 ],
             };
 
-            const result = (ProxyList as any).normalizeProxies(response);
+            const result = normalizeProxies(response);
 
             expect(result.length).toBe(3);
             expect(result[0].score).toBe(4.5);
@@ -1055,7 +1065,7 @@ describe('proxy-list.ts - ProxyListService', () => {
                 ],
             };
 
-            const result = (ProxyList as any).normalizeProxies(response);
+            const result = normalizeProxies(response);
 
             expect(result[0].score).toBe(5.0);
             expect(result[1].score).toBe(4.0);
@@ -1073,7 +1083,7 @@ describe('proxy-list.ts - ProxyListService', () => {
                 socks5: [],
             };
 
-            const result = (ProxyList as any).normalizeProxies(response);
+            const result = normalizeProxies(response);
 
             expect(result.length).toBe(1);
             expect(result[0].ip).toBe('192.168.1.1');
@@ -1087,7 +1097,7 @@ describe('proxy-list.ts - ProxyListService', () => {
                 socks5: [],
             };
 
-            const result = (ProxyList as any).normalizeProxies(response);
+            const result = normalizeProxies(response);
 
             expect(result.length).toBe(0);
         });
@@ -1099,7 +1109,7 @@ describe('proxy-list.ts - ProxyListService', () => {
                 ],
             } as any;
 
-            const result = (ProxyList as any).normalizeProxies(response);
+            const result = normalizeProxies(response);
 
             expect(result.length).toBe(1);
         });
@@ -1114,41 +1124,41 @@ describe('proxy-list.ts - ProxyListService', () => {
         ];
 
         it('should return all proxies when no filters applied', () => {
-            const result = (ProxyList as any).filterPublicProxies(testProxies, {}, '');
+            const result = filterPublicProxies(testProxies, {}, '');
             expect(result.length).toBe(4);
         });
 
         it('should filter by protocol', () => {
-            const result = (ProxyList as any).filterPublicProxies(testProxies, { protocol: 'http' }, '');
+            const result = filterPublicProxies(testProxies, { protocol: 'http' }, '');
             expect(result.length).toBe(2);
             expect(result.every((p: any) => p.protocol === 'http')).toBe(true);
         });
 
         it('should filter by connectionType', () => {
-            const result = (ProxyList as any).filterPublicProxies(testProxies, { connectionType: 'residential' }, '');
+            const result = filterPublicProxies(testProxies, { connectionType: 'residential' }, '');
             expect(result.length).toBe(2);
             expect(result.every((p: any) => p.connectionType === 'residential')).toBe(true);
         });
 
         it('should filter by country', () => {
-            const result = (ProxyList as any).filterPublicProxies(testProxies, { country: 'US' }, '');
+            const result = filterPublicProxies(testProxies, { country: 'US' }, '');
             expect(result.length).toBe(2);
             expect(result.every((p: any) => p.country === 'US')).toBe(true);
         });
 
         it('should filter by minScore', () => {
-            const result = (ProxyList as any).filterPublicProxies(testProxies, { minScore: 4.0 }, '');
+            const result = filterPublicProxies(testProxies, { minScore: 4.0 }, '');
             expect(result.length).toBe(3);
             expect(result.every((p: any) => p.score >= 4.0)).toBe(true);
         });
 
         it('should filter by search query (IP)', () => {
-            const result = (ProxyList as any).filterPublicProxies(testProxies, {}, '192.168');
+            const result = filterPublicProxies(testProxies, {}, '192.168');
             expect(result.length).toBe(3);
         });
 
         it('should combine multiple filters', () => {
-            const result = (ProxyList as any).filterPublicProxies(
+            const result = filterPublicProxies(
                 testProxies,
                 { protocol: 'http', country: 'US', minScore: 4.5 },
                 ''
@@ -1157,12 +1167,12 @@ describe('proxy-list.ts - ProxyListService', () => {
         });
 
         it('should return empty array when no matches', () => {
-            const result = (ProxyList as any).filterPublicProxies(testProxies, { country: 'JP' }, '');
+            const result = filterPublicProxies(testProxies, { country: 'JP' }, '');
             expect(result.length).toBe(0);
         });
 
         it('should be case-insensitive for search query', () => {
-            const result = (ProxyList as any).filterPublicProxies(testProxies, {}, '10.0');
+            const result = filterPublicProxies(testProxies, {}, '10.0');
             expect(result.length).toBe(1);
             expect(result[0].ip).toBe('10.0.0.1');
         });
@@ -1192,7 +1202,7 @@ describe('proxy-list.ts - ProxyListService', () => {
 
         afterEach(() => {
             (global.fetch as jest.Mock).mockRestore();
-            (ProxyList as any).publicProxiesCache = null;
+            clearPublicProxiesCache();
         });
 
         it('should open public proxies modal on second option click', async () => {
@@ -1329,6 +1339,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             const closeBtn = document.querySelector('.modal-close') as HTMLButtonElement;
             closeBtn.click();
 
+            await new Promise(resolve => setTimeout(resolve, 50));
             expect(document.querySelector('.public-proxies-modal')).toBeNull();
         });
 
@@ -1372,7 +1383,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             (global.fetch as jest.Mock).mockResolvedValue({
                 ok: false,
             });
-            (ProxyList as any).publicProxiesCache = null;
+            clearPublicProxiesCache();
 
             await ProxyList.init();
 
@@ -1392,7 +1403,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             (global.fetch as jest.Mock).mockResolvedValue({
                 ok: false,
             });
-            (ProxyList as any).publicProxiesCache = null;
+            clearPublicProxiesCache();
 
             await ProxyList.init();
 
@@ -1415,7 +1426,7 @@ describe('proxy-list.ts - ProxyListService', () => {
                     ok: true,
                     json: () => Promise.resolve(mockPublicProxiesResponse),
                 });
-            (ProxyList as any).publicProxiesCache = null;
+            clearPublicProxiesCache();
 
             await ProxyList.init();
 
@@ -1552,17 +1563,17 @@ describe('proxy-list.ts - ProxyListService', () => {
         });
     });
 
-    describe('getFiltersFromModal()', () => {
-        it('should extract filters from modal elements', async () => {
-            const modal = document.createElement('div');
-            modal.innerHTML = `
+    describe('getFiltersFromBody()', () => {
+        it('should extract filters from body elements', async () => {
+            const body = document.createElement('div');
+            body.innerHTML = `
                 <select id="filter-protocol"><option value="http" selected>HTTP</option></select>
                 <select id="filter-connection-type"><option value="residential" selected>Residential</option></select>
                 <select id="filter-country"><option value="US" selected>US</option></select>
                 <select id="filter-min-score"><option value="4.0" selected>4.0+</option></select>
             `;
 
-            const result = (ProxyList as any).getFiltersFromModal(modal);
+            const result = getFiltersFromBody(body);
 
             expect(result.protocol).toBe('http');
             expect(result.connectionType).toBe('residential');
@@ -1571,15 +1582,15 @@ describe('proxy-list.ts - ProxyListService', () => {
         });
 
         it('should return undefined for empty filter values', async () => {
-            const modal = document.createElement('div');
-            modal.innerHTML = `
+            const body = document.createElement('div');
+            body.innerHTML = `
                 <select id="filter-protocol"><option value="" selected>All</option></select>
                 <select id="filter-connection-type"><option value="" selected>All</option></select>
                 <select id="filter-country"><option value="" selected>All</option></select>
                 <select id="filter-min-score"><option value="0" selected>All</option></select>
             `;
 
-            const result = (ProxyList as any).getFiltersFromModal(modal);
+            const result = getFiltersFromBody(body);
 
             expect(result.protocol).toBeUndefined();
             expect(result.connectionType).toBeUndefined();
@@ -1590,22 +1601,22 @@ describe('proxy-list.ts - ProxyListService', () => {
 
     describe('getConnectionTypeLabel()', () => {
         it('should return translated label for residential', () => {
-            const result = (ProxyList as any).getConnectionTypeLabel('residential');
+            const result = getConnectionTypeLabel('residential');
             expect(result).toBe('connectionTypeResidential');
         });
 
         it('should return translated label for corporate', () => {
-            const result = (ProxyList as any).getConnectionTypeLabel('corporate');
+            const result = getConnectionTypeLabel('corporate');
             expect(result).toBe('connectionTypeCorporate');
         });
 
         it('should return translated label for mobile', () => {
-            const result = (ProxyList as any).getConnectionTypeLabel('mobile');
+            const result = getConnectionTypeLabel('mobile');
             expect(result).toBe('connectionTypeMobile');
         });
 
         it('should return original type for unknown types', () => {
-            const result = (ProxyList as any).getConnectionTypeLabel('unknown');
+            const result = getConnectionTypeLabel('unknown');
             expect(result).toBe('unknown');
         });
     });
@@ -1622,7 +1633,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             };
             const closeModal = jest.fn();
 
-            const item = (ProxyList as any).createPublicProxyItem(proxy, closeModal);
+            const item = createPublicProxyItem(proxy, closeModal);
 
             expect(item.className).toBe('public-proxy-item');
             expect(item.querySelector('.proxy-item-address')?.textContent).toBe('192.168.1.1:8080');
@@ -1640,7 +1651,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             };
             const closeModal = jest.fn();
 
-            const item = (ProxyList as any).createPublicProxyItem(proxy, closeModal);
+            const item = createPublicProxyItem(proxy, closeModal);
 
             expect(item.querySelector('.score-value')?.classList.contains('high')).toBe(true);
         });
@@ -1656,7 +1667,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             };
             const closeModal = jest.fn();
 
-            const item = (ProxyList as any).createPublicProxyItem(proxy, closeModal);
+            const item = createPublicProxyItem(proxy, closeModal);
 
             expect(item.querySelector('.score-value')?.classList.contains('medium')).toBe(true);
         });
@@ -1672,7 +1683,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             };
             const closeModal = jest.fn();
 
-            const item = (ProxyList as any).createPublicProxyItem(proxy, closeModal);
+            const item = createPublicProxyItem(proxy, closeModal);
 
             expect(item.querySelector('.score-value')?.classList.contains('low')).toBe(true);
         });
@@ -1731,7 +1742,7 @@ describe('proxy-list.ts - ProxyListService', () => {
             const container = document.createElement('div');
             const closeModal = jest.fn();
 
-            (ProxyList as any).renderPublicProxiesList(container, [], closeModal);
+            renderPublicProxiesList(container, [], closeModal);
 
             expect(container.querySelector('.empty-state')).not.toBeNull();
         });
@@ -1744,7 +1755,7 @@ describe('proxy-list.ts - ProxyListService', () => {
                 { protocol: 'https', ip: '192.168.1.2', port: 443, score: 4.0, connectionType: 'corporate', country: 'DE' },
             ];
 
-            (ProxyList as any).renderPublicProxiesList(container, proxies, closeModal);
+            renderPublicProxiesList(container, proxies, closeModal);
 
             const items = container.querySelectorAll('.public-proxy-item');
             expect(items.length).toBe(2);

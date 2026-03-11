@@ -1,5 +1,6 @@
 import { I18n } from '../shared/i18n';
 import { adjustContainerHeight } from './dom-utils';
+import { setSafeHTML } from './safe-dom';
 
 /**
  * Диалоговое окно с сообщением и кнопкой OK (аналог alert).
@@ -19,7 +20,7 @@ export function showAlert(message: string): Promise<void> {
         title.textContent = I18n.getMessage('alertTitle') || 'Alert';
         const closeBtn = document.createElement('button');
         closeBtn.className = 'modal-close';
-        closeBtn.innerHTML = '&times;';
+        closeBtn.textContent = '×';
         closeBtn.addEventListener('click', () => {
             overlay.remove();
             adjustContainerHeight();
@@ -88,7 +89,7 @@ export function showConfirm(message: string, options?: {
         title.textContent = options?.title || I18n.getMessage('confirmTitle') || 'Confirm';
         const closeBtn = document.createElement('button');
         closeBtn.className = 'modal-close';
-        closeBtn.innerHTML = '&times;';
+        closeBtn.textContent = '×';
         closeBtn.addEventListener('click', () => {
             overlay.remove();
             adjustContainerHeight();
@@ -101,7 +102,7 @@ export function showConfirm(message: string, options?: {
         body.className = 'modal-body';
         const messageEl = document.createElement('div');
         if (options?.htmlMessage) {
-            messageEl.innerHTML = options.htmlMessage;
+            setSafeHTML(messageEl, options.htmlMessage);
         } else {
             messageEl.textContent = message;
         }

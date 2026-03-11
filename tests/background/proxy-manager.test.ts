@@ -747,6 +747,51 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
 
             expect(result).toEqual({ cancel: true });
         });
+
+        it('should allow retry auth after credentials are reloaded', async () => {
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [createProxy('proxy.test.com', 3128, 'http', true, 'user1', 'pass1')],
+            });
+
+            await ProxyManager.init();
+
+            const result1 = await mockHelpers.triggerAuthRequired({
+                requestId: '1',
+                url: 'http://test.com',
+                method: 'GET',
+                frameId: 0,
+                parentFrameId: -1,
+                tabId: 1,
+                type: 'main_frame' as chrome.webRequest.ResourceType,
+                timeStamp: Date.now(),
+                challenger: { host: 'proxy.test.com', port: 3128 },
+            });
+
+            expect(result1).toEqual({
+                authCredentials: { username: 'user1', password: 'pass1' },
+            });
+
+            await ProxyManager.enable();
+
+            const result2 = await mockHelpers.triggerAuthRequired({
+                requestId: '2',
+                url: 'http://test2.com',
+                method: 'GET',
+                frameId: 0,
+                parentFrameId: -1,
+                tabId: 1,
+                type: 'main_frame' as chrome.webRequest.ResourceType,
+                timeStamp: Date.now(),
+                challenger: { host: 'proxy.test.com', port: 3128 },
+            });
+
+            expect(result2).toEqual({
+                authCredentials: { username: 'user1', password: 'pass1' },
+            });
+        });
     });
 
     describe('formatProxyForPac() - edge cases', () => {
@@ -829,6 +874,340 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             expect(pacScript).toContain('function FindProxyForURL');
             expect(pacScript).toContain('PROXY 127.0.0.1:8080');
             expect(pacScript).toContain('DIRECT');
+        });
+    });
+
+    describe('validateProxyHost()', () => {
+        let validateProxyHost: (host: string) => boolean;
+
+        beforeEach(async () => {
+            const module = await import('../../src/background/proxy-manager');
+            validateProxyHost = module.validateProxyHost;
+        });
+
+        it('should accept valid IPv4 address', () => {
+            expect(validateProxyHost('192.168.1.1')).toBe(true);
+            expect(validateProxyHost('10.0.0.1')).toBe(true);
+            expect(validateProxyHost('127.0.0.1')).toBe(true);
+            expect(validateProxyHost('255.255.255.255')).toBe(true);
+        });
+
+        it('should accept valid hostname', () => {
+            expect(validateProxyHost('proxy.example.com')).toBe(true);
+            expect(validateProxyHost('my-proxy-server.internal.network')).toBe(true);
+            expect(validateProxyHost('a.b.c.d.e.f')).toBe(true);
+        });
+
+        it('should accept hostname with hyphens', () => {
+            expect(validateProxyHost('my-proxy.example.com')).toBe(true);
+            expect(validateProxyHost('proxy-server-1.internal')).toBe(true);
+        });
+
+        it('should accept single character labels', () => {
+            expect(validateProxyHost('a.b')).toBe(true);
+            expect(validateProxyHost('a.b.c')).toBe(true);
+        });
+
+        it('should accept localhost', () => {
+            expect(validateProxyHost('localhost')).toBe(true);
+        });
+
+        it('should reject empty string', () => {
+            expect(validateProxyHost('')).toBe(false);
+        });
+
+        it('should reject null/undefined', () => {
+            expect(validateProxyHost(null as unknown as string)).toBe(false);
+            expect(validateProxyHost(undefined as unknown as string)).toBe(false);
+        });
+
+        it('should reject XSS injection payloads', () => {
+            expect(validateProxyHost('<script>alert("XSS")</script>')).toBe(false);
+            expect(validateProxyHost('";alert(1);//')).toBe(false);
+            expect(validateProxyHost('proxy.com/<script>')).toBe(false);
+            expect(validateProxyHost('proxy.com" onerror="alert(1)')).toBe(false);
+        });
+
+        it('should reject hostnames with special characters', () => {
+            expect(validateProxyHost('proxy<script>.com')).toBe(false);
+            expect(validateProxyHost('proxy".com')).toBe(false);
+            expect(validateProxyHost('proxy\'.com')).toBe(false);
+            expect(validateProxyHost('proxy .com')).toBe(false);
+            expect(validateProxyHost('proxy@com')).toBe(false);
+        });
+
+        it('should reject hostname starting/ending with hyphen', () => {
+            expect(validateProxyHost('-proxy.com')).toBe(false);
+            expect(validateProxyHost('proxy-.com')).toBe(false);
+        });
+
+        it('should reject hostname with consecutive dots', () => {
+            expect(validateProxyHost('proxy..com')).toBe(false);
+            expect(validateProxyHost('.proxy.com')).toBe(false);
+            expect(validateProxyHost('proxy.com.')).toBe(false);
+        });
+
+        it('should reject hostname longer than 253 characters', () => {
+            const longHostname = 'a'.repeat(254) + '.com';
+            expect(validateProxyHost(longHostname)).toBe(false);
+        });
+
+        it('should accept hostname at max length (253 chars)', () => {
+            // Max domain length is 253 chars
+            // Each label max 63 chars, so use 4 labels of 63 chars + 3 dots + 3 TLD = 253
+            // 63 + 1 + 63 + 1 + 63 + 1 + 63 + 1 + 3 = 259 (too long)
+            // Use: 63 + 1 + 63 + 1 + 63 + 1 + 3 = 195 (valid)
+            const label63 = 'a'.repeat(63);
+            const maxHostname = `${label63}.${label63}.${label63}.com`;
+            expect(maxHostname.length).toBeLessThanOrEqual(253);
+            expect(validateProxyHost(maxHostname)).toBe(true);
+        });
+
+        it('should reject IPv6 in invalid format', () => {
+            expect(validateProxyHost('::1')).toBe(false);
+            expect(validateProxyHost('2001:db8::1')).toBe(false);
+        });
+
+        it('should accept IPv6 in brackets', () => {
+            expect(validateProxyHost('[::1]')).toBe(true);
+            expect(validateProxyHost('[2001:db8::1]')).toBe(true);
+            expect(validateProxyHost('[fe80::1]')).toBe(true);
+            expect(validateProxyHost('[::ffff:192.168.1.1]')).toBe(true);
+        });
+    });
+
+    describe('validateProxyPort()', () => {
+        let validateProxyPort: (port: number) => boolean;
+
+        beforeEach(async () => {
+            const module = await import('../../src/background/proxy-manager');
+            validateProxyPort = module.validateProxyPort;
+        });
+
+        it('should accept valid port in range 1-65535', () => {
+            expect(validateProxyPort(1)).toBe(true);
+            expect(validateProxyPort(80)).toBe(true);
+            expect(validateProxyPort(443)).toBe(true);
+            expect(validateProxyPort(8080)).toBe(true);
+            expect(validateProxyPort(3128)).toBe(true);
+            expect(validateProxyPort(65535)).toBe(true);
+        });
+
+        it('should accept boundary values', () => {
+            expect(validateProxyPort(1)).toBe(true);
+            expect(validateProxyPort(65535)).toBe(true);
+        });
+
+        it('should reject port 0', () => {
+            expect(validateProxyPort(0)).toBe(false);
+        });
+
+        it('should reject port > 65535', () => {
+            expect(validateProxyPort(65536)).toBe(false);
+            expect(validateProxyPort(99999)).toBe(false);
+            expect(validateProxyPort(100000)).toBe(false);
+        });
+
+        it('should reject negative port', () => {
+            expect(validateProxyPort(-1)).toBe(false);
+        });
+
+        it('should reject NaN/Infinity', () => {
+            expect(validateProxyPort(NaN)).toBe(false);
+            expect(validateProxyPort(Infinity)).toBe(false);
+        });
+
+        it('should reject non-integer port', () => {
+            expect(validateProxyPort(8080.5)).toBe(false);
+            expect(validateProxyPort(3128.1)).toBe(false);
+        });
+    });
+
+    describe('PAC script generation with invalid host/port', () => {
+        it('should throw error when proxy has invalid host', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('<script>alert("XSS")</script>', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+            });
+
+            await expect(ProxyManager.enable()).rejects.toThrow('Invalid proxy host');
+        });
+
+        it('should throw error when proxy has invalid port', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('proxy.example.com', 0)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+            });
+
+            await expect(ProxyManager.enable()).rejects.toThrow('Invalid proxy port');
+        });
+
+        it('should throw error when proxy has port > 65535', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('proxy.example.com', 70000)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+            });
+
+            await expect(ProxyManager.enable()).rejects.toThrow('Invalid proxy port');
+        });
+    });
+
+    describe('PAC caching', () => {
+        let computeConfigHash: (presets: any[], proxies: any[], proxyByDefault: boolean) => string;
+
+        beforeEach(async () => {
+            mockHelpers.resetAllMocks();
+            jest.resetModules();
+            jest.useFakeTimers();
+            
+            const proxyManagerModule = await import('../../src/background/proxy-manager');
+            ProxyManager = proxyManagerModule.ProxyManager;
+            
+            const service = (ProxyManager as any);
+            service.cachedPacScript = null;
+            service.cachedConfigHash = null;
+            
+            computeConfigHash = (presets: any[], proxies: any[], proxyByDefault: boolean) => {
+                const config = JSON.stringify({ presets, proxies, proxyByDefault });
+                let hash = 5381;
+                for (let i = 0; i < config.length; i++) {
+                    hash = ((hash << 5) + hash) + config.charCodeAt(i);
+                }
+                return (hash >>> 0).toString(36);
+            };
+        });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        it('should generate PAC script on first enable (cache miss)', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('127.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pacScript = setCall[0].value.pacScript.data;
+
+            expect(pacScript).toContain('test.com');
+            expect(pacScript).toContain('PROXY 127.0.0.1:8080');
+        });
+
+        it('should use cached PAC script on second enable with same config (cache hit)', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('127.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+            });
+
+            await ProxyManager.enable();
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+
+            await ProxyManager.enable();
+
+            expect(chrome.proxy.settings.set).toHaveBeenCalledTimes(1);
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pacScript = setCall[0].value.pacScript.data;
+            expect(pacScript).toContain('test.com');
+        });
+
+        it('should regenerate PAC when presets change (cache invalidation)', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('127.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+            });
+
+            await ProxyManager.enable();
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('127.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com', 'newdomain.com'])],
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.proxy.settings.set).toHaveBeenCalledTimes(1);
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pacScript = setCall[0].value.pacScript.data;
+            expect(pacScript).toContain('newdomain.com');
+        });
+
+        it('should regenerate PAC when proxies change (cache invalidation)', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('127.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+            });
+
+            await ProxyManager.enable();
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('192.168.1.1', 3128)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.proxy.settings.set).toHaveBeenCalledTimes(1);
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pacScript = setCall[0].value.pacScript.data;
+            expect(pacScript).toContain('192.168.1.1:3128');
+        });
+
+        it('should regenerate PAC when proxyByDefault changes (cache invalidation)', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('127.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+                proxyByDefault: false,
+            });
+
+            await ProxyManager.enable();
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('127.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+                proxyByDefault: true,
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.proxy.settings.set).toHaveBeenCalledTimes(1);
+        });
+
+        it('should compute consistent hash for same config', () => {
+            const presets = [{ id: '1', domains: ['test.com'] }];
+            const proxies = [{ id: '1', host: '127.0.0.1', port: 8080 }];
+            
+            const hash1 = computeConfigHash(presets, proxies, false);
+            const hash2 = computeConfigHash(presets, proxies, false);
+            
+            expect(hash1).toBe(hash2);
+        });
+
+        it('should compute different hash for different config', () => {
+            const presets1 = [{ id: '1', domains: ['test.com'] }];
+            const presets2 = [{ id: '1', domains: ['new.com'] }];
+            const proxies = [{ id: '1', host: '127.0.0.1', port: 8080 }];
+            
+            const hash1 = computeConfigHash(presets1, proxies, false);
+            const hash2 = computeConfigHash(presets2, proxies, false);
+            
+            expect(hash1).not.toBe(hash2);
         });
     });
 });

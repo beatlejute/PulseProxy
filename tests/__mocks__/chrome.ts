@@ -346,9 +346,11 @@ export const mockHelpers = {
     triggerAuthRequired: (details: chrome.webRequest.WebRequestDetails & { challenger?: { host: string; port: number } }) => {
         return new Promise((resolve) => {
             for (const listener of authRequiredListeners) {
-                listener(details, (result?: chrome.webRequest.BlockingResponse) => {
+                const result = listener(details);
+                if (result !== undefined) {
                     resolve(result);
-                });
+                    return;
+                }
             }
             resolve(undefined);
         });

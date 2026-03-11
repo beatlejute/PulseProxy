@@ -1,128 +1,95 @@
 import { Storage } from '../shared/storage';
 import { ProxyState, Config } from '../shared/constants';
 import { ProxyServer, ProxyType } from '../types';
+import { toASCII } from '../shared/punycode';
+import { matchesDomain } from '../shared/domain-matcher';
 
-// Punycode encoder for IDN domains (RFC 3492)
-function toASCII(domain: string): string {
-    // Check if domain contains non-ASCII characters
-    if (!/[^\x00-\x7F]/.test(domain)) {
-        return domain;
+/**
+ * Validates proxy host to prevent Script Injection attacks.
+ * Accepts IPv4, IPv6 (with brackets), hostname (RFC 1123), but rejects XSS payloads and malformed input.
+ *
+ * @param host - The host to validate
+ * @returns true if valid, false otherwise
+ */
+export function validateProxyHost(host: string): boolean {
+    if (!host || typeof host !== 'string') {
+        return false;
     }
-    
-    // Handle wildcard prefix
-    let prefix = '';
-    let domainToConvert = domain;
-    if (domain.startsWith('*.')) {
-        prefix = '*.';
-        domainToConvert = domain.slice(2);
+
+    // Reject if longer than max domain length (253 chars)
+    if (host.length > 253) {
+        return false;
     }
-    
-    // Split domain into labels and convert each
-    const labels = domainToConvert.split('.');
-    const asciiLabels = labels.map(label => {
-        if (!/[^\x00-\x7F]/.test(label)) {
-            return label;
+
+    // Reject obvious XSS injection patterns
+    if (/[<>"'`]/.test(host) || /script|alert|onerror|onclick|onload/i.test(host)) {
+        return false;
+    }
+
+    // Reject spaces and @ symbols
+    if (/[\s@]/.test(host)) {
+        return false;
+    }
+
+    // IPv4 pattern: 4 octets 0-255
+    const ipv4Pattern = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    if (ipv4Pattern.test(host)) {
+        return true;
+    }
+
+    // IPv6 pattern: supports bracketed formats like [::1], [2001:db8::1], [fe80::1]
+    // Also supports IPv4-mapped IPv6 like [::ffff:192.168.1.1]
+    if (host.startsWith('[') && host.endsWith(']')) {
+        const ipv6Content = host.slice(1, -1);
+        // Check for IPv4-mapped format: ::ffff:x.x.x.x
+        if (/^::ffff:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/i.test(ipv6Content)) {
+            return true;
         }
-        return 'xn--' + punycodeEncode(label);
-    });
-    
-    return prefix + asciiLabels.join('.');
+        // Basic IPv6 format: hex digits and colons, at least one colon
+        const ipv6SimplePattern = /^[0-9a-fA-F:]+$/;
+        if (ipv6SimplePattern.test(ipv6Content) && ipv6Content.includes(':')) {
+            return true;
+        }
+    }
+
+    // Hostname pattern (RFC 1123):
+    // - Labels: letters, digits, hyphens
+    // - Cannot start/end with hyphen
+    // - Labels separated by dots
+    // - Cannot have consecutive dots
+    // - Cannot start/end with dot
+    // Each label must not start or end with hyphen
+    // Split by dots and validate each label
+    const labels = host.split('.');
+    for (const label of labels) {
+        if (label.length === 0) return false; // empty label (consecutive dots)
+        if (label.length > 63) return false; // label max length
+        if (!/^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?$/.test(label)) {
+            return false; // label doesn't match RFC 1123
+        }
+    }
+    return true;
 }
 
-// Punycode encoding algorithm
-function punycodeEncode(input: string): string {
-    const base = 36;
-    const tMin = 1;
-    const tMax = 26;
-    const skew = 38;
-    const damp = 700;
-    const initialBias = 72;
-    const initialN = 128;
-    const delimiter = '-';
-    
-    let n = initialN;
-    let delta = 0;
-    let bias = initialBias;
-    let output = '';
-    
-    // Copy basic code points to output
-    const basicChars: string[] = [];
-    for (const char of input) {
-        if (char.charCodeAt(0) < 128) {
-            basicChars.push(char);
-        }
+/**
+ * Validates proxy port number.
+ * Must be an integer in range 1-65535.
+ *
+ * @param port - The port to validate
+ * @returns true if valid, false otherwise
+ */
+export function validateProxyPort(port: number): boolean {
+    if (typeof port !== 'number') {
+        return false;
     }
-    output = basicChars.join('');
-    
-    let h = output.length;
-    const b = output.length;
-    
-    if (b > 0) {
-        output += delimiter;
-    }
-    
-    // Get code points
-    const codePoints: number[] = [];
-    for (const char of input) {
-        codePoints.push(char.codePointAt(0) || char.charCodeAt(0));
-    }
-    
-    while (h < codePoints.length) {
-        let m = Infinity;
-        for (const cp of codePoints) {
-            if (cp >= n && cp < m) {
-                m = cp;
-            }
-        }
-        
-        delta += (m - n) * (h + 1);
-        n = m;
-        
-        for (const cp of codePoints) {
-            if (cp < n) {
-                delta++;
-            } else if (cp === n) {
-                let q = delta;
-                for (let k = base; ; k += base) {
-                    const t = k <= bias ? tMin : (k >= bias + tMax ? tMax : k - bias);
-                    if (q < t) break;
-                    output += encodeDigit(t + ((q - t) % (base - t)));
-                    q = Math.floor((q - t) / (base - t));
-                }
-                output += encodeDigit(q);
-                bias = adapt(delta, h + 1, h === b);
-                delta = 0;
-                h++;
-            }
-        }
-        delta++;
-        n++;
-    }
-    
-    return output;
-}
 
-function encodeDigit(d: number): string {
-    return String.fromCharCode(d + (d < 26 ? 97 : 22));
-}
-
-function adapt(delta: number, numPoints: number, firstTime: boolean): number {
-    const base = 36;
-    const tMin = 1;
-    const tMax = 26;
-    const skew = 38;
-    const damp = 700;
-    
-    delta = firstTime ? Math.floor(delta / damp) : Math.floor(delta / 2);
-    delta += Math.floor(delta / numPoints);
-    
-    let k = 0;
-    while (delta > ((base - tMin) * tMax) / 2) {
-        delta = Math.floor(delta / (base - tMin));
-        k += base;
+    // Reject NaN, Infinity, non-integers
+    if (!Number.isFinite(port) || !Number.isInteger(port)) {
+        return false;
     }
-    
-    return k + Math.floor(((base - tMin + 1) * delta) / (delta + skew));
+
+    // Must be in valid port range
+    return port >= 1 && port <= 65535;
 }
 
 class ProxyManagerService {
@@ -137,6 +104,10 @@ class ProxyManagerService {
     private proxyByDefault: boolean = false;
     private defaultProxyLabel: string = '';
 
+    // PAC caching
+    private cachedPacScript: string | null = null;
+    private cachedConfigHash: string | null = null;
+
     // Returns proxy label (host:port) if URL is routed through proxy, null if DIRECT
     getProxyForUrl(url: string): string | null {
         let host: string;
@@ -148,23 +119,15 @@ class ProxyManagerService {
 
         // Check ignore list first (always DIRECT)
         for (const domain of this.ignoreDomains) {
-            if (this.matchDomain(host, domain)) return null;
+            if (matchesDomain(host, domain)) return null;
         }
 
         // Check domain-specific proxy rules
         for (const [domain, label] of this.domainProxyMap) {
-            if (this.matchDomain(host, domain)) return label;
+            if (matchesDomain(host, domain)) return label;
         }
 
         return this.proxyByDefault ? this.defaultProxyLabel : null;
-    }
-
-    private matchDomain(host: string, domain: string): boolean {
-        if (domain.startsWith('*.')) {
-            const base = domain.slice(2);
-            return host.length > base.length && host.endsWith('.' + base);
-        }
-        return host === domain;
     }
 
     async init(): Promise<void> {
@@ -174,6 +137,9 @@ class ProxyManagerService {
 
         // Регистрация обработчика авторизации (только один раз)
         this.registerAuthHandler();
+
+        // Регистрация обработчика для инвалидации кеша при изменении storage
+        this.registerStorageChangeListener();
 
         const targetState = await Storage.getTargetState();
         console.log('ProxyManager: Initial targetState =', targetState);
@@ -186,6 +152,29 @@ class ProxyManagerService {
         }
     }
 
+    private registerStorageChangeListener(): void {
+        chrome.storage.onChanged.addListener((changes, areaName) => {
+            if (areaName === 'local') {
+                const relevantKeys = ['presets', 'proxies', 'proxyByDefault', 'defaultProxy'];
+                const hasRelevantChanges = relevantKeys.some(key => key in changes);
+                if (hasRelevantChanges) {
+                    console.log('ProxyManager: Storage changed, invalidating PAC cache');
+                    this.cachedPacScript = null;
+                    this.cachedConfigHash = null;
+                }
+            }
+        });
+    }
+
+    private computeConfigHash(presets: any[], proxies: any[], proxyByDefault: boolean): string {
+        const config = JSON.stringify({ presets, proxies, proxyByDefault });
+        let hash = 5381;
+        for (let i = 0; i < config.length; i++) {
+            hash = ((hash << 5) + hash) + config.charCodeAt(i);
+        }
+        return (hash >>> 0).toString(36);
+    }
+
     private registerAuthHandler(): void {
         if (this.authHandlerRegistered) {
             return;
@@ -193,10 +182,10 @@ class ProxyManagerService {
         // Регистрируем обработчик для авторизации прокси
         if (chrome.webRequest && chrome.webRequest.onAuthRequired) {
             chrome.webRequest.onAuthRequired.addListener(
-                (details: chrome.webRequest.WebAuthenticationChallengeDetails, callback?: (response: chrome.webRequest.BlockingResponse) => void) => {
-                    const result = this.handleAuthRequired(details);
-                    if (callback) {
-                        callback(result);
+                (details: any, asyncCallback?: (response: any) => void) => {
+                    const response = this.handleAuthRequired(details);
+                    if (asyncCallback) {
+                        asyncCallback(response);
                     }
                 },
                 { urls: ['<all_urls>'] },
@@ -207,8 +196,8 @@ class ProxyManagerService {
     }
 
     private handleAuthRequired(
-        details: chrome.webRequest.WebAuthenticationChallengeDetails
-    ): chrome.webRequest.BlockingResponse {
+        details: any
+    ): any {
         // Ищем credentials для данного прокси
         const challenger = details.challenger;
         if (challenger) {
@@ -255,7 +244,21 @@ class ProxyManagerService {
     async enable(): Promise<void> {
         await this.loadDomainsFromPresets();
         await this.loadCredentials();
-        
+
+        const [activePresets, proxies, proxyByDefault] = await Promise.all([
+            Storage.getActivePresets(),
+            Storage.getProxies(),
+            Storage.getProxyByDefault(),
+        ]);
+
+        const configHash = this.computeConfigHash(activePresets, proxies, proxyByDefault);
+        if (configHash === this.cachedConfigHash && this.cachedPacScript) {
+            console.log('ProxyManager: Using cached PAC script (hash:', configHash + ')');
+            const pacScript = this.cachedPacScript;
+            await this.updateRoutingCache();
+            return this.applyPacScript(pacScript);
+        }
+
         const defaultProxy = await Storage.getDefaultProxy();
 
         if (!defaultProxy) {
@@ -264,9 +267,32 @@ class ProxyManagerService {
             return;
         }
 
-        const pacScript = await this.generatePacScript();
-        await this.updateRoutingCache();
+        // Validate proxy host and port before generating PAC script
+        if (!validateProxyHost(defaultProxy.host)) {
+            const error = new Error(`Invalid proxy host: ${defaultProxy.host}`);
+            console.error('ProxyManager:', error.message);
+            await Storage.setCurrentState(ProxyState.ERROR);
+            throw error;
+        }
 
+        if (!validateProxyPort(defaultProxy.port)) {
+            const error = new Error(`Invalid proxy port: ${defaultProxy.port}`);
+            console.error('ProxyManager:', error.message);
+            await Storage.setCurrentState(ProxyState.ERROR);
+            throw error;
+        }
+
+        const pacScript = await this.generatePacScript();
+        
+        this.cachedPacScript = pacScript;
+        this.cachedConfigHash = configHash;
+        console.log('ProxyManager: Cached new PAC script (hash:', configHash + ')');
+        
+        await this.updateRoutingCache();
+        return this.applyPacScript(pacScript);
+    }
+
+    private async applyPacScript(pacScript: string): Promise<void> {
         return new Promise((resolve) => {
             chrome.proxy.settings.set(
                 {
@@ -343,7 +369,15 @@ class ProxyManagerService {
     // Форматирование прокси для PAC-скрипта
     private formatProxyForPac(proxy: ProxyServer): string {
         const { type, host, port } = proxy;
-        
+
+        // Validate host and port before formatting
+        if (!validateProxyHost(host)) {
+            throw new Error(`Invalid proxy host: ${host}`);
+        }
+        if (!validateProxyPort(port)) {
+            throw new Error(`Invalid proxy port: ${port}`);
+        }
+
         switch (type) {
             case 'http':
                 return `PROXY ${host}:${port}`;
@@ -424,13 +458,13 @@ class ProxyManagerService {
             
             function matchDomain(host, domain) {
                 if (domain.indexOf("*.") === 0) {
-                    var baseDomain = domain.substring(2);
-                    return host.length > baseDomain.length &&
-                        host.substring(host.length - baseDomain.length - 1) === "." + baseDomain;
+                    var base = domain.substring(2);
+                    return host.length > base.length &&
+                        host.substring(host.length - base.length - 1) === "." + base;
                 }
                 return host === domain;
             }
-            
+
             function FindProxyForURL(url, host) {
                 // Check ignore list first (always DIRECT)
                 for (var i = 0; i < ignoreList.length; i++) {
@@ -438,14 +472,15 @@ class ProxyManagerService {
                         return "DIRECT";
                     }
                 }
-                
-                // Check domain-specific proxy rules
-                for (var domain in domainProxyMap) {
-                    if (matchDomain(host, domain)) {
-                        return domainProxyMap[domain];
+
+                // Check domain-specific proxy rules using Object.keys() for iteration
+                var domains = Object.keys(domainProxyMap);
+                for (var j = 0; j < domains.length; j++) {
+                    if (matchDomain(host, domains[j])) {
+                        return domainProxyMap[domains[j]];
                     }
                 }
-                
+
                 // Fallback: proxy all (if proxyByDefault) or direct
                 return fallbackProxy;
             }

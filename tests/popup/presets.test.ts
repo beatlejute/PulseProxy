@@ -145,6 +145,34 @@ describe('presets.ts - PresetsService', () => {
             expect(presetsList?.querySelectorAll('.preset-item').length).toBe(2);
         });
 
+        it('should call Storage.getProxies only once regardless of preset count', async () => {
+            const { Storage } = await import('../../src/shared/storage');
+            
+            mockHelpers.setLocalStorageData({
+                presets: [
+                    createPreset('preset-1', 'Preset 1', ['a.com']),
+                    createPreset('preset-2', 'Preset 2', ['b.com']),
+                    createPreset('preset-3', 'Preset 3', ['c.com']),
+                    createPreset('preset-4', 'Preset 4', ['d.com']),
+                    createPreset('preset-5', 'Preset 5', ['e.com']),
+                ],
+                proxyByDefault: false,
+                proxies: [
+                    { id: 'proxy-1', name: 'Proxy 1', host: '127.0.0.1', port: 8080, type: 'http', isDefault: true, createdAt: Date.now(), updatedAt: Date.now() },
+                ],
+            });
+
+            const getProxiesSpy = jest.spyOn(Storage, 'getProxies').mockResolvedValue([
+                { id: 'proxy-1', name: 'Proxy 1', host: '127.0.0.1', port: 8080, type: 'http', isDefault: true, createdAt: Date.now(), updatedAt: Date.now() },
+            ]);
+
+            await Presets.init();
+
+            expect(Storage.getProxies).toHaveBeenCalledTimes(1);
+            
+            getProxiesSpy.mockRestore();
+        });
+
         it('should skip default preset when proxyByDefault is false', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [

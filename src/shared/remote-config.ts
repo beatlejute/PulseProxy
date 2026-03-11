@@ -1,3 +1,5 @@
+import { fetchWithFallback } from './fetch-with-fallback';
+
 export interface RemoteConfig {
     referralLink: string;
 }
@@ -9,7 +11,7 @@ const DEFAULT_CONFIG: RemoteConfig = {
     referralLink: '#',
 };
 
-class RemoteConfigService {
+export class RemoteConfigService {
     private config: RemoteConfig = DEFAULT_CONFIG;
     private loaded = false;
 
@@ -24,16 +26,11 @@ class RemoteConfigService {
 
     private async fetchConfig(): Promise<RemoteConfig> {
         const cacheBuster = `?_t=${Date.now()}`;
-        try {
-            const response = await fetch(`${CONFIG_PRIMARY_URL}${cacheBuster}`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return await response.json();
-        } catch (primaryError) {
-            console.warn('RemoteConfig: Primary source unavailable, trying fallback:', primaryError);
-            const response = await fetch(`${CONFIG_FALLBACK_URL}${cacheBuster}`);
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return await response.json();
-        }
+        const urls = [
+            `${CONFIG_PRIMARY_URL}${cacheBuster}`,
+            `${CONFIG_FALLBACK_URL}${cacheBuster}`,
+        ];
+        return fetchWithFallback<RemoteConfig>(urls);
     }
 
     get referralLink(): string {

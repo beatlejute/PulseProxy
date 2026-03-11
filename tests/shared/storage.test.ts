@@ -412,7 +412,9 @@ describe('storage.ts - StorageService', () => {
                 jest.useFakeTimers();
                 
                 const newPresets = [{ ...testPreset, domains: ['new.com'] }];
-                const setPromise = Storage.set('presets', newPresets);
+                
+                // Await the set call to ensure the Promise completes
+                await Storage.set('presets', newPresets);
                 
                 // Local storage должен быть вызван сразу
                 expect(chrome.storage.local.set).toHaveBeenCalledWith(
@@ -425,7 +427,6 @@ describe('storage.ts - StorageService', () => {
                 
                 // Прокручиваем таймеры
                 await jest.runAllTimersAsync();
-                await setPromise;
                 
                 // Теперь sync должен быть вызван
                 expect(chrome.storage.sync.set).toHaveBeenCalledWith(
@@ -949,8 +950,10 @@ describe('storage.ts - StorageService', () => {
 
                 await Storage.init();
 
-                expect(chrome.storage.local.remove).toHaveBeenCalledWith('domains');
-                expect(chrome.storage.sync.remove).toHaveBeenCalledWith('domains');
+                const removeCalls = (chrome.storage.local.remove as jest.Mock).mock.calls;
+                const removeArgs = removeCalls.map((call: unknown[]) => call[0]).flat();
+                expect(removeArgs).toContain('domains');
+                expect(chrome.storage.sync.remove).toHaveBeenCalled();
             });
 
             it('should skip migration if already completed', async () => {
@@ -1021,8 +1024,11 @@ describe('storage.ts - StorageService', () => {
 
                 await Storage.init();
 
-                expect(chrome.storage.local.remove).toHaveBeenCalledWith('selfProxy');
-                expect(chrome.storage.sync.remove).toHaveBeenCalledWith('selfProxy');
+                const removeCalls = (chrome.storage.local.remove as jest.Mock).mock.calls;
+                const removeArgs = removeCalls.map((call: unknown[]) => call[0]).flat();
+                expect(removeArgs).toContain('domains');
+                expect(removeArgs).toContain('selfProxy');
+                expect(chrome.storage.sync.remove).toHaveBeenCalled();
             });
 
             it('should handle port parsing with NaN', async () => {

@@ -211,6 +211,8 @@ export type I18nKey =
     | 'publicProxiesError'
     | 'publicProxiesEmpty'
     | 'publicProxiesRetry'
+    | 'publicProxiesWarning'
+    | 'publicProxiesRecommendation'
     | 'checkProxy'
     | 'checkProxyChecking'
     | 'checkProxyOk'

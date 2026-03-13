@@ -27,12 +27,12 @@ export async function showPublicProxiesModal(
     warningDiv.appendChild(warningIcon);
 
     const warningContent = createElementFromTemplate<HTMLDivElement>('div', { className: 'warning-content' });
-    const warningText = createElementFromTemplate<HTMLSpanElement>('span', { textContent: 'Public proxies may be slow, unstable, and insecure. Use at your own risk.' });
+    const warningText = createElementFromTemplate<HTMLSpanElement>('span', { textContent: I18n.getMessage('publicProxiesWarning') || 'Public proxies may be slow, unstable, and insecure. Use at your own risk.' });
     setAttr(warningText, 'data-i18n', 'publicProxiesWarning');
     warningContent.appendChild(warningText);
 
     const recommendationSpan = createElementFromTemplate<HTMLSpanElement>('span', { className: 'warning-recommendation' });
-    const referralLink = createElementFromTemplate<HTMLAnchorElement>('a', { textContent: 'We recommend buying reliable and affordable proxies:' });
+    const referralLink = createElementFromTemplate<HTMLAnchorElement>('a', { textContent: I18n.getMessage('publicProxiesRecommendation') || 'We recommend buying reliable and affordable proxies:' });
     setAttr(referralLink, 'href', RemoteConfig.referralLink);
     setAttr(referralLink, 'target', '_blank');
     setAttr(referralLink, 'rel', 'noopener noreferrer');

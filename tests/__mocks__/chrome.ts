@@ -251,8 +251,9 @@ const mockI18n = {
 
 // Мок chrome.webRequest
 type AuthRequiredListener = (
-    details: chrome.webRequest.WebRequestDetails & { challenger?: { host: string; port: number } }
-) => chrome.webRequest.BlockingResponse | undefined;
+    details: chrome.webRequest.WebRequestDetails & { challenger?: { host: string; port: number } },
+    asyncCallback?: (response: any) => void,
+) => chrome.webRequest.BlockingResponse | void;
 const authRequiredListeners: AuthRequiredListener[] = [];
 
 const mockWebRequest = {
@@ -346,7 +347,9 @@ export const mockHelpers = {
     triggerAuthRequired: (details: chrome.webRequest.WebRequestDetails & { challenger?: { host: string; port: number } }) => {
         return new Promise((resolve) => {
             for (const listener of authRequiredListeners) {
-                const result = listener(details);
+                const result = listener(details, (response: any) => {
+                    resolve(response);
+                });
                 if (result !== undefined) {
                     resolve(result);
                     return;

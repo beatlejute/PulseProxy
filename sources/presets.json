@@ -1443,6 +1443,239 @@
         "kotlinlang.org",
         "*.kotlinlang.org"
       ]
+    },
+    {
+      "name": "Intel",
+      "domains": [
+        "intel.com",
+        "*.intel.com",
+        "*.intel.co.jp",
+        "downloadcenter.intel.com"
+      ]
+    },
+    {
+      "name": "AMD",
+      "domains": [
+        "amd.com",
+        "*.amd.com",
+        "drivers.amd.com"
+      ]
+    },
+    {
+      "name": "NVIDIA",
+      "domains": [
+        "nvidia.com",
+        "*.nvidia.com",
+        "*.nvidia.cn",
+        "*.geforce.com"
+      ]
+    },
+    {
+      "name": "Realtek",
+      "domains": [
+        "realtek.com",
+        "*.realtek.com"
+      ]
+    },
+    {
+      "name": "Qualcomm",
+      "domains": [
+        "qualcomm.com",
+        "*.qualcomm.com"
+      ]
+    },
+    {
+      "name": "Broadcom",
+      "domains": [
+        "broadcom.com",
+        "*.broadcom.com"
+      ]
+    },
+    {
+      "name": "ASUS",
+      "domains": [
+        "asus.com",
+        "*.asus.com",
+        "dlcdnets.asus.com"
+      ]
+    },
+    {
+      "name": "MSI",
+      "domains": [
+        "msi.com",
+        "*.msi.com",
+        "download.msi.com"
+      ]
+    },
+    {
+      "name": "Gigabyte",
+      "domains": [
+        "gigabyte.com",
+        "*.gigabyte.com",
+        "download.gigabyte.com"
+      ]
+    },
+    {
+      "name": "ASRock",
+      "domains": [
+        "asrock.com",
+        "*.asrock.com",
+        "download.asrock.com"
+      ]
+    },
+    {
+      "name": "Lenovo",
+      "domains": [
+        "lenovo.com",
+        "*.lenovo.com",
+        "download.lenovo.com",
+        "pcsupport.lenovo.com"
+      ]
+    },
+    {
+      "name": "Dell",
+      "domains": [
+        "dell.com",
+        "*.dell.com",
+        "*.delltechnologies.com"
+      ]
+    },
+    {
+      "name": "HP",
+      "domains": [
+        "hp.com",
+        "*.hp.com",
+        "support.hp.com"
+      ]
+    },
+    {
+      "name": "Acer",
+      "domains": [
+        "acer.com",
+        "*.acer.com"
+      ]
+    },
+    {
+      "name": "Samsung",
+      "domains": [
+        "samsung.com",
+        "*.samsung.com",
+        "semiconductor.samsung.com"
+      ]
+    },
+    {
+      "name": "Logitech",
+      "domains": [
+        "logitech.com",
+        "*.logitech.com",
+        "logitechg.com",
+        "*.logitechg.com"
+      ]
+    },
+    {
+      "name": "Corsair",
+      "domains": [
+        "corsair.com",
+        "*.corsair.com"
+      ]
+    },
+    {
+      "name": "Razer",
+      "domains": [
+        "razer.com",
+        "*.razer.com"
+      ]
+    },
+    {
+      "name": "SteelSeries",
+      "domains": [
+        "steelseries.com",
+        "*.steelseries.com"
+      ]
+    },
+    {
+      "name": "TP-Link",
+      "domains": [
+        "tp-link.com",
+        "*.tp-link.com"
+      ]
+    },
+    {
+      "name": "NETGEAR",
+      "domains": [
+        "netgear.com",
+        "*.netgear.com"
+      ]
+    },
+    {
+      "name": "D-Link",
+      "domains": [
+        "dlink.com",
+        "*.dlink.com",
+        "dlink.ru",
+        "*.dlink.ru"
+      ]
+    },
+    {
+      "name": "Western Digital",
+      "domains": [
+        "westerndigital.com",
+        "*.westerndigital.com",
+        "wdc.com",
+        "*.wdc.com"
+      ]
+    },
+    {
+      "name": "Seagate",
+      "domains": [
+        "seagate.com",
+        "*.seagate.com"
+      ]
+    },
+    {
+      "name": "Kingston",
+      "domains": [
+        "kingston.com",
+        "*.kingston.com"
+      ]
+    },
+    {
+      "name": "Crucial / Micron",
+      "domains": [
+        "crucial.com",
+        "*.crucial.com",
+        "micron.com",
+        "*.micron.com"
+      ]
+    },
+    {
+      "name": "Brother",
+      "domains": [
+        "brother.com",
+        "*.brother.com"
+      ]
+    },
+    {
+      "name": "Canon",
+      "domains": [
+        "canon.com",
+        "*.canon.com",
+        "usa.canon.com"
+      ]
+    },
+    {
+      "name": "Epson",
+      "domains": [
+        "epson.com",
+        "*.epson.com"
+      ]
+    },
+    {
+      "name": "Xerox",
+      "domains": [
+        "xerox.com",
+        "*.xerox.com"
+      ]
     }
   ]
 }

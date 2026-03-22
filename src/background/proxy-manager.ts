@@ -130,6 +130,7 @@ class ProxyManagerService {
         return this.proxyByDefault ? this.defaultProxyLabel : null;
     }
 
+
     async init(): Promise<void> {
         console.log('ProxyManager: Initializing...');
         await this.loadDomainsFromPresets();

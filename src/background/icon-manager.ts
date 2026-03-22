@@ -4,6 +4,10 @@ import { ProxyStateType, ThemeType } from '../types';
 
 type IconPathObject = { [size: string]: string };
 
+// Badge text for tabs routed through proxy
+const PROXY_BADGE_TEXT = 'ON';
+const PROXY_BADGE_COLOR = '#4CAF50';
+
 class IconManagerService {
     async update(): Promise<void> {
         const [currentState, theme] = await Promise.all([
@@ -21,7 +25,20 @@ class IconManagerService {
             chrome.action.setBadgeText({ text: '!' });
             chrome.action.setBadgeBackgroundColor({ color: '#FF6969' });
         } else {
+            // Clear global badge; per-tab badges are set separately
             chrome.action.setBadgeText({ text: '' });
+        }
+    }
+
+    /**
+     * Sets per-tab badge indicating whether the tab's site is routed through a proxy.
+     */
+    setTabProxyBadge(tabId: number, isProxied: boolean): void {
+        if (isProxied) {
+            chrome.action.setBadgeText({ tabId, text: PROXY_BADGE_TEXT });
+            chrome.action.setBadgeBackgroundColor({ tabId, color: PROXY_BADGE_COLOR });
+        } else {
+            chrome.action.setBadgeText({ tabId, text: '' });
         }
     }
 

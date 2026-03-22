@@ -185,6 +185,55 @@ async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promis
     }
 }
 
+// Per-tab proxy badge: update badge when navigating to a new page
+async function updateTabBadge(tabId: number, url: string | undefined): Promise<void> {
+    if (!url) {
+        IconManager.setTabProxyBadge(tabId, false);
+        return;
+    }
+
+    const currentState = await Storage.getCurrentState();
+    if (currentState !== ProxyState.CONNECTED) {
+        IconManager.setTabProxyBadge(tabId, false);
+        return;
+    }
+
+    const isProxied = ProxyManager.getProxyForUrl(url) !== null;
+    IconManager.setTabProxyBadge(tabId, isProxied);
+}
+
+// Update badge on page navigation (main frame only)
+chrome.webNavigation.onCommitted.addListener((details) => {
+    if (details.frameId !== 0) return;
+    updateTabBadge(details.tabId, details.url);
+});
+
+// Update badge when active tab changes
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    try {
+        const tab = await chrome.tabs.get(activeInfo.tabId);
+        updateTabBadge(activeInfo.tabId, tab.url);
+    } catch {
+        // Tab may no longer exist
+    }
+});
+
+// Refresh all tabs' badges when proxy state changes
+Storage.onChange(async (changes: StorageChanges, area: string) => {
+    if (area === 'local' && StorageKeys.CURRENT_STATE in changes) {
+        try {
+            const tabs = await chrome.tabs.query({});
+            for (const tab of tabs) {
+                if (tab.id != null) {
+                    updateTabBadge(tab.id, tab.url);
+                }
+            }
+        } catch {
+            // Ignore errors during tab enumeration
+        }
+    }
+});
+
 // Инициализация
 async function init() {
     await Storage.init();

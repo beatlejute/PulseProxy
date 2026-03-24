@@ -3,8 +3,43 @@ import { IconManager } from './icon-manager';
 import { Storage } from '../shared/storage';
 import { StorageKeys, SYNC_STORAGE_KEYS, ProxyState } from '../shared/constants';
 import { ExtensionMessage, StorageChanges, CheckProxyResult } from '../types';
+import { trackEvent, sendGA4Event } from '../shared/analytics';
+
+const HEARTBEAT_ALARM = 'ga4_heartbeat';
+const HEARTBEAT_INTERVAL_MIN = 10080;
 
 console.log('Background: Starting...');
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+    if (details.reason === 'install') {
+        await chrome.storage.local.set({
+            ga4_install_ts: Date.now(),
+            ga4_activation_count: 0
+        });
+
+        await trackEvent('extension_installed', {
+            extension_version: chrome.runtime.getManifest().version,
+            browser_language: navigator.language,
+            install_source: 'chrome_web_store'
+        });
+
+        chrome.alarms.create(HEARTBEAT_ALARM, {
+            delayInMinutes: HEARTBEAT_INTERVAL_MIN,
+            periodInMinutes: HEARTBEAT_INTERVAL_MIN
+        });
+
+        chrome.tabs.create({ url: 'welcome.html' });
+        await trackEvent('onboarding_started', {
+            extension_version: chrome.runtime.getManifest().version,
+            referrer: details.reason
+        });
+    }
+});
+
+// Uninstall Survey URL
+chrome.runtime.setUninstallURL(
+  'https://docs.google.com/forms/d/e/1FAIpQLSdKIlHWDWm-uBlQzHJcohqACl2RotbZ6ckShDC0-SyWlk_Y-g/viewform'
+);
 
 // Обработчик изменений в storage
 Storage.onChange((changes: StorageChanges, area: string) => {
@@ -32,7 +67,7 @@ Storage.onChange((changes: StorageChanges, area: string) => {
 });
 
 // Обработчик сообщений
-chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
     console.log('Background: Received message:', message);
 
     switch (message.action) {
@@ -47,11 +82,16 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, sender, sendRes
         case 'checkProxy':
             if (message.proxy) {
                 checkProxy(message.proxy).then(sendResponse).catch(() => sendResponse('error'));
-                return true; // Keep channel open for async response
+                return true;
             }
             break;
+        case 'trackGA4Event':
+            sendGA4Event(message.eventName, message.params)
+                .then(() => sendResponse({ success: true }))
+                .catch((e: unknown) => sendResponse({ success: false, error: String(e) }));
+            return true;
         default:
-            console.log('Background: Unknown action:', (message as ExtensionMessage).action);
+            console.log('Background: Unknown action:', message.action);
     }
 });
 
@@ -187,19 +227,25 @@ async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promis
 
 // Per-tab proxy badge: update badge when navigating to a new page
 async function updateTabBadge(tabId: number, url: string | undefined): Promise<void> {
-    if (!url) {
-        IconManager.setTabProxyBadge(tabId, false);
-        return;
-    }
+    try {
+        if (!url) {
+            IconManager.setTabProxyBadge(tabId, null);
+            return;
+        }
 
-    const currentState = await Storage.getCurrentState();
-    if (currentState !== ProxyState.CONNECTED) {
-        IconManager.setTabProxyBadge(tabId, false);
-        return;
+        const currentState = await Storage.getCurrentState();
+        if (currentState === ProxyState.CONNECTED) {
+            const proxyServer = ProxyManager.getProxyServerForUrl(url);
+            IconManager.setTabProxyBadge(tabId, proxyServer);
+        } else if (currentState === ProxyState.ERROR) {
+            const proxyServer = ProxyManager.getProxyServerForUrl(url);
+            IconManager.setTabProxyBadge(tabId, proxyServer, true);
+        } else {
+            IconManager.setTabProxyBadge(tabId, null);
+        }
+    } catch {
+        // Tab may have been closed between navigation event and badge update
     }
-
-    const isProxied = ProxyManager.getProxyForUrl(url) !== null;
-    IconManager.setTabProxyBadge(tabId, isProxied);
 }
 
 // Update badge on page navigation (main frame only)
@@ -232,6 +278,26 @@ Storage.onChange(async (changes: StorageChanges, area: string) => {
             // Ignore errors during tab enumeration
         }
     }
+});
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name !== HEARTBEAT_ALARM) return;
+
+    const result = await chrome.storage.local.get(['ga4_install_ts', 'ga4_activation_count']);
+    const ga4_install_ts = (result['ga4_install_ts'] as number) || 0;
+    const ga4_activation_count = (result['ga4_activation_count'] as number) || 0;
+
+    const proxies = await Storage.getProxies();
+    const proxyConfigured = proxies.length > 0 ? 'true' : 'false';
+    const presets = await Storage.getPresets();
+
+    await trackEvent('extension_active_session', {
+        days_since_install: Math.floor((Date.now() - ga4_install_ts) / 86400000),
+        total_activations: ga4_activation_count,
+        extension_version: chrome.runtime.getManifest().version,
+        proxy_configured: proxyConfigured,
+        presets_count: presets.length
+    });
 });
 
 // Инициализация

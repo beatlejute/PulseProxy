@@ -13,6 +13,7 @@ export interface ProxyServer {
     username?: string;       // Логин (опционально)
     password?: string;       // Пароль (опционально)
     name?: string;           // Человекочитаемое имя (опционально)
+    color?: string;          // Цветовой маркер (hex, опционально)
     isDefault: boolean;      // Прокси по умолчанию
     createdAt: number;       // Timestamp создания
     updatedAt: number;       // Timestamp обновления
@@ -59,6 +60,7 @@ export interface SyncStorageData {
     language: SupportedLanguage;
     syncEnabled: boolean;
     proxyByDefault: boolean;     // Использовать прокси по умолчанию для сайтов вне пресетов
+    proxyCheckEnabled: boolean;  // Проверять прокси перед добавлением
 }
 
 // Локальные данные (только chrome.storage.local)
@@ -153,6 +155,7 @@ export type I18nKey =
     | 'defaultProxy'
     | 'setDefault'
     | 'proxyName'
+    | 'proxyColor'
     | 'proxyType'
     | 'proxyHost'
     | 'proxyPort'
@@ -163,6 +166,7 @@ export type I18nKey =
     | 'save'
     | 'noProxiesConfigured'
     | 'labelProxyByDefault'
+    | 'labelProxyByDefaultActive'
     | 'ignoreListName'
     | 'placeholderIgnoreList'
     | 'labelImportExport'
@@ -220,6 +224,7 @@ export type I18nKey =
     | 'checkProxyTimeout'
     | 'proxyCheckFailedTitle'
     | 'saveAnyway'
+    | 'labelProxyCheck'
     | 'labelVersion';
 
 // Структура экспортируемых данных
@@ -233,6 +238,7 @@ export interface ExportData {
         theme: ThemeType;               // Тема оформления
         language: SupportedLanguage;    // Язык интерфейса
         proxyByDefault: boolean;        // Настройка прокси по умолчанию
+        proxyCheckEnabled: boolean;     // Проверка прокси перед добавлением
     };
 }
 

@@ -25,12 +25,13 @@ export class ImportExportService implements IImportExportService {
     }
 
     async exportAll(): Promise<ExportData> {
-        const [presets, proxies, theme, language, proxyByDefault] = await Promise.all([
+        const [presets, proxies, theme, language, proxyByDefault, proxyCheckEnabled] = await Promise.all([
             this.presetRepository.getAll(),
             this.proxyRepository.getAll(),
             this.settingsRepository.getTheme(),
             this.settingsRepository.getLanguage(),
-            this.settingsRepository.getProxyByDefault()
+            this.settingsRepository.getProxyByDefault(),
+            this.settingsRepository.getProxyCheckEnabled()
         ]);
 
         return {
@@ -42,7 +43,8 @@ export class ImportExportService implements IImportExportService {
                 proxies,
                 theme,
                 language: language || 'en',
-                proxyByDefault
+                proxyByDefault,
+                proxyCheckEnabled
             }
         };
     }
@@ -111,7 +113,7 @@ export class ImportExportService implements IImportExportService {
     }
 
     async importAll(exportData: ExportData, mode: 'replace' | 'merge'): Promise<void> {
-        const { presets, proxies, theme, language, proxyByDefault } = exportData.data;
+        const { presets, proxies, theme, language, proxyByDefault, proxyCheckEnabled } = exportData.data;
 
         if (mode === 'replace') {
             await Promise.all([
@@ -119,7 +121,8 @@ export class ImportExportService implements IImportExportService {
                 this.proxyRepository.setAll(proxies),
                 this.settingsRepository.setTheme(theme),
                 this.settingsRepository.setLanguage(language),
-                this.settingsRepository.setProxyByDefault(proxyByDefault)
+                this.settingsRepository.setProxyByDefault(proxyByDefault),
+                this.settingsRepository.setProxyCheckEnabled(proxyCheckEnabled ?? true)
             ]);
         } else {
             const existingPresets = await this.presetRepository.getAll();

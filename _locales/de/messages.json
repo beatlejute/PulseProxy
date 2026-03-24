@@ -59,6 +59,10 @@
     "message": "Einstellungen synchronisieren",
     "description": "Label for sync toggle"
   },
+  "labelProxyCheck": {
+    "message": "Proxy vor dem Hinzufügen prüfen",
+    "description": "Label for proxy check toggle"
+  },
   "syncEnableConfirm": {
     "message": "Synchronisierung aktivieren? Ihre Einstellungen werden auf allen Geräten mit diesem Konto verfügbar sein.",
     "description": "Confirmation message when enabling sync"
@@ -223,6 +227,10 @@
     "message": "Name (optional)",
     "description": "Proxy name field label"
   },
+  "proxyColor": {
+    "message": "Farbe",
+    "description": "Proxy color marker label"
+  },
   "proxyType": {
     "message": "Typ",
     "description": "Proxy type field label"
@@ -262,6 +270,10 @@
   "labelProxyByDefault": {
     "message": "Alle Seiten standardmäßig über Proxy leiten",
     "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "labelProxyByDefaultActive": {
+    "message": "Leitet jetzt alle Seiten standardmäßig über Proxy",
+    "description": "Label for toggle when proxying all sites by default is enabled"
   },
   "ignoreListName": {
     "message": "Ausnahmeliste",
@@ -493,5 +505,14 @@
   "labelVersion": {
     "message": "Version",
     "description": "Label for version display in settings"
-  }
+  },
+  "welcomeTitle": { "message": "Willkommen bei PulseProxy!" },
+  "welcomeSubtitle": { "message": "Einfache und schnelle Proxy-Verwaltung für Ihren Browser" },
+  "welcomeStep1Title": { "message": "Proxy hinzufügen" },
+  "welcomeStep1Desc": { "message": "Klicken Sie auf das Erweiterungssymbol und fügen Sie Ihren Proxy-Server hinzu" },
+  "welcomeStep2Title": { "message": "Presets einrichten" },
+  "welcomeStep2Desc": { "message": "Wählen Sie, welche Seiten den Proxy verwenden sollen" },
+  "welcomeStep3Title": { "message": "Verbinden" },
+  "welcomeStep3Desc": { "message": "Klicken Sie auf die Schild-Schaltfläche, um den Proxy zu aktivieren" },
+  "welcomeGetStarted": { "message": "Loslegen" }
 }

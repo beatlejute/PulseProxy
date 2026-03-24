@@ -76,8 +76,16 @@ class ProxyListService {
         const mainDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-item-main' });
 
         const infoDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-item-info' });
+
+        const nameRow = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-name-row' });
+        if (proxy.color) {
+            const colorDot = createElementFromTemplate<HTMLSpanElement>('span', { className: 'proxy-color-dot' });
+            colorDot.style.backgroundColor = proxy.color;
+            nameRow.appendChild(colorDot);
+        }
         const nameSpan = createElementFromTemplate<HTMLSpanElement>('span', { className: 'proxy-name', textContent: `${displayName}${hasAuth}` });
-        infoDiv.appendChild(nameSpan);
+        nameRow.appendChild(nameSpan);
+        infoDiv.appendChild(nameRow);
 
         const detailsSpan = createElementFromTemplate<HTMLSpanElement>('span', { className: 'proxy-details', textContent: `${proxyTypeLabel} • ${proxy.host}:${proxy.port}` });
         infoDiv.appendChild(detailsSpan);

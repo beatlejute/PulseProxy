@@ -59,6 +59,10 @@
     "message": "同步设置",
     "description": "Label for sync toggle"
   },
+  "labelProxyCheck": {
+    "message": "添加前检查代理",
+    "description": "Label for proxy check toggle"
+  },
   "syncEnableConfirm": {
     "message": "启用同步？您的设置将在所有使用此账户的设备上可用。",
     "description": "Confirmation message when enabling sync"
@@ -223,6 +227,10 @@
     "message": "名称（可选）",
     "description": "Proxy name field label"
   },
+  "proxyColor": {
+    "message": "颜色",
+    "description": "Proxy color marker label"
+  },
   "proxyType": {
     "message": "类型",
     "description": "Proxy type field label"
@@ -262,6 +270,10 @@
   "labelProxyByDefault": {
     "message": "默认代理所有网站",
     "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "labelProxyByDefaultActive": {
+    "message": "当前默认代理所有网站",
+    "description": "Label for toggle when proxying all sites by default is enabled"
   },
   "ignoreListName": {
     "message": "排除列表",
@@ -493,5 +505,14 @@
   "labelVersion": {
     "message": "版本",
     "description": "Label for version display in settings"
-  }
+  },
+  "welcomeTitle": { "message": "欢迎使用 PulseProxy！" },
+  "welcomeSubtitle": { "message": "简单快速的浏览器代理管理" },
+  "welcomeStep1Title": { "message": "添加代理" },
+  "welcomeStep1Desc": { "message": "点击扩展图标并添加您的代理服务器" },
+  "welcomeStep2Title": { "message": "设置预设" },
+  "welcomeStep2Desc": { "message": "选择哪些网站应使用代理" },
+  "welcomeStep3Title": { "message": "连接" },
+  "welcomeStep3Desc": { "message": "点击盾牌按钮启用代理" },
+  "welcomeGetStarted": { "message": "开始使用" }
 }

@@ -287,6 +287,16 @@ export interface ISettingsRepository {
      * Установить настройку proxyByDefault
      */
     setProxyByDefault(enabled: boolean): Promise<void>;
+
+    /**
+     * Получить настройку proxyCheckEnabled
+     */
+    getProxyCheckEnabled(): Promise<boolean>;
+
+    /**
+     * Установить настройку proxyCheckEnabled
+     */
+    setProxyCheckEnabled(enabled: boolean): Promise<void>;
 }
 
 // ============================================================================

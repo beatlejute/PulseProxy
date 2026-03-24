@@ -293,6 +293,17 @@ class StorageService implements IStorageBackend, ISettingsRepository {
         return this.setTyped(StorageKeys.PROXY_BY_DEFAULT as StorageKey, enabled);
     }
 
+    // === Настройка проверки прокси перед добавлением ===
+
+    async getProxyCheckEnabled(): Promise<boolean> {
+        const value = await this.getTyped(StorageKeys.PROXY_CHECK_ENABLED as StorageKey) as boolean | undefined;
+        return value ?? true; // По умолчанию true - проверяем прокси
+    }
+
+    async setProxyCheckEnabled(enabled: boolean): Promise<void> {
+        return this.setTyped(StorageKeys.PROXY_CHECK_ENABLED as StorageKey, enabled);
+    }
+
     // === Подписки на изменения ===
 
     subscribe(callback: StorageChangeCallback): () => void {

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PulseProxy VPN</title>
+    <style>
+        :root {
+            --background-color: #191919;
+            --main-text-color: #F1F0EF;
+            --action-color: #FFDD2D;
+            --action-text-color: #191919;
+            --secondary-color: #313131;
+            --success-color: #33CC8C;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--main-text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .welcome-container {
+            max-width: 520px;
+            padding: 40px 32px;
+            text-align: center;
+        }
+
+        .welcome-icon {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 24px;
+        }
+
+        .welcome-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: var(--main-text-color);
+        }
+
+        .welcome-subtitle {
+            font-size: 16px;
+            color: #999;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .steps {
+            text-align: left;
+            margin-bottom: 40px;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--action-color);
+            color: var(--action-text-color);
+            font-weight: 700;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .step-content {
+            padding-top: 4px;
+        }
+
+        .step-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .step-desc {
+            font-size: 14px;
+            color: #999;
+            line-height: 1.4;
+        }
+
+        .welcome-button {
+            display: inline-block;
+            background-color: var(--action-color);
+            color: var(--action-text-color);
+            border: none;
+            border-radius: 8px;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            text-decoration: none;
+        }
+
+        .welcome-button:hover {
+            opacity: 0.85;
+        }
+
+        .welcome-button:active {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="welcome-container">
+        <img class="welcome-icon" src="icons/icon128.png" alt="PulseProxy">
+        <h1 class="welcome-title" data-i18n="welcomeTitle">Welcome to PulseProxy!</h1>
+        <p class="welcome-subtitle" data-i18n="welcomeSubtitle">Simple and fast proxy management for your browser</p>
+
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title" data-i18n="welcomeStep1Title">Add a proxy</div>
+                    <div class="step-desc" data-i18n="welcomeStep1Desc">Click the extension icon and add your proxy server</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title" data-i18n="welcomeStep2Title">Set up presets</div>
+                    <div class="step-desc" data-i18n="welcomeStep2Desc">Choose which sites should use the proxy</div>
+                </div>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title" data-i18n="welcomeStep3Title">Connect</div>
+                    <div class="step-desc" data-i18n="welcomeStep3Desc">Click the shield button to enable the proxy</div>
+                </div>
+            </div>
+        </div>
+
+        <button class="welcome-button" data-i18n="welcomeGetStarted">Get Started</button>
+    </div>
+
+    <script src="welcome.js"></script>
+</body>
+</html>

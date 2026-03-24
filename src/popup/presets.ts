@@ -58,8 +58,10 @@ class PresetsService {
 
         if (this.proxyByDefault) {
             this.proxyByDefaultToggle.classList.add('active');
+            this.proxyByDefaultToggle.textContent = I18n.getMessage('labelProxyByDefaultActive');
         } else {
             this.proxyByDefaultToggle.classList.remove('active');
+            this.proxyByDefaultToggle.textContent = I18n.getMessage('labelProxyByDefault');
         }
     }
 

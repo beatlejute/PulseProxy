@@ -309,6 +309,24 @@ html, body {
   cursor: pointer;
 }
 
+/* Proxy Check Toggle */
+.proxy-check-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+.proxy-check-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--action-color);
+  cursor: pointer;
+}
+
+.proxy-check-toggle label {
+  cursor: pointer;
+}
+
 /* Import/Export Section */
 .import-export-section {
   margin-top: 12px;
@@ -909,6 +927,20 @@ button.support-project {
   gap: 8px;
 }
 
+.proxy-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.proxy-color-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 .proxy-item-info {
   display: flex;
   flex-direction: column;
@@ -1144,6 +1176,39 @@ button.support-project {
   padding: 10px;
   background-color: rgba(0, 0, 0, 0.2);
   border-radius: 6px;
+}
+
+/* Color Picker */
+.color-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+  padding: 0;
+  outline: none;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.selected {
+  border-color: var(--main-text-color);
+  transform: scale(1.15);
+}
+
+.color-swatch-none {
+  background: linear-gradient(135deg, var(--secondary-color) 45%, var(--initial-color) 45%, var(--initial-color) 55%, var(--secondary-color) 55%);
+  border: 1px solid var(--initial-color);
 }
 
 /* Modal Buttons */

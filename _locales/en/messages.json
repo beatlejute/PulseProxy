@@ -59,6 +59,10 @@
     "message": "Sync settings",
     "description": "Label for sync toggle"
   },
+  "labelProxyCheck": {
+    "message": "Check proxy before adding",
+    "description": "Label for proxy check toggle"
+  },
   "syncEnableConfirm": {
     "message": "Enable sync? Your settings will be available on all devices with this account.",
     "description": "Confirmation message when enabling sync"
@@ -223,6 +227,10 @@
     "message": "Name (optional)",
     "description": "Proxy name field label"
   },
+  "proxyColor": {
+    "message": "Color",
+    "description": "Proxy color marker label"
+  },
   "proxyType": {
     "message": "Type",
     "description": "Proxy type field label"
@@ -262,6 +270,10 @@
   "labelProxyByDefault": {
     "message": "Proxy all sites by default",
     "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "labelProxyByDefaultActive": {
+    "message": "Now proxying all sites by default",
+    "description": "Label for toggle when proxying all sites by default is enabled"
   },
   "ignoreListName": {
     "message": "Ignore List",
@@ -493,5 +505,14 @@
   "labelVersion": {
     "message": "Version",
     "description": "Label for version display in settings"
-  }
+  },
+  "welcomeTitle": { "message": "Welcome to PulseProxy!" },
+  "welcomeSubtitle": { "message": "Simple and fast proxy management for your browser" },
+  "welcomeStep1Title": { "message": "Add a proxy" },
+  "welcomeStep1Desc": { "message": "Click the extension icon and add your proxy server" },
+  "welcomeStep2Title": { "message": "Set up presets" },
+  "welcomeStep2Desc": { "message": "Choose which sites should use the proxy" },
+  "welcomeStep3Title": { "message": "Connect" },
+  "welcomeStep3Desc": { "message": "Click the shield button to enable the proxy" },
+  "welcomeGetStarted": { "message": "Get Started" }
 }

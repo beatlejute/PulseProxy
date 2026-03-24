@@ -1,9 +1,11 @@
 import { I18n } from '../shared/i18n';
 import { RemoteConfig } from '../shared/remote-config';
+import { Storage } from '../shared/storage';
 import { ProxyType, NormalizedPublicProxy, PublicProxiesResponse, PublicProxyFilters } from '../types';
 import { createElementFromTemplate, setAttr } from './safe-dom';
 import { ModalHelper } from './modal-helper';
 import { checkProxyBeforeAdd } from './proxy-form-modal';
+import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
 
 const PUBLIC_PROXIES_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/proxys.json';
 
@@ -38,6 +40,19 @@ export async function showPublicProxiesModal(
     setAttr(referralLink, 'rel', 'noopener noreferrer');
     setAttr(referralLink, 'class', 'referral-link');
     setAttr(referralLink, 'data-i18n', 'publicProxiesRecommendation');
+    referralLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = RemoteConfig.referralLink;
+        if (url && url !== '#') {
+            const fullUrl = buildAffiliateUrl(url, 'public_proxies');
+            trackEvent('affiliate_link_clicked', {
+                provider: new URL(url).hostname.replace('www.', '').split('.')[0],
+                placement: 'public_proxies',
+                link_url: fullUrl
+            });
+            chrome.tabs.create({ url: fullUrl });
+        }
+    });
     recommendationSpan.appendChild(referralLink);
     warningContent.appendChild(recommendationSpan);
     warningDiv.appendChild(warningContent);
@@ -311,15 +326,20 @@ export function createPublicProxyItem(
 
     if (onProxyAdded) {
         item.addEventListener('click', async () => {
-            const checkingOverlay = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-checking-overlay' });
-            const spinnerEl = createElementFromTemplate<HTMLDivElement>('div', { className: 'spinner' });
-            checkingOverlay.appendChild(spinnerEl);
-            const statusSpan = createElementFromTemplate<HTMLSpanElement>('span', { textContent: I18n.getMessage('checkProxyChecking') || 'Checking...' });
-            checkingOverlay.appendChild(statusSpan);
-            document.querySelector('.public-proxies-modal')?.appendChild(checkingOverlay);
+            const proxyCheckEnabled = await Storage.getProxyCheckEnabled();
+            let allowed = true;
 
-            const allowed = await checkProxyBeforeAdd(proxy.protocol, proxy.ip, proxy.port);
-            checkingOverlay.remove();
+            if (proxyCheckEnabled) {
+                const checkingOverlay = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-checking-overlay' });
+                const spinnerEl = createElementFromTemplate<HTMLDivElement>('div', { className: 'spinner' });
+                checkingOverlay.appendChild(spinnerEl);
+                const statusSpan = createElementFromTemplate<HTMLSpanElement>('span', { textContent: I18n.getMessage('checkProxyChecking') || 'Checking...' });
+                checkingOverlay.appendChild(statusSpan);
+                document.querySelector('.public-proxies-modal')?.appendChild(checkingOverlay);
+
+                allowed = await checkProxyBeforeAdd(proxy.protocol, proxy.ip, proxy.port);
+                checkingOverlay.remove();
+            }
 
             if (allowed) {
                 await onProxyAdded(proxy);

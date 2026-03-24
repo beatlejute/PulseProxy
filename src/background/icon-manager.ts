@@ -1,12 +1,12 @@
 import { Storage } from '../shared/storage';
 import { ProxyState, IconPaths } from '../shared/constants';
-import { ProxyStateType, ThemeType } from '../types';
+import { ProxyStateType, ThemeType, ProxyServer } from '../types';
 
 type IconPathObject = { [size: string]: string };
 
-// Badge text for tabs routed through proxy
-const PROXY_BADGE_TEXT = 'ON';
-const PROXY_BADGE_COLOR = '#4CAF50';
+// Default badge for proxied tabs without a color
+const DEFAULT_BADGE_TEXT = '✓';
+const DEFAULT_BADGE_COLOR = '#4CAF50';
 
 class IconManagerService {
     async update(): Promise<void> {
@@ -21,25 +21,37 @@ class IconManagerService {
     }
 
     private updateBadge(state: ProxyStateType): void {
-        if (state === ProxyState.ERROR) {
-            chrome.action.setBadgeText({ text: '!' });
-            chrome.action.setBadgeBackgroundColor({ color: '#FF6969' });
-        } else {
-            // Clear global badge; per-tab badges are set separately
-            chrome.action.setBadgeText({ text: '' });
-        }
+        // Clear global badge; per-tab badges handle both connected and error states
+        chrome.action.setBadgeText({ text: '' });
     }
 
     /**
      * Sets per-tab badge indicating whether the tab's site is routed through a proxy.
+     * Shows country flag emoji from proxy name if available, otherwise a checkmark.
+     * Uses the proxy's color marker as badge background if set.
      */
-    setTabProxyBadge(tabId: number, isProxied: boolean): void {
-        if (isProxied) {
-            chrome.action.setBadgeText({ tabId, text: PROXY_BADGE_TEXT });
-            chrome.action.setBadgeBackgroundColor({ tabId, color: PROXY_BADGE_COLOR });
+    setTabProxyBadge(tabId: number, proxy: ProxyServer | null, isError = false): void {
+        if (proxy) {
+            const badgeText = this.extractBadgeText(proxy, isError);
+            const badgeColor = isError ? '#FF6969' : (proxy.color || DEFAULT_BADGE_COLOR);
+            chrome.action.setBadgeText({ tabId, text: badgeText }).catch(() => {});
+            chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor }).catch(() => {});
         } else {
-            chrome.action.setBadgeText({ tabId, text: '' });
+            chrome.action.setBadgeText({ tabId, text: '' }).catch(() => {});
         }
+    }
+
+    /**
+     * Extracts badge text from proxy: country flag if present in name, otherwise checkmark.
+     */
+    private extractBadgeText(proxy: ProxyServer, isError = false): string {
+        if (proxy.name) {
+            const flagMatch = proxy.name.match(/[\u{1F1E6}-\u{1F1FF}]{2}/u);
+            if (flagMatch) {
+                return flagMatch[0];
+            }
+        }
+        return isError ? '!' : DEFAULT_BADGE_TEXT;
     }
 
     getIconPath(state: ProxyStateType, theme: ThemeType): string {

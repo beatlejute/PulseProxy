@@ -3,6 +3,7 @@ import { ProxyState, Config } from '../shared/constants';
 import { ProxyServer, ProxyType } from '../types';
 import { toASCII } from '../shared/punycode';
 import { matchesDomain } from '../shared/domain-matcher';
+import { trackEvent } from '../shared/analytics';
 
 /**
  * Validates proxy host to prevent Script Injection attacks.
@@ -100,9 +101,11 @@ class ProxyManagerService {
     // PAC routing state (mirrors the active PAC script logic)
     // domain -> proxy label (host:port)
     private domainProxyMap: Map<string, string> = new Map();
+    private domainProxyServerMap: Map<string, ProxyServer> = new Map();
     private ignoreDomains: Set<string> = new Set();
     private proxyByDefault: boolean = false;
     private defaultProxyLabel: string = '';
+    private defaultProxyServer: ProxyServer | null = null;
 
     // PAC caching
     private cachedPacScript: string | null = null;
@@ -130,6 +133,25 @@ class ProxyManagerService {
         return this.proxyByDefault ? this.defaultProxyLabel : null;
     }
 
+    // Returns ProxyServer object if URL is routed through proxy, null if DIRECT
+    getProxyServerForUrl(url: string): ProxyServer | null {
+        let host: string;
+        try {
+            host = new URL(url).hostname;
+        } catch {
+            return null;
+        }
+
+        for (const domain of this.ignoreDomains) {
+            if (matchesDomain(host, domain)) return null;
+        }
+
+        for (const [domain, server] of this.domainProxyServerMap) {
+            if (matchesDomain(host, domain)) return server;
+        }
+
+        return this.proxyByDefault ? this.defaultProxyServer : null;
+    }
 
     async init(): Promise<void> {
         console.log('ProxyManager: Initializing...');
@@ -257,7 +279,8 @@ class ProxyManagerService {
             console.log('ProxyManager: Using cached PAC script (hash:', configHash + ')');
             const pacScript = this.cachedPacScript;
             await this.updateRoutingCache();
-            return this.applyPacScript(pacScript);
+            const defaultProxy = await Storage.getDefaultProxy();
+            return this.applyPacScript(pacScript, defaultProxy);
         }
 
         const defaultProxy = await Storage.getDefaultProxy();
@@ -290,23 +313,38 @@ class ProxyManagerService {
         console.log('ProxyManager: Cached new PAC script (hash:', configHash + ')');
         
         await this.updateRoutingCache();
-        return this.applyPacScript(pacScript);
+        return this.applyPacScript(pacScript, defaultProxy);
     }
 
-    private async applyPacScript(pacScript: string): Promise<void> {
+    private async applyPacScript(pacScript: string, defaultProxy?: ProxyServer): Promise<void> {
         return new Promise((resolve) => {
             chrome.proxy.settings.set(
                 {
                     value: { mode: 'pac_script', pacScript: { data: pacScript } },
                     scope: 'regular',
                 },
-                () => {
+                async () => {
                     if (chrome.runtime.lastError) {
                         console.error('ProxyManager: Error setting proxy:', chrome.runtime.lastError.message);
                         Storage.setCurrentState(ProxyState.ERROR);
                     } else {
                         console.log('ProxyManager: Proxy enabled');
                         Storage.setCurrentState(ProxyState.CONNECTED);
+
+                        if (defaultProxy) {
+                            const result = await chrome.storage.local.get(['ga4_activation_count', 'ga4_install_ts']);
+                            const ga4_activation_count = (result.ga4_activation_count as number) || 0;
+                            const ga4_install_ts = (result.ga4_install_ts as number) || 0;
+
+                            const newCount = ga4_activation_count + 1;
+                            await chrome.storage.local.set({ ga4_activation_count: newCount });
+
+                            await trackEvent('proxy_activated', {
+                                proxy_type: defaultProxy.type,
+                                activation_count: newCount,
+                                time_since_install_sec: Math.floor((Date.now() - ga4_install_ts) / 1000)
+                            });
+                        }
                     }
                     resolve();
                 }
@@ -341,8 +379,10 @@ class ProxyManagerService {
 
         this.proxyByDefault = proxyByDefault;
         this.defaultProxyLabel = defaultProxy ? this.proxyLabel(defaultProxy) : '';
+        this.defaultProxyServer = defaultProxy || null;
         this.ignoreDomains = new Set();
         this.domainProxyMap = new Map();
+        this.domainProxyServerMap = new Map();
 
         for (const preset of activePresets) {
             if (preset.isDefault) {
@@ -352,7 +392,10 @@ class ProxyManagerService {
                     ? proxies.find(p => p.id === preset.proxyId)
                     : defaultProxy;
                 const label = proxy ? this.proxyLabel(proxy) : this.defaultProxyLabel;
-                for (const d of preset.domains) this.domainProxyMap.set(d, label);
+                for (const d of preset.domains) {
+                    this.domainProxyMap.set(d, label);
+                    if (proxy) this.domainProxyServerMap.set(d, proxy);
+                }
             }
         }
     }

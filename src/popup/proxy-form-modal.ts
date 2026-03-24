@@ -1,10 +1,12 @@
 import { I18n } from '../shared/i18n';
 import { RemoteConfig } from '../shared/remote-config';
 import { Storage } from '../shared/storage';
+import { PROXY_COLORS } from '../shared/constants';
 import { ProxyServer, ProxyType } from '../types';
 import { createElementFromTemplate, setAttr } from './safe-dom';
 import { ModalHelper } from './modal-helper';
 import { showAlert, showConfirm } from './dialog';
+import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
 
 export async function checkProxyBeforeAdd(
     type: ProxyType,
@@ -17,14 +19,44 @@ export async function checkProxyBeforeAdd(
         action: 'checkProxy',
         proxy: { type, host, port, username, password },
     });
-    if (result === 'ok') return true;
 
-    const htmlMessage = `<div class="public-proxies-warning" style="margin:0"><span class="warning-icon">⚠️</span><div class="warning-content"><span class="warning-title">${I18n.getMessage('proxyCheckFailedTitle')}</span><span>${I18n.getMessage('publicProxiesWarning')}</span><span class="warning-recommendation"><a href="${RemoteConfig.referralLink}" target="_blank">${I18n.getMessage('publicProxiesRecommendation')}</a></span></div></div>`;
-    return showConfirm('', {
+    if (result === 'ok') {
+        await trackEvent('proxy_test_success', {
+            proxy_type: type,
+            latency_ms: 0,
+            test_url: `${type}://${host}:${port}`
+        });
+        return true;
+    }
+
+    await trackEvent('proxy_test_failure', {
+        proxy_type: type,
+        test_url: `${type}://${host}:${port}`,
+        error: result
+    });
+
+    const affiliateUrl = buildAffiliateUrl(RemoteConfig.referralLink, 'proxy_check_warning');
+    const htmlMessage = `<div class="public-proxies-warning" style="margin:0"><span class="warning-icon">⚠️</span><div class="warning-content"><span class="warning-title">${I18n.getMessage('proxyCheckFailedTitle')}</span><span>${I18n.getMessage('publicProxiesWarning')}</span><span class="warning-recommendation"><a href="${affiliateUrl}" target="_blank" class="referral-link-tracked">${I18n.getMessage('publicProxiesRecommendation')}</a></span></div></div>`;
+    const confirmed = showConfirm('', {
         okText: I18n.getMessage('saveAnyway') || 'Save anyway',
         cancelText: I18n.getMessage('cancel') || 'Cancel',
         htmlMessage,
     });
+
+    // Track affiliate clicks in the confirm dialog
+    setTimeout(() => {
+        document.querySelectorAll<HTMLAnchorElement>('.referral-link-tracked').forEach(link => {
+            link.addEventListener('click', () => {
+                trackEvent('affiliate_link_clicked', {
+                    provider: new URL(RemoteConfig.referralLink).hostname.replace('www.', '').split('.')[0],
+                    placement: 'proxy_check_warning',
+                    link_url: affiliateUrl
+                });
+            });
+        });
+    }, 0);
+
+    return confirmed;
 }
 
 export function showProxyForm(proxy: ProxyServer | null, onSaved: () => Promise<void>): void {
@@ -48,6 +80,19 @@ export function showProxyForm(proxy: ProxyServer | null, onSaved: () => Promise<
     setAttr(referralLink, 'rel', 'noopener noreferrer');
     setAttr(referralLink, 'class', 'referral-link');
     setAttr(referralLink, 'data-i18n', 'proxyFormRecommendation');
+    referralLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = RemoteConfig.referralLink;
+        if (url && url !== '#') {
+            const fullUrl = buildAffiliateUrl(url, 'proxy_form');
+            trackEvent('affiliate_link_clicked', {
+                provider: new URL(url).hostname.replace('www.', '').split('.')[0],
+                placement: 'proxy_form',
+                link_url: fullUrl
+            });
+            chrome.tabs.create({ url: fullUrl });
+        }
+    });
     recSpan.appendChild(referralLink);
     recDiv.appendChild(recSpan);
     body.appendChild(recDiv);
@@ -153,6 +198,39 @@ export function showProxyForm(proxy: ProxyServer | null, onSaved: () => Promise<
 
     authFields.appendChild(authRow);
     form.appendChild(authFields);
+
+    // Color picker
+    const colorGroup = createElementFromTemplate<HTMLDivElement>('div', { className: 'form-group' });
+    const colorLabel = createElementFromTemplate<HTMLLabelElement>('label', { textContent: 'Color' });
+    setAttr(colorLabel, 'data-i18n', 'proxyColor');
+    colorGroup.appendChild(colorLabel);
+
+    const colorPicker = createElementFromTemplate<HTMLDivElement>('div', { className: 'color-picker' });
+    let selectedColor = proxy?.color || '';
+
+    const noneBtn = createElementFromTemplate<HTMLButtonElement>('button', { className: `color-swatch color-swatch-none${!selectedColor ? ' selected' : ''}`, type: 'button' });
+    setAttr(noneBtn, 'data-color', '');
+    setAttr(noneBtn, 'title', 'None');
+    colorPicker.appendChild(noneBtn);
+
+    for (const color of PROXY_COLORS) {
+        const swatch = createElementFromTemplate<HTMLButtonElement>('button', { className: `color-swatch${selectedColor === color ? ' selected' : ''}`, type: 'button' });
+        swatch.style.backgroundColor = color;
+        setAttr(swatch, 'data-color', color);
+        colorPicker.appendChild(swatch);
+    }
+
+    colorPicker.addEventListener('click', (e) => {
+        const target = (e.target as HTMLElement).closest('.color-swatch') as HTMLElement | null;
+        if (!target) return;
+        selectedColor = target.dataset.color || '';
+        colorPicker.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        target.classList.add('selected');
+    });
+
+    colorGroup.appendChild(colorPicker);
+    form.appendChild(colorGroup);
+
     body.appendChild(form);
 
     // Footer with save/cancel buttons
@@ -178,25 +256,40 @@ export function showProxyForm(proxy: ProxyServer | null, onSaved: () => Promise<
             const username = hasAuthCheckboxEl.checked ? (formData.get('username') as string)?.trim() || undefined : undefined;
             const password = hasAuthCheckboxEl.checked ? (formData.get('password') as string) || undefined : undefined;
 
-            if (saveBtn) {
-                saveBtn.disabled = true;
-                saveBtn.classList.add('btn-checking');
-                saveBtn.textContent = I18n.getMessage('checkProxyChecking') || 'Checking...';
-            }
+            const proxyCheckEnabled = await Storage.getProxyCheckEnabled();
+            let allowed = true;
 
-            const allowed = await checkProxyBeforeAdd(type, host, port, username, password);
+            if (proxyCheckEnabled) {
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.classList.add('btn-checking');
+                    saveBtn.textContent = I18n.getMessage('checkProxyChecking') || 'Checking...';
+                }
 
-            if (saveBtn) {
-                saveBtn.disabled = false;
-                saveBtn.classList.remove('btn-checking');
-                saveBtn.textContent = originalSaveText;
+                allowed = await checkProxyBeforeAdd(type, host, port, username, password);
+
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.classList.remove('btn-checking');
+                    saveBtn.textContent = originalSaveText;
+                }
             }
 
             if (allowed) {
+                const existingProxies = await Storage.getProxies();
+                const isFirst = existingProxies.length === 0;
+                const color = selectedColor || undefined;
+
                 if (isEdit && proxy) {
-                    await Storage.updateProxy(proxy.id, { name, type, host, port, username, password });
+                    await Storage.updateProxy(proxy.id, { name, type, host, port, username, password, color });
                 } else {
-                    await Storage.addProxy({ name, type, host, port, username, password, isDefault: false });
+                    await Storage.addProxy({ name, type, host, port, username, password, color, isDefault: false });
+
+                    await trackEvent('proxy_configured', {
+                        proxy_type: type,
+                        is_first_proxy: isFirst ? 'true' : 'false',
+                        source: 'manual'
+                    });
                 }
                 closeModal();
                 await onSaved();

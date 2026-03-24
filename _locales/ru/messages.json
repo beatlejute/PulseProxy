@@ -59,6 +59,10 @@
     "message": "Синхронизация настроек",
     "description": "Label for sync toggle"
   },
+  "labelProxyCheck": {
+    "message": "Проверять прокси перед добавлением",
+    "description": "Label for proxy check toggle"
+  },
   "syncEnableConfirm": {
     "message": "Включить синхронизацию? Ваши настройки будут доступны на всех устройствах с этим аккаунтом.",
     "description": "Confirmation message when enabling sync"
@@ -223,6 +227,10 @@
     "message": "Название (опционально)",
     "description": "Proxy name field label"
   },
+  "proxyColor": {
+    "message": "Цвет",
+    "description": "Proxy color marker label"
+  },
   "proxyType": {
     "message": "Тип",
     "description": "Proxy type field label"
@@ -262,6 +270,10 @@
   "labelProxyByDefault": {
     "message": "Проксировать все сайты по умолчанию",
     "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "labelProxyByDefaultActive": {
+    "message": "Сейчас проксирует все сайты по умолчанию",
+    "description": "Label for toggle when proxying all sites by default is enabled"
   },
   "ignoreListName": {
     "message": "Список исключений",
@@ -493,5 +505,14 @@
   "labelVersion": {
     "message": "Версия",
     "description": "Label for version display in settings"
-  }
+  },
+  "welcomeTitle": { "message": "Добро пожаловать в PulseProxy!" },
+  "welcomeSubtitle": { "message": "Простое и быстрое управление прокси для вашего браузера" },
+  "welcomeStep1Title": { "message": "Добавьте прокси" },
+  "welcomeStep1Desc": { "message": "Нажмите на иконку расширения и добавьте прокси-сервер" },
+  "welcomeStep2Title": { "message": "Настройте пресеты" },
+  "welcomeStep2Desc": { "message": "Выберите, какие сайты будут использовать прокси" },
+  "welcomeStep3Title": { "message": "Подключитесь" },
+  "welcomeStep3Desc": { "message": "Нажмите кнопку-щит для включения прокси" },
+  "welcomeGetStarted": { "message": "Начать" }
 }

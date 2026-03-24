@@ -3,10 +3,13 @@ import { SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../shared/constants';
 import { I18n } from '../shared/i18n';
 import { SupportedLanguage, I18nKey } from '../types';
 import { showAlert, showConfirm } from './dialog';
+import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
+import { RemoteConfig } from '../shared/remote-config';
 
 class SettingsService {
     private languageSelect: HTMLSelectElement | null = null;
     private syncToggle: HTMLInputElement | null = null;
+    private proxyCheckToggle: HTMLInputElement | null = null;
     private exportButton: HTMLButtonElement | null = null;
     private importButton: HTMLButtonElement | null = null;
     private importFileInput: HTMLInputElement | null = null;
@@ -17,14 +20,52 @@ class SettingsService {
         
         this.languageSelect = document.getElementById('language-select') as HTMLSelectElement;
         this.syncToggle = document.getElementById('sync-toggle') as HTMLInputElement;
+        this.proxyCheckToggle = document.getElementById('proxy-check-toggle') as HTMLInputElement;
         this.exportButton = document.getElementById('export-button') as HTMLButtonElement;
         this.importButton = document.getElementById('import-button') as HTMLButtonElement;
         this.importFileInput = document.getElementById('import-file-input') as HTMLInputElement;
 
         this.initLanguageSelector();
-        this.initSyncToggle();
+        await this.initSyncToggle();
+        await this.initProxyCheckToggle();
         this.initImportExport();
         this.initVersion();
+        this.initAffiliateLinkHandlers();
+    }
+
+    private initAffiliateLinkHandlers(): void {
+        document.querySelectorAll<HTMLAnchorElement>('.promo-link.referral-link').forEach(link => {
+            link.addEventListener('click', (e) => this.handleAffiliateLinkClick(e));
+        });
+    }
+
+    private async handleAffiliateLinkClick(e: Event): Promise<void> {
+        e.preventDefault();
+        const link = e.currentTarget as HTMLAnchorElement;
+        const url = RemoteConfig.referralLink;
+        
+        if (url && url !== '#') {
+            const fullUrl = buildAffiliateUrl(url, 'settings');
+            const provider = this.extractProviderFromUrl(url);
+            
+            await trackEvent('affiliate_link_clicked', {
+                provider,
+                placement: 'settings',
+                link_url: fullUrl
+            });
+            
+            chrome.tabs.create({ url: fullUrl });
+        }
+    }
+
+    private extractProviderFromUrl(url: string): string {
+        try {
+            const urlObj = new URL(url);
+            const hostname = urlObj.hostname.replace(/^www\./, '');
+            return hostname.split('.')[0];
+        } catch {
+            return 'unknown';
+        }
     }
 
     private initLanguageSelector(): void {
@@ -81,6 +122,18 @@ class SettingsService {
                 this.syncToggle!.checked = !enabled;
                 await showAlert(error instanceof Error ? error.message : 'Failed to change sync state');
             }
+        });
+    }
+
+    private async initProxyCheckToggle(): Promise<void> {
+        if (!this.proxyCheckToggle) return;
+
+        const proxyCheckEnabled = await Storage.getProxyCheckEnabled();
+        this.proxyCheckToggle.checked = proxyCheckEnabled;
+
+        this.proxyCheckToggle.addEventListener('change', async () => {
+            const enabled = this.proxyCheckToggle!.checked;
+            await Storage.setProxyCheckEnabled(enabled);
         });
     }
 

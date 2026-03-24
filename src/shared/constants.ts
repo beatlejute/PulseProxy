@@ -27,7 +27,7 @@ export const ProxyState = {
 } as const;
 
 // Ключи для синхронизируемых данных (chrome.storage.sync)
-export const SYNC_STORAGE_KEYS = ['presets', 'proxies', 'theme', 'language', 'syncEnabled', 'proxyByDefault'] as const;
+export const SYNC_STORAGE_KEYS = ['presets', 'proxies', 'theme', 'language', 'syncEnabled', 'proxyByDefault', 'proxyCheckEnabled'] as const;
 
 // Ключи для локальных данных (chrome.storage.local)
 export const LOCAL_STORAGE_KEYS = ['currentState', 'targetState', 'migrationCompleted', 'errorProxy'] as const;
@@ -46,6 +46,7 @@ export const StorageKeys = {
     SYNC_ENABLED: 'syncEnabled',
     MIGRATION_COMPLETED: 'migrationCompleted',
     PROXY_BY_DEFAULT: 'proxyByDefault',
+    PROXY_CHECK_ENABLED: 'proxyCheckEnabled',
     ERROR_PROXY: 'errorProxy',
 } as const;
 
@@ -74,6 +75,18 @@ export const DOMIds = {
     TAB_PRESETS: 'tab-presets',
     TAB_SETTINGS: 'tab-settings',
 } as const;
+
+// Предопределённые цвета маркеров для прокси
+export const PROXY_COLORS = [
+    '#FF6B6B', // красный
+    '#FF922B', // оранжевый
+    '#FCC419', // жёлтый
+    '#51CF66', // зелёный
+    '#22B8CF', // голубой
+    '#339AF0', // синий
+    '#845EF7', // фиолетовый
+    '#E64980', // розовый
+] as const;
 
 // Версия формата экспорта
 export const EXPORT_FORMAT_VERSION = 1;

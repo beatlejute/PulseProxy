@@ -99,6 +99,8 @@ export class StorageService implements IStorageBackend, ISettingsRepository {
     async setLanguage(lang: SupportedLanguage): Promise<void> { return this.setTyped(StorageKeys.LANGUAGE as StorageKey, lang); }
     async getProxyByDefault(): Promise<boolean> { const value = await this.getTyped(StorageKeys.PROXY_BY_DEFAULT as StorageKey) as boolean | undefined; return value ?? true; }
     async setProxyByDefault(enabled: boolean): Promise<void> { return this.setTyped(StorageKeys.PROXY_BY_DEFAULT as StorageKey, enabled); }
+    async getProxyCheckEnabled(): Promise<boolean> { const value = await this.getTyped(StorageKeys.PROXY_CHECK_ENABLED as StorageKey) as boolean | undefined; return value ?? true; }
+    async setProxyCheckEnabled(enabled: boolean): Promise<void> { return this.setTyped(StorageKeys.PROXY_CHECK_ENABLED as StorageKey, enabled); }
 
     async exportAllData(): Promise<ExportData> { return this.importExportService.exportAll(); }
     validateImportData(jsonString: string): ImportValidationResult { return this.importExportService.validateImportData(jsonString); }

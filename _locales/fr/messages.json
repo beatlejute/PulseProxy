@@ -59,6 +59,10 @@
     "message": "Synchroniser les paramètres",
     "description": "Label for sync toggle"
   },
+  "labelProxyCheck": {
+    "message": "Vérifier le proxy avant l'ajout",
+    "description": "Label for proxy check toggle"
+  },
   "syncEnableConfirm": {
     "message": "Activer la synchronisation? Vos paramètres seront disponibles sur tous les appareils avec ce compte.",
     "description": "Confirmation message when enabling sync"
@@ -223,6 +227,10 @@
     "message": "Nom (optionnel)",
     "description": "Proxy name field label"
   },
+  "proxyColor": {
+    "message": "Couleur",
+    "description": "Proxy color marker label"
+  },
   "proxyType": {
     "message": "Type",
     "description": "Proxy type field label"
@@ -262,6 +270,10 @@
   "labelProxyByDefault": {
     "message": "Utiliser le proxy pour tous les sites par défaut",
     "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "labelProxyByDefaultActive": {
+    "message": "Utilise actuellement le proxy pour tous les sites par défaut",
+    "description": "Label for toggle when proxying all sites by default is enabled"
   },
   "ignoreListName": {
     "message": "Liste d'exclusion",
@@ -493,5 +505,14 @@
   "labelVersion": {
     "message": "Version",
     "description": "Label for version display in settings"
-  }
+  },
+  "welcomeTitle": { "message": "Bienvenue sur PulseProxy !" },
+  "welcomeSubtitle": { "message": "Gestion de proxy simple et rapide pour votre navigateur" },
+  "welcomeStep1Title": { "message": "Ajouter un proxy" },
+  "welcomeStep1Desc": { "message": "Cliquez sur l'icône de l'extension et ajoutez votre serveur proxy" },
+  "welcomeStep2Title": { "message": "Configurer les presets" },
+  "welcomeStep2Desc": { "message": "Choisissez quels sites doivent utiliser le proxy" },
+  "welcomeStep3Title": { "message": "Se connecter" },
+  "welcomeStep3Desc": { "message": "Cliquez sur le bouton bouclier pour activer le proxy" },
+  "welcomeGetStarted": { "message": "Commencer" }
 }

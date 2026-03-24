@@ -59,6 +59,10 @@
     "message": "設定を同期",
     "description": "Label for sync toggle"
   },
+  "labelProxyCheck": {
+    "message": "追加前にプロキシを確認",
+    "description": "Label for proxy check toggle"
+  },
   "syncEnableConfirm": {
     "message": "同期を有効にしますか？このアカウントを使用するすべてのデバイスで設定が利用可能になります。",
     "description": "Confirmation message when enabling sync"
@@ -223,6 +227,10 @@
     "message": "名前（任意）",
     "description": "Proxy name field label"
   },
+  "proxyColor": {
+    "message": "カラー",
+    "description": "Proxy color marker label"
+  },
   "proxyType": {
     "message": "タイプ",
     "description": "Proxy type field label"
@@ -262,6 +270,10 @@
   "labelProxyByDefault": {
     "message": "デフォルトで全サイトをプロキシ経由",
     "description": "Label for toggle that enables proxying all sites not in presets"
+  },
+  "labelProxyByDefaultActive": {
+    "message": "現在デフォルトで全サイトをプロキシ経由",
+    "description": "Label for toggle when proxying all sites by default is enabled"
   },
   "ignoreListName": {
     "message": "除外リスト",
@@ -493,5 +505,14 @@
   "labelVersion": {
     "message": "バージョン",
     "description": "Label for version display in settings"
-  }
+  },
+  "welcomeTitle": { "message": "PulseProxyへようこそ！" },
+  "welcomeSubtitle": { "message": "ブラウザ用のシンプルで高速なプロキシ管理" },
+  "welcomeStep1Title": { "message": "プロキシを追加" },
+  "welcomeStep1Desc": { "message": "拡張機能アイコンをクリックしてプロキシサーバーを追加します" },
+  "welcomeStep2Title": { "message": "プリセットを設定" },
+  "welcomeStep2Desc": { "message": "プロキシを使用するサイトを選択します" },
+  "welcomeStep3Title": { "message": "接続" },
+  "welcomeStep3Desc": { "message": "シールドボタンをクリックしてプロキシを有効にします" },
+  "welcomeGetStarted": { "message": "始める" }
 }

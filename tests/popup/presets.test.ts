@@ -795,43 +795,6 @@ describe('presets.ts - PresetsService', () => {
             expect(presetEl.draggable).toBe(false);
         });
 
-        // Пропущен: getBoundingClientRect() возвращает нули в jsdom, невозможно протестировать позиционирование
-        it.skip('should add drop-above class on dragover above middle', async () => {
-            mockHelpers.setLocalStorageData({
-                presets: [
-                    createPreset('preset-1', 'Preset 1', [], true, false, 0),
-                    createPreset('preset-2', 'Preset 2', [], true, false, 1),
-                ],
-                proxyByDefault: false,
-            });
-
-            await Presets.init();
-
-            const presetsList = document.getElementById('presets-list') as HTMLElement;
-            const preset1 = presetsList.querySelector('[data-preset-id="preset-1"]') as HTMLElement;
-            const preset2 = presetsList.querySelector('[data-preset-id="preset-2"]') as HTMLElement;
-            const dragHandle1 = preset1.querySelector('.drag-handle') as HTMLElement;
-
-            dragHandle1.dispatchEvent(new MouseEvent('mousedown'));
-            const dragStartEvent = new DragEvent('dragstart', {
-                bubbles: true,
-                cancelable: true,
-                dataTransfer: new DataTransfer(),
-            });
-            preset1.dispatchEvent(dragStartEvent);
-
-            const rect = preset2.getBoundingClientRect();
-            const dragOverEvent = new DragEvent('dragover', {
-                bubbles: true,
-                cancelable: true,
-                clientY: rect.top + 1,
-            });
-            preset2.dispatchEvent(dragOverEvent);
-
-            expect(preset2.classList.contains('drop-above')).toBe(true);
-            expect(preset2.classList.contains('drop-below')).toBe(false);
-        });
-
         it('should remove drop classes on dragleave', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [
@@ -1252,9 +1215,7 @@ describe('presets.ts - PresetsService', () => {
             (global.fetch as jest.Mock).mockRestore();
         });
 
-        // Эти тесты пропущены из-за сложности тестирования асинхронного модального окна с fetch
-        // В реальном приложении этот функционал лучше тестировать E2E тестами
-        it.skip('should open templates modal on second option click', async () => {
+        it('should open templates modal on second option click', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxyByDefault: false,
@@ -1279,7 +1240,7 @@ describe('presets.ts - PresetsService', () => {
             expect(templatesModal).not.toBeNull();
         });
 
-        it.skip('should show loading state initially', async () => {
+        it('should show loading state initially', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxyByDefault: false,
@@ -1311,7 +1272,7 @@ describe('presets.ts - PresetsService', () => {
             });
         });
 
-        it.skip('should show empty state when no templates', async () => {
+        it('should show empty state when no templates', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxyByDefault: false,
@@ -1337,7 +1298,7 @@ describe('presets.ts - PresetsService', () => {
             expect((emptyState as HTMLElement).style.display).not.toBe('none');
         });
 
-        it.skip('should render templates list', async () => {
+        it('should render templates list', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxyByDefault: false,
@@ -1367,7 +1328,7 @@ describe('presets.ts - PresetsService', () => {
             expect(templateItems.length).toBe(2);
         });
 
-        it.skip('should filter templates by search query', async () => {
+        it('should filter templates by search query', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxyByDefault: false,
@@ -1404,7 +1365,7 @@ describe('presets.ts - PresetsService', () => {
             expect(templateItems[0].getAttribute('data-preset-name')).toBe('YouTube');
         });
 
-        it.skip('should create preset from template on click', async () => {
+        it('should create preset from template on click', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxyByDefault: false,
@@ -1440,7 +1401,7 @@ describe('presets.ts - PresetsService', () => {
             expect(overlay).toBeNull();
         });
 
-        it.skip('should show error state on fetch failure', async () => {
+        it('should show error state on fetch failure', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxyByDefault: false,
@@ -1466,7 +1427,7 @@ describe('presets.ts - PresetsService', () => {
             expect((errorState as HTMLElement).style.display).not.toBe('none');
         });
 
-        it.skip('should retry loading on retry button click', async () => {
+        it('should retry loading on retry button click', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxyByDefault: false,

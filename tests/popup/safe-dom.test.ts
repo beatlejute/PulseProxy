@@ -1,4 +1,4 @@
-import { escapeHtml, createElementFromTemplate, setText, setAttr } from '../../src/popup/safe-dom';
+import { escapeHtml, createElementFromTemplate, setText, setAttr, setSafeHTML } from '../../src/popup/safe-dom';
 
 describe('safe-dom.ts - Safe DOM Utilities', () => {
     describe('escapeHtml()', () => {
@@ -135,6 +135,34 @@ describe('safe-dom.ts - Safe DOM Utilities', () => {
             expect(el.tagName).toBe('DIV');
             expect(el.textContent).toBe('');
         });
+
+        it('should warn and not set innerHTML', () => {
+            const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+            const el = createElementFromTemplate('div', {
+                innerHTML: '<script>alert("XSS")</script>'
+            } as any);
+            expect(warnSpy).toHaveBeenCalledWith('innerHTML is not allowed. Use textContent or appendChild instead.');
+            expect(el.innerHTML).toBe('');
+            warnSpy.mockRestore();
+        });
+
+        it('should skip null/undefined property values', () => {
+            const el = createElementFromTemplate('div', {
+                textContent: null,
+                className: undefined
+            } as any);
+            expect(el.textContent).toBe('');
+            expect(el.className).toBe('');
+        });
+
+        it('should set unknown properties as attributes', () => {
+            const el = createElementFromTemplate('div', {
+                'data-custom': 'custom-value',
+                role: 'button'
+            } as any);
+            expect(el.getAttribute('data-custom')).toBe('custom-value');
+            expect(el.getAttribute('role')).toBe('button');
+        });
     });
 
     describe('setText()', () => {
@@ -205,6 +233,36 @@ describe('safe-dom.ts - Safe DOM Utilities', () => {
             const el = document.createElement('div');
             setAttr(el, 'title', 'Say "Hello" & smile');
             expect(el.getAttribute('title')).toBe('Say "Hello" & smile');
+        });
+    });
+
+    describe('setSafeHTML()', () => {
+        it('should parse HTML and append nodes', () => {
+            const el = document.createElement('div');
+            setSafeHTML(el, '<span class="warning">Warning</span><b>Bold</b>');
+            expect(el.children.length).toBe(2);
+            expect(el.querySelector('span.warning')?.textContent).toBe('Warning');
+            expect(el.querySelector('b')?.textContent).toBe('Bold');
+        });
+
+        it('should handle empty/null HTML', () => {
+            const el = document.createElement('div');
+            el.textContent = 'existing content';
+            setSafeHTML(el, '');
+            expect(el.textContent).toBe('');
+
+            el.textContent = 'more content';
+            setSafeHTML(el, null as unknown as string);
+            expect(el.textContent).toBe('');
+        });
+
+        it('should replace existing content with new HTML', () => {
+            const el = document.createElement('div');
+            el.textContent = 'Old content';
+            setSafeHTML(el, '<p>New content</p>');
+            expect(el.textContent).toBe('New content');
+            expect(el.querySelector('p')).not.toBeNull();
+            expect(el.childNodes.length).toBe(1);
         });
     });
 

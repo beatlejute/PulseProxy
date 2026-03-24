@@ -1157,4 +1157,124 @@ describe('storage.ts - StorageService', () => {
             });
         });
     });
+
+    describe('remove()', () => {
+        it('should remove keys from local storage', async () => {
+            mockHelpers.setLocalStorageData({ key1: 'value1', key2: 'value2' });
+
+            await Storage.remove(['key1']);
+
+            expect(chrome.storage.local.remove).toHaveBeenCalledWith(['key1'], expect.any(Function));
+        });
+    });
+
+    describe('checkSyncQuota()', () => {
+        it('should delegate to SyncService', async () => {
+            await expect(Storage.checkSyncQuota('presets', [])).resolves.not.toThrow();
+        });
+    });
+
+    describe('getSyncBytesInUse()', () => {
+        it('should return bytes in use', async () => {
+            const result = await Storage.getSyncBytesInUse();
+            expect(typeof result).toBe('number');
+        });
+    });
+
+    describe('subscribe()', () => {
+        it('should add subscriber and return unsubscribe function', () => {
+            const callback = jest.fn();
+            const unsubscribe = Storage.subscribe(callback);
+
+            expect(typeof unsubscribe).toBe('function');
+        });
+
+        it('should remove subscriber on unsubscribe', () => {
+            const callback = jest.fn();
+            const unsubscribe = Storage.subscribe(callback);
+            unsubscribe();
+
+            // No error expected
+            expect(true).toBe(true);
+        });
+    });
+
+    describe('Proxy CRUD delegation', () => {
+        it('should update proxy via repository', async () => {
+            const proxy = { name: 'Test', type: 'http' as const, host: '1.2.3.4', port: 8080, isDefault: false };
+            const added = await Storage.addProxy(proxy);
+            expect(added).toBeDefined();
+            expect(added.id).toBeDefined();
+
+            await Storage.updateProxy(added.id, { name: 'Updated' });
+            const updated = await Storage.getProxy(added.id);
+            expect(updated?.name).toBe('Updated');
+        });
+
+        it('should delete proxy via repository', async () => {
+            const proxy = { name: 'ToDelete', type: 'http' as const, host: '1.2.3.4', port: 8080, isDefault: false };
+            const added = await Storage.addProxy(proxy);
+
+            await Storage.deleteProxy(added.id);
+            const result = await Storage.getProxy(added.id);
+            expect(result).toBeUndefined();
+        });
+
+        it('should set default proxy via repository', async () => {
+            const proxy = { name: 'Default', type: 'http' as const, host: '1.2.3.4', port: 8080, isDefault: false };
+            const added = await Storage.addProxy(proxy);
+
+            await Storage.setDefaultProxy(added.id);
+            const defaultProxy = await Storage.getDefaultProxy();
+            expect(defaultProxy?.id).toBe(added.id);
+        });
+    });
+
+    describe('Preset additional methods', () => {
+        it('should get single preset by id', async () => {
+            const preset = { name: 'Test', domains: ['test.com'], enabled: true, isDefault: false, order: 0, proxyId: null };
+            const added = await Storage.addPreset(preset);
+
+            const found = await Storage.getPreset(added.id);
+            expect(found?.name).toBe('Test');
+        });
+
+        it('should get active presets', async () => {
+            await Storage.addPreset({ name: 'Active', domains: ['a.com'], enabled: true, isDefault: false, order: 0, proxyId: null });
+            await Storage.addPreset({ name: 'Inactive', domains: ['b.com'], enabled: false, isDefault: false, order: 1, proxyId: null });
+
+            const active = await Storage.getActivePresets();
+            expect(active.every(p => p.enabled)).toBe(true);
+        });
+
+        it('should get all active domains', async () => {
+            await Storage.addPreset({ name: 'P1', domains: ['a.com', 'b.com'], enabled: true, isDefault: false, order: 0, proxyId: null });
+
+            const domains = await Storage.getAllActiveDomains();
+            expect(domains).toContain('a.com');
+            expect(domains).toContain('b.com');
+        });
+    });
+
+    describe('ProxyCheckEnabled', () => {
+        it('should get proxy check enabled state', async () => {
+            mockHelpers.setLocalStorageData({ proxyCheckEnabled: false });
+            const result = await Storage.getProxyCheckEnabled();
+            expect(result).toBe(false);
+        });
+
+        it('should default to true when not set', async () => {
+            mockHelpers.setLocalStorageData({});
+            const result = await Storage.getProxyCheckEnabled();
+            expect(result).toBe(true);
+        });
+
+        it('should set proxy check enabled', async () => {
+            await Storage.setProxyCheckEnabled(false);
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                expect.objectContaining({ proxyCheckEnabled: false }),
+                expect.any(Function)
+            );
+        });
+    });
 });

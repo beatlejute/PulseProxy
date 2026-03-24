@@ -442,7 +442,7 @@
     "description": "Mobile connection type"
   },
   "publicProxySearchPlaceholder": {
-    "message": "IPで検索...",
+    "message": "IP:Portで検索...",
     "description": "Placeholder for public proxy search input"
   },
   "publicProxiesLoading": {

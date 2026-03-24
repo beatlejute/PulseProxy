@@ -10,6 +10,8 @@ jest.mock('../../src/shared/storage', () => ({
         init: jest.fn().mockResolvedValue(undefined),
         getSyncEnabled: jest.fn().mockResolvedValue(false),
         setSyncEnabled: jest.fn().mockResolvedValue(undefined),
+        getProxyCheckEnabled: jest.fn().mockResolvedValue(true),
+        setProxyCheckEnabled: jest.fn().mockResolvedValue(undefined),
         exportAllData: jest.fn().mockResolvedValue({
             version: '1.0.0',
             exportDate: '2025-01-24T00:00:00.000Z',
@@ -56,6 +58,15 @@ jest.mock('../../src/shared/constants', () => ({
     },
 }));
 
+jest.mock('../../src/shared/analytics', () => ({
+    trackEvent: jest.fn().mockResolvedValue(undefined),
+    buildAffiliateUrl: jest.fn((url: string, placement: string) => `${url}?utm_source=${placement}`),
+}));
+
+jest.mock('../../src/shared/remote-config', () => ({
+    RemoteConfig: { referralLink: 'https://example.com/ref' },
+}));
+
 jest.mock('../../src/popup/dialog', () => ({
     showConfirm: jest.fn(() => Promise.resolve(true)),
     showAlert: jest.fn(() => Promise.resolve()),
@@ -66,6 +77,8 @@ import { Storage } from '../../src/shared/storage';
 import { I18n } from '../../src/shared/i18n';
 import { SUPPORTED_LANGUAGES } from '../../src/shared/constants';
 import { showConfirm, showAlert } from '../../src/popup/dialog';
+import { trackEvent, buildAffiliateUrl } from '../../src/shared/analytics';
+import { RemoteConfig } from '../../src/shared/remote-config';
 
 describe('settings.ts - SettingsService', () => {
     beforeEach(() => {
@@ -73,10 +86,16 @@ describe('settings.ts - SettingsService', () => {
         document.body.innerHTML = `
             <select id="language-select"></select>
             <input type="checkbox" id="sync-toggle">
+            <input type="checkbox" id="proxy-check-toggle">
             <button id="export-button">Export</button>
             <button id="import-button">Import</button>
             <input type="file" id="import-file-input" accept=".json">
+            <span id="version-number"></span>
+            <a class="promo-link referral-link" href="#">Promo</a>
         `;
+
+        // Мок chrome.tabs
+        (global as any).chrome.tabs = { create: jest.fn() };
 
         // Сбрасываем моки
         jest.clearAllMocks();
@@ -534,12 +553,147 @@ describe('settings.ts - SettingsService', () => {
     });
 
     describe('showSaveSuccess()', () => {
-        // Этот метод приватный, но мы можем протестировать его косвенно
-        // через UI, однако он сейчас не используется в публичных методах
-        it('should exist as a method', async () => {
+        it('should temporarily show success state on a button', async () => {
+            jest.useFakeTimers();
+
             await Settings.init();
-            // Метод showSaveSuccess существует, но не вызывается напрямую
-            expect(true).toBe(true);
+
+            const button = document.getElementById('export-button') as HTMLButtonElement;
+            button.textContent = 'Export';
+
+            // Access private method via bracket notation
+            (Settings as any).showSaveSuccess(button);
+
+            expect(button.textContent).toBe('statusSaved');
+            expect(button.classList.contains('success')).toBe(true);
+
+            // Advance past the 1500ms timeout
+            jest.advanceTimersByTime(1500);
+
+            expect(button.textContent).toBe('Export');
+            expect(button.classList.contains('success')).toBe(false);
+
+            jest.useRealTimers();
+        });
+
+        it('should do nothing when button is null', async () => {
+            await Settings.init();
+
+            // Should not throw
+            (Settings as any).showSaveSuccess(null);
+        });
+    });
+
+    describe('initProxyCheckToggle()', () => {
+        it('should load current proxy check state', async () => {
+            (Storage.getProxyCheckEnabled as jest.Mock).mockResolvedValue(true);
+
+            await Settings.init();
+
+            const toggle = document.getElementById('proxy-check-toggle') as HTMLInputElement;
+            expect(toggle.checked).toBe(true);
+        });
+
+        it('should set checkbox to false when storage returns false', async () => {
+            (Storage.getProxyCheckEnabled as jest.Mock).mockResolvedValue(false);
+
+            await Settings.init();
+
+            const toggle = document.getElementById('proxy-check-toggle') as HTMLInputElement;
+            expect(toggle.checked).toBe(false);
+        });
+
+        it('should call Storage.setProxyCheckEnabled on change', async () => {
+            await Settings.init();
+
+            const toggle = document.getElementById('proxy-check-toggle') as HTMLInputElement;
+            toggle.checked = false;
+            toggle.dispatchEvent(new Event('change'));
+
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            expect(Storage.setProxyCheckEnabled).toHaveBeenCalledWith(false);
+        });
+    });
+
+    describe('initVersion()', () => {
+        it('should set version text from manifest', async () => {
+            await Settings.init();
+
+            const versionEl = document.getElementById('version-number') as HTMLSpanElement;
+            expect(versionEl.textContent).toBe('1.0.0');
+        });
+
+        it('should not throw when version element is missing', async () => {
+            document.getElementById('version-number')?.remove();
+
+            // Should not throw
+            await Settings.init();
+            expect(Storage.init).toHaveBeenCalled();
+        });
+    });
+
+    describe('initAffiliateLinkHandlers()', () => {
+        it('should track event and open tab on referral link click', async () => {
+            await Settings.init();
+
+            const link = document.querySelector('.promo-link.referral-link') as HTMLAnchorElement;
+            link.click();
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(trackEvent).toHaveBeenCalledWith('affiliate_link_clicked', {
+                provider: 'example',
+                placement: 'settings',
+                link_url: 'https://example.com/ref?utm_source=settings',
+            });
+
+            expect(chrome.tabs.create).toHaveBeenCalledWith({
+                url: 'https://example.com/ref?utm_source=settings',
+            });
+        });
+
+        it('should call buildAffiliateUrl with correct params', async () => {
+            await Settings.init();
+
+            const link = document.querySelector('.promo-link.referral-link') as HTMLAnchorElement;
+            link.click();
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(buildAffiliateUrl).toHaveBeenCalledWith('https://example.com/ref', 'settings');
+        });
+
+        it('should not open tab when referral link is empty', async () => {
+            (RemoteConfig as any).referralLink = '';
+
+            await Settings.init();
+
+            const link = document.querySelector('.promo-link.referral-link') as HTMLAnchorElement;
+            link.click();
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(chrome.tabs.create).not.toHaveBeenCalled();
+
+            // Restore
+            (RemoteConfig as any).referralLink = 'https://example.com/ref';
+        });
+
+        it('should not open tab when referral link is #', async () => {
+            (RemoteConfig as any).referralLink = '#';
+
+            await Settings.init();
+
+            const link = document.querySelector('.promo-link.referral-link') as HTMLAnchorElement;
+            link.click();
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(chrome.tabs.create).not.toHaveBeenCalled();
+
+            // Restore
+            (RemoteConfig as any).referralLink = 'https://example.com/ref';
         });
     });
 

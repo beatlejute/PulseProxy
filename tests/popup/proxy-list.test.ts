@@ -12,6 +12,7 @@ jest.mock('../../src/shared/storage', () => ({
         updateProxy: jest.fn(),
         deleteProxy: jest.fn(),
         setDefaultProxy: jest.fn(),
+        getProxyCheckEnabled: jest.fn().mockResolvedValue(false),
     },
 }));
 

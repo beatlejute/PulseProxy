@@ -24,6 +24,8 @@ let MockSettingsRepository: {
     setLanguage: jest.Mock;
     getProxyByDefault: jest.Mock;
     setProxyByDefault: jest.Mock;
+    getProxyCheckEnabled: jest.Mock;
+    setProxyCheckEnabled: jest.Mock;
 };
 let MockStorageBackend: {
     get: jest.Mock;
@@ -59,6 +61,8 @@ describe('ImportExportService', () => {
             setLanguage: jest.fn().mockResolvedValue(undefined),
             getProxyByDefault: jest.fn().mockResolvedValue(false),
             setProxyByDefault: jest.fn().mockResolvedValue(undefined),
+            getProxyCheckEnabled: jest.fn().mockResolvedValue(true),
+            setProxyCheckEnabled: jest.fn().mockResolvedValue(undefined),
         };
 
         MockStorageBackend = {
@@ -112,6 +116,7 @@ describe('ImportExportService', () => {
             theme: 'dark' as ThemeType,
             language: 'en' as SupportedLanguage,
             proxyByDefault: false,
+            proxyCheckEnabled: true,
         },
     });
 

@@ -122,7 +122,7 @@ export async function showPublicProxiesModal(
     const searchDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'public-proxy-search' });
     const searchInput = createElementFromTemplate<HTMLInputElement>('input', { className: 'public-proxy-search-input', type: 'text' });
     setAttr(searchInput, 'data-i18n-placeholder', 'publicProxySearchPlaceholder');
-    setAttr(searchInput, 'placeholder', 'Search by IP...');
+    setAttr(searchInput, 'placeholder', 'Search by IP:Port...');
     searchDiv.appendChild(searchInput);
     body.appendChild(searchDiv);
 
@@ -270,7 +270,7 @@ export function filterPublicProxies(
         if (filters.connectionType && proxy.connectionType !== filters.connectionType) return false;
         if (filters.country && proxy.country !== filters.country) return false;
         if (filters.minScore && proxy.score < filters.minScore) return false;
-        if (searchQuery && !proxy.ip.toLowerCase().includes(searchQuery)) return false;
+        if (searchQuery && !`${proxy.ip}:${proxy.port}`.toLowerCase().includes(searchQuery)) return false;
         return true;
     });
 }

@@ -82,10 +82,11 @@ describe('constants.ts', () => {
             expect(SYNC_STORAGE_KEYS).toContain('language');
             expect(SYNC_STORAGE_KEYS).toContain('syncEnabled');
             expect(SYNC_STORAGE_KEYS).toContain('proxyByDefault');
+            expect(SYNC_STORAGE_KEYS).toContain('proxyCheckEnabled');
         });
 
-        it('should have 6 keys', () => {
-            expect(SYNC_STORAGE_KEYS).toHaveLength(6);
+        it('should have 7 keys', () => {
+            expect(SYNC_STORAGE_KEYS).toHaveLength(7);
         });
     });
 
@@ -114,10 +115,11 @@ describe('constants.ts', () => {
             expect(StorageKeys.MIGRATION_COMPLETED).toBe('migrationCompleted');
             expect(StorageKeys.PROXY_BY_DEFAULT).toBe('proxyByDefault');
             expect(StorageKeys.ERROR_PROXY).toBe('errorProxy');
+            expect(StorageKeys.PROXY_CHECK_ENABLED).toBe('proxyCheckEnabled');
         });
 
-        it('should have 10 keys', () => {
-            expect(Object.keys(StorageKeys)).toHaveLength(10);
+        it('should have 11 keys', () => {
+            expect(Object.keys(StorageKeys)).toHaveLength(11);
         });
     });
 

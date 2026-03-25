@@ -42,5 +42,6 @@ scripts/update-proxies.ts
 
 # AI
 .kilocode/
+.claude/
 QWEN.md
 CLAUDE.md

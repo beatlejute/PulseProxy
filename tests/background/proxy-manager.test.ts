@@ -185,6 +185,24 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 expect.any(Function)
             );
         });
+
+        it('should set state to error when all proxies have isDefault=false (FIX-001)', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [
+                    createProxy('10.0.0.1', 8080, 'http', false), // isDefault = false
+                    createProxy('10.0.0.2', 8081, 'http', false), // isDefault = false
+                ],
+                migrationCompleted: true,
+                presets: [],
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                { currentState: 'error' },
+                expect.any(Function)
+            );
+        });
     });
 
     describe('disable()', () => {

@@ -116,7 +116,7 @@ describe('ProxyRepository', () => {
             expect(result?.id).toBe('proxy-2');
         });
 
-        it('should return first proxy if no default exists', async () => {
+        it('should return undefined if no proxy has isDefault=true', async () => {
             const proxies: ProxyServer[] = [
                 createMockProxy({ id: 'proxy-1', isDefault: false }),
                 createMockProxy({ id: 'proxy-2', isDefault: false }),
@@ -126,7 +126,7 @@ describe('ProxyRepository', () => {
             const repository = new ProxyRepository(storageBackend);
             const result = await repository.getDefault();
 
-            expect(result?.id).toBe('proxy-1');
+            expect(result).toBeUndefined();
         });
 
         it('should return undefined if no proxies exist', async () => {

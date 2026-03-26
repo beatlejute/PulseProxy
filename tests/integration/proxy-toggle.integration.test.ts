@@ -307,6 +307,24 @@ describe('Proxy Toggle Integration Tests', () => {
             );
         });
 
+        it('should set state to ERROR when all proxies have isDefault=false (FIX-001)', async () => {
+            mockHelpers.setLocalStorageData({
+                presets: [],
+                proxies: [
+                    { ...createProxy('10.0.0.1', 8080), id: 'proxy-1', isDefault: false },
+                    { ...createProxy('10.0.0.2', 8081), id: 'proxy-2', isDefault: false },
+                ],
+                migrationCompleted: true,
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                { currentState: ProxyState.ERROR },
+                expect.any(Function)
+            );
+        });
+
         it('should throw error and set state to ERROR for invalid proxy host', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [createPreset(['test.com'])],

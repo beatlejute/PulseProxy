@@ -5,6 +5,7 @@ node_modules/
 dist/
 build/
 coverage/
+tmp/
 
 # Chrome extension files
 *.crx
@@ -39,9 +40,11 @@ scripts/update-proxies.ts
 .workflow-state/
 .cache/
 .workflow/
+reports/
 
 # AI
 .kilocode/
 .claude/
 QWEN.md
 CLAUDE.md
+$null

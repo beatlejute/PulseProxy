@@ -259,6 +259,10 @@
     "message": "Annuler",
     "description": "Cancel button"
   },
+  "continue": {
+    "message": "Continue",
+    "description": "Continue button"
+  },
   "save": {
     "message": "Enregistrer",
     "description": "Save button"
@@ -326,6 +330,10 @@
   "newerVersion": {
     "message": "Fichier créé avec une version plus récente",
     "description": "Warning when file version is newer"
+  },
+  "newerVersionConfirm": {
+    "message": "This file was created with a newer version of the extension. Some data may be incompatible. Continue import?",
+    "description": "Confirmation dialog when importing file from newer version"
   },
   "missingData": {
     "message": "Section de données manquante",
@@ -445,6 +453,10 @@
     "message": "Rechercher par IP:Port...",
     "description": "Placeholder for public proxy search input"
   },
+  "publicProxySearchHint": {
+    "message": "Entrez au format IP:Port (ex. 1.2.3.4:8080)",
+    "description": "Validation hint for public proxy search input"
+  },
   "publicProxiesLoading": {
     "message": "Chargement...",
     "description": "Loading state for public proxies"
@@ -514,5 +526,9 @@
   "welcomeStep2Desc": { "message": "Choisissez quels sites doivent utiliser le proxy" },
   "welcomeStep3Title": { "message": "Se connecter" },
   "welcomeStep3Desc": { "message": "Cliquez sur le bouton bouclier pour activer le proxy" },
-  "welcomeGetStarted": { "message": "Commencer" }
+  "welcomeGetStarted": { "message": "Commencer" },
+  "labelTheme": {
+    "message": "Thème",
+    "description": "Label for theme toggle"
+  }
 }

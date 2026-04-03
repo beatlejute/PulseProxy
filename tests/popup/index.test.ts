@@ -26,7 +26,8 @@ jest.mock('../../src/popup/proxy-list', () => ({
     ProxyList: {
         init: jest.fn().mockResolvedValue(undefined),
         hasProxies: jest.fn().mockReturnValue(true),
-        openAddProxyForm: jest.fn()
+        openAddProxyForm: jest.fn(),
+        refresh: jest.fn().mockResolvedValue(undefined)
     }
 }));
 
@@ -121,6 +122,7 @@ class PopupApp {
 
             if (StorageKeys.PROXIES in changes) {
                 Presets.render();
+                ProxyList.refresh();
             }
         });
     }
@@ -294,6 +296,42 @@ describe('PopupApp', () => {
             }, 'local');
             
             expect(Presets.render).toHaveBeenCalled();
+        });
+
+        it('should call ProxyList.refresh when PROXIES key changes', async () => {
+            await app.init();
+
+            const callback = (Storage.onChange as jest.Mock).mock.calls[0][0];
+            jest.clearAllMocks();
+
+            callback({
+                [StorageKeys.PROXIES]: {
+                    newValue: [],
+                    oldValue: []
+                }
+            }, 'local');
+
+            expect(ProxyList.refresh).toHaveBeenCalledTimes(1);
+        });
+
+        it('ProxyList.refresh should not trigger infinite loop in onChange', async () => {
+            await app.init();
+
+            const callback = (Storage.onChange as jest.Mock).mock.calls[0][0];
+            jest.clearAllMocks();
+
+            // Вызываем callback один раз — имитируем изменение chrome.storage
+            callback({
+                [StorageKeys.PROXIES]: {
+                    newValue: [],
+                    oldValue: []
+                }
+            }, 'local');
+
+            // ProxyList.refresh вызван ровно один раз — нет бесконечного цикла
+            expect(ProxyList.refresh).toHaveBeenCalledTimes(1);
+            // Storage.onChange не вызван повторно — callback не регистрирует новый listener
+            expect(Storage.onChange).not.toHaveBeenCalled();
         });
 
         it('should ignore changes from other areas', async () => {

@@ -259,6 +259,10 @@
     "message": "キャンセル",
     "description": "Cancel button"
   },
+  "continue": {
+    "message": "Continue",
+    "description": "Continue button"
+  },
   "save": {
     "message": "保存",
     "description": "Save button"
@@ -326,6 +330,10 @@
   "newerVersion": {
     "message": "新しいバージョンで作成されたファイルです",
     "description": "Warning when file version is newer"
+  },
+  "newerVersionConfirm": {
+    "message": "This file was created with a newer version of the extension. Some data may be incompatible. Continue import?",
+    "description": "Confirmation dialog when importing file from newer version"
   },
   "missingData": {
     "message": "データセクションがありません",
@@ -445,6 +453,10 @@
     "message": "IP:Portで検索...",
     "description": "Placeholder for public proxy search input"
   },
+  "publicProxySearchHint": {
+    "message": "IP:Port形式で入力してください（例：1.2.3.4:8080）",
+    "description": "Validation hint for public proxy search input"
+  },
   "publicProxiesLoading": {
     "message": "読み込み中...",
     "description": "Loading state for public proxies"
@@ -514,5 +526,9 @@
   "welcomeStep2Desc": { "message": "プロキシを使用するサイトを選択します" },
   "welcomeStep3Title": { "message": "接続" },
   "welcomeStep3Desc": { "message": "シールドボタンをクリックしてプロキシを有効にします" },
-  "welcomeGetStarted": { "message": "始める" }
+  "welcomeGetStarted": { "message": "始める" },
+  "labelTheme": {
+    "message": "テーマ",
+    "description": "Label for theme toggle"
+  }
 }

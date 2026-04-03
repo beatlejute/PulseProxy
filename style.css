@@ -10,6 +10,18 @@
   --error-color: #FF6969;
 }
 
+.theme-light {
+  --background-color: #ffffff;
+  --main-text-color: #191919;
+  --action-color: #0066cc;
+  --action-text-color: #ffffff;
+  --initial-color: #a0a0a0;
+  --loading-color: #0066cc;
+  --secondary-color: #f0f0f0;
+  --success-color: #33CC8C;
+  --error-color: #FF6969;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -948,6 +960,7 @@ button.support-project {
   row-gap: 0;
   min-width: 0;
   flex: 1;
+  max-width: 100%;
 }
 
 .proxy-name {
@@ -956,6 +969,9 @@ button.support-project {
   font-weight: 500;
   white-space: nowrap;
   text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .proxy-details {
@@ -1717,6 +1733,14 @@ button.support-project {
 
 .public-proxy-search-input::placeholder {
   color: var(--initial-color);
+}
+
+.validation-hint {
+  font-size: 11px;
+  color: var(--initial-color);
+  margin-top: 4px;
+  padding-left: 4px;
+  display: none;
 }
 
 /* Proxies List */

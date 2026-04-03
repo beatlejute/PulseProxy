@@ -4,7 +4,7 @@
  */
 
 import { mockHelpers } from '../setup';
-import { ProxyServer } from '../../src/types';
+import { ProxyServer, Preset } from '../../src/types';
 
 // Динамический импорт для правильного порядка инициализации моков
 let ProxyRepository: typeof import('../../src/storage/proxy-repository').ProxyRepository;
@@ -180,9 +180,58 @@ describe('ProxyRepository', () => {
 
         it('should not throw for non-existent ID', async () => {
             const repository = new ProxyRepository(storageBackend);
-            
+
             await expect(repository.delete('non-existent'))
                 .resolves.not.toThrow();
+        });
+
+        it('cascade cleanup: should reset proxyId in linked preset to null', async () => {
+            const proxy = createMockProxy({ id: 'proxy-1' });
+            const preset: Preset = {
+                id: 'preset-1', name: 'Test', domains: [], enabled: true,
+                isDefault: false, order: 0, proxyId: 'proxy-1',
+                createdAt: Date.now(), updatedAt: Date.now(),
+            };
+            mockHelpers.setLocalStorageData({ proxies: [proxy], presets: [preset] });
+
+            const repository = new ProxyRepository(storageBackend);
+            await repository.delete('proxy-1');
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].proxyId).toBeNull();
+        });
+
+        it('cascade cleanup: should not throw when no presets are linked to deleted proxy', async () => {
+            const proxy = createMockProxy({ id: 'proxy-1' });
+            mockHelpers.setLocalStorageData({ proxies: [proxy], presets: [] });
+
+            const repository = new ProxyRepository(storageBackend);
+            await expect(repository.delete('proxy-1')).resolves.not.toThrow();
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.proxies).toHaveLength(0);
+        });
+
+        it('cascade cleanup: should reset proxyId in all presets linked to the same proxy', async () => {
+            const proxy = createMockProxy({ id: 'proxy-1' });
+            const presetA: Preset = {
+                id: 'preset-a', name: 'A', domains: [], enabled: true,
+                isDefault: false, order: 0, proxyId: 'proxy-1',
+                createdAt: Date.now(), updatedAt: Date.now(),
+            };
+            const presetB: Preset = {
+                id: 'preset-b', name: 'B', domains: [], enabled: true,
+                isDefault: false, order: 1, proxyId: 'proxy-1',
+                createdAt: Date.now(), updatedAt: Date.now(),
+            };
+            mockHelpers.setLocalStorageData({ proxies: [proxy], presets: [presetA, presetB] });
+
+            const repository = new ProxyRepository(storageBackend);
+            await repository.delete('proxy-1');
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].proxyId).toBeNull();
+            expect(stored.presets[1].proxyId).toBeNull();
         });
     });
 

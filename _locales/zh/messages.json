@@ -259,6 +259,10 @@
     "message": "取消",
     "description": "Cancel button"
   },
+  "continue": {
+    "message": "Continue",
+    "description": "Continue button"
+  },
   "save": {
     "message": "保存",
     "description": "Save button"
@@ -326,6 +330,10 @@
   "newerVersion": {
     "message": "文件由更新版本创建",
     "description": "Warning when file version is newer"
+  },
+  "newerVersionConfirm": {
+    "message": "This file was created with a newer version of the extension. Some data may be incompatible. Continue import?",
+    "description": "Confirmation dialog when importing file from newer version"
   },
   "missingData": {
     "message": "缺少数据部分",
@@ -445,6 +453,10 @@
     "message": "按IP:Port搜索...",
     "description": "Placeholder for public proxy search input"
   },
+  "publicProxySearchHint": {
+    "message": "请输入 IP:Port 格式（例如 1.2.3.4:8080）",
+    "description": "Validation hint for public proxy search input"
+  },
   "publicProxiesLoading": {
     "message": "加载中...",
     "description": "Loading state for public proxies"
@@ -514,5 +526,9 @@
   "welcomeStep2Desc": { "message": "选择哪些网站应使用代理" },
   "welcomeStep3Title": { "message": "连接" },
   "welcomeStep3Desc": { "message": "点击盾牌按钮启用代理" },
-  "welcomeGetStarted": { "message": "开始使用" }
+  "welcomeGetStarted": { "message": "开始使用" },
+  "labelTheme": {
+    "message": "主题",
+    "description": "Label for theme toggle"
+  }
 }

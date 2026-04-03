@@ -91,8 +91,9 @@ class PopupApp {
 
             // При изменении прокси - перерисовываем пресеты (для обновления выпадающего списка прокси)
             if (StorageKeys.PROXIES in changes) {
-                console.log('Popup: Proxies changed, re-rendering presets');
+                console.log('Popup: Proxies changed, re-rendering presets and proxy list');
                 Presets.render();
+                ProxyList.refresh();
             }
         });
     }

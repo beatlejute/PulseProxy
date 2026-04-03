@@ -1,5 +1,5 @@
 import { IStorageBackend } from '../types/storage';
-import { ProxyServer } from '../types';
+import { ProxyServer, Preset } from '../types';
 import { StorageKeys } from '../shared/constants';
 
 export class ProxyRepository {
@@ -25,11 +25,7 @@ export class ProxyRepository {
 
     async getDefault(): Promise<ProxyServer | undefined> {
         const proxies = await this.getAll();
-        const defaultProxy = proxies.find(p => p.isDefault);
-        if (defaultProxy) {
-            return defaultProxy;
-        }
-        return proxies[0];
+        return proxies.find(p => p.isDefault);
     }
 
     async update(id: string, updates: Partial<ProxyServer>): Promise<void> {
@@ -44,6 +40,23 @@ export class ProxyRepository {
     async delete(id: string): Promise<void> {
         const proxies = await this.getAll();
         const filtered = proxies.filter(p => p.id !== id);
+        
+        // Cascade cleanup: reset proxyId in presets that reference this proxy
+        const presets = await this.storageBackend.get(StorageKeys.PRESETS) as Preset[] | undefined;
+        if (Array.isArray(presets)) {
+            let updated = false;
+            const updatedPresets = presets.map(preset => {
+                if (preset.proxyId === id) {
+                    updated = true;
+                    return { ...preset, proxyId: null, updatedAt: Date.now() };
+                }
+                return preset;
+            });
+            if (updated) {
+                await this.storageBackend.set(StorageKeys.PRESETS, updatedPresets);
+            }
+        }
+        
         await this.setAll(filtered);
     }
 

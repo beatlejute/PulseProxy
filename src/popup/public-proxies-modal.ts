@@ -9,6 +9,11 @@ import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
 
 const PUBLIC_PROXIES_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/proxys.json';
 
+export function validateIpPortFormat(input: string): boolean {
+    const ipPortRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}$/;
+    return ipPortRegex.test(input);
+}
+
 let cachedProxies: NormalizedPublicProxy[] | null = null;
 
 export function clearPublicProxiesCache(): void {
@@ -124,6 +129,12 @@ export async function showPublicProxiesModal(
     setAttr(searchInput, 'data-i18n-placeholder', 'publicProxySearchPlaceholder');
     setAttr(searchInput, 'placeholder', 'Search by IP:Port...');
     searchDiv.appendChild(searchInput);
+
+    const validationHint = createElementFromTemplate<HTMLDivElement>('div', { className: 'validation-hint' });
+    validationHint.style.display = 'none';
+    setAttr(validationHint, 'data-i18n', 'publicProxySearchHint');
+    searchDiv.appendChild(validationHint);
+
     body.appendChild(searchDiv);
 
     const listDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'public-proxies-list' });
@@ -174,6 +185,13 @@ async function loadAndRenderPublicProxies(
             const searchQuery = (body.querySelector('.public-proxy-search-input') as HTMLInputElement)?.value.toLowerCase() || '';
             const filteredProxies = filterPublicProxies(proxies, filters, searchQuery);
             renderPublicProxiesList(listContainer, filteredProxies, closeModal, onProxyAdded);
+
+            const validationHint = body.querySelector('.validation-hint') as HTMLElement;
+            if (validationHint) {
+                const showHint = searchQuery.length >= 4 && !validateIpPortFormat(searchQuery);
+                validationHint.style.display = showHint ? 'block' : 'none';
+                I18n.applyTranslations();
+            }
         };
 
         body.querySelectorAll('select').forEach(select => {

@@ -261,9 +261,13 @@ describe('Preset CRUD Integration Tests', () => {
 
             await Storage.deleteProxy('proxy-to-delete');
 
-            // Preset's proxyId should remain unchanged (repository doesn't cascade)
+            // Preset's proxyId should be set to null after cascade cleanup
             const presetAfter = await Storage.getPreset('preset');
-            expect(presetAfter?.proxyId).toBe('proxy-to-delete'); // No cascade
+            expect(presetAfter?.proxyId).toBeNull();
+            
+            // Verify proxy is deleted
+            const proxyAfter = await Storage.getProxy('proxy-to-delete');
+            expect(proxyAfter).toBeUndefined();
         });
     });
 

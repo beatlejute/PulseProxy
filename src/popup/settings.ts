@@ -1,7 +1,7 @@
 import { Storage } from '../shared/storage';
 import { SUPPORTED_LANGUAGES, LANGUAGE_NAMES } from '../shared/constants';
 import { I18n } from '../shared/i18n';
-import { SupportedLanguage, I18nKey } from '../types';
+import { SupportedLanguage, I18nKey, ThemeType } from '../types';
 import { showAlert, showConfirm } from './dialog';
 import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
 import { RemoteConfig } from '../shared/remote-config';
@@ -10,6 +10,7 @@ class SettingsService {
     private languageSelect: HTMLSelectElement | null = null;
     private syncToggle: HTMLInputElement | null = null;
     private proxyCheckToggle: HTMLInputElement | null = null;
+    private themeToggle: HTMLInputElement | null = null;
     private exportButton: HTMLButtonElement | null = null;
     private importButton: HTMLButtonElement | null = null;
     private importFileInput: HTMLInputElement | null = null;
@@ -21,6 +22,7 @@ class SettingsService {
         this.languageSelect = document.getElementById('language-select') as HTMLSelectElement;
         this.syncToggle = document.getElementById('sync-toggle') as HTMLInputElement;
         this.proxyCheckToggle = document.getElementById('proxy-check-toggle') as HTMLInputElement;
+        this.themeToggle = document.getElementById('theme-toggle') as HTMLInputElement;
         this.exportButton = document.getElementById('export-button') as HTMLButtonElement;
         this.importButton = document.getElementById('import-button') as HTMLButtonElement;
         this.importFileInput = document.getElementById('import-file-input') as HTMLInputElement;
@@ -28,6 +30,7 @@ class SettingsService {
         this.initLanguageSelector();
         await this.initSyncToggle();
         await this.initProxyCheckToggle();
+        await this.initThemeToggle();
         this.initImportExport();
         this.initVersion();
         this.initAffiliateLinkHandlers();
@@ -137,6 +140,30 @@ class SettingsService {
         });
     }
 
+    private async initThemeToggle(): Promise<void> {
+        if (!this.themeToggle) return;
+
+        const currentTheme = await Storage.getTheme();
+        this.themeToggle.checked = currentTheme === 'dark';
+        this.applyThemeClass(currentTheme);
+
+        this.themeToggle.addEventListener('change', async () => {
+            const newTheme = this.themeToggle!.checked ? 'dark' : 'light';
+            await Storage.setTheme(newTheme);
+            this.applyThemeClass(newTheme);
+        });
+    }
+
+    private applyThemeClass(theme: ThemeType): void {
+        if (theme === 'dark') {
+            document.body.classList.add('theme-dark');
+            document.body.classList.remove('theme-light');
+        } else {
+            document.body.classList.add('theme-light');
+            document.body.classList.remove('theme-dark');
+        }
+    }
+
     private initVersion(): void {
         const versionEl = document.getElementById('version-number');
         if (versionEl) {
@@ -210,10 +237,31 @@ class SettingsService {
             
             // Предупреждения
             if (validation.warnings.length > 0) {
-                const warningMessages = validation.warnings
-                    .map(w => I18n.getMessage(w as I18nKey))
-                    .join('\n');
-                console.warn('Settings: Import warnings:', warningMessages);
+                // Проверяем наличие предупреждения о новой версии
+                const newerVersionIndex = validation.warnings.indexOf('newerVersion');
+                if (newerVersionIndex !== -1) {
+                    // Показываем специальный диалог для новой версии
+                    const confirmed = await showConfirm(
+                        I18n.getMessage('newerVersionConfirm'),
+                        {
+                            okText: I18n.getMessage('continue'),
+                            cancelText: I18n.getMessage('cancel')
+                        }
+                    );
+                    if (!confirmed) {
+                        return;
+                    }
+                    // Удаляем это предупреждение из массива, чтобы не дублировать
+                    validation.warnings.splice(newerVersionIndex, 1);
+                }
+
+                // Остальные предупреждения выводим в консоль
+                if (validation.warnings.length > 0) {
+                    const warningMessages = validation.warnings
+                        .map(w => I18n.getMessage(w as I18nKey))
+                        .join('\n');
+                    console.warn('Settings: Import warnings:', warningMessages);
+                }
             }
             
             // Подтверждение импорта

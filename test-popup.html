@@ -29,80 +29,118 @@
     window.chrome = {
         runtime: {
             getManifest: () => ({ version: '1.0.0-test' }),
+            getURL: (path) => {
+                // Для i18n переводов используем относительные пути, которые работают в браузере
+                if (path.startsWith('_locales/')) {
+                    // Убираем leading slash если есть, чтобы получить корректный относительный путь
+                    const relativePath = path.startsWith('/') ? path.slice(1) : path;
+                    return `./${relativePath}`;
+                }
+                return `chrome-extension://test-id/${path}`;
+            },
             onMessage: { addListener: () => {} },
             sendMessage: (msg, cb) => { if(cb) cb({}); },
             id: 'test-extension-id',
             lastError: null
         },
+        i18n: {
+            getUILanguage: () => 'en'
+        },
         storage: {
             local: {
                 get: (keys, cb) => {
-                    const resolve = (result) => {
-                        if (typeof cb === 'function') setTimeout(() => cb(result), 0);
-                        return Promise.resolve(result);
+                    const getResult = () => {
+                        if (typeof keys === 'string') {
+                            const result = {};
+                            result[keys] = _storage.local[keys];
+                            return result;
+                        } else if (Array.isArray(keys)) {
+                            const result = {};
+                            keys.forEach(k => result[k] = _storage.local[k]);
+                            return result;
+                        } else if (keys === null || keys === undefined) {
+                            return {..._storage.local};
+                        } else {
+                            const result = {};
+                            Object.keys(keys).forEach(k => result[k] = _storage.local[k] !== undefined ? _storage.local[k] : keys[k]);
+                            return result;
+                        }
                     };
-                    if (typeof keys === 'string') {
-                        const result = {};
-                        result[keys] = _storage.local[keys];
-                        return resolve(result);
-                    } else if (Array.isArray(keys)) {
-                        const result = {};
-                        keys.forEach(k => result[k] = _storage.local[k]);
-                        return resolve(result);
-                    } else if (keys === null || keys === undefined) {
-                        return resolve({..._storage.local});
+
+                    if (typeof cb === 'function') {
+                        setTimeout(() => cb(getResult()), 0);
+                        return; // возвращает undefined
                     } else {
-                        const result = {};
-                        Object.keys(keys).forEach(k => result[k] = _storage.local[k] !== undefined ? _storage.local[k] : keys[k]);
-                        return resolve(result);
+                        return Promise.resolve(getResult());
                     }
                 },
                 set: (data, cb) => {
                     Object.assign(_storage.local, data);
                     console.log('[STORAGE.LOCAL.SET]', JSON.stringify(data));
-                    if (typeof cb === 'function') setTimeout(() => cb(), 0);
-                    return Promise.resolve();
+                    if (typeof cb === 'function') {
+                        setTimeout(() => cb(), 0);
+                        return; // возвращает undefined
+                    } else {
+                        return Promise.resolve();
+                    }
                 },
                 remove: (keys, cb) => {
                     if (typeof keys === 'string') delete _storage.local[keys];
                     else keys.forEach(k => delete _storage.local[k]);
-                    if (typeof cb === 'function') setTimeout(() => cb(), 0);
-                    return Promise.resolve();
+                    if (typeof cb === 'function') {
+                        setTimeout(() => cb(), 0);
+                        return; // возвращает undefined
+                    } else {
+                        return Promise.resolve();
+                    }
                 }
             },
             sync: {
                 get: (keys, cb) => {
-                    const resolve = (result) => {
-                        if (typeof cb === 'function') setTimeout(() => cb(result), 0);
-                        return Promise.resolve(result);
+                    const getResult = () => {
+                        if (typeof keys === 'string') {
+                            const result = {};
+                            result[keys] = _storage.sync[keys];
+                            return result;
+                        } else if (Array.isArray(keys)) {
+                            const result = {};
+                            keys.forEach(k => result[k] = _storage.sync[k]);
+                            return result;
+                        } else if (keys === null || keys === undefined) {
+                            return {..._storage.sync};
+                        } else {
+                            const result = {};
+                            Object.keys(keys).forEach(k => result[k] = _storage.sync[k] !== undefined ? _storage.sync[k] : keys[k]);
+                            return result;
+                        }
                     };
-                    if (typeof keys === 'string') {
-                        const result = {};
-                        result[keys] = _storage.sync[keys];
-                        return resolve(result);
-                    } else if (Array.isArray(keys)) {
-                        const result = {};
-                        keys.forEach(k => result[k] = _storage.sync[k]);
-                        return resolve(result);
-                    } else if (keys === null || keys === undefined) {
-                        return resolve({..._storage.sync});
+
+                    if (typeof cb === 'function') {
+                        setTimeout(() => cb(getResult()), 0);
+                        return; // возвращает undefined
                     } else {
-                        const result = {};
-                        Object.keys(keys).forEach(k => result[k] = _storage.sync[k] !== undefined ? _storage.sync[k] : keys[k]);
-                        return resolve(result);
+                        return Promise.resolve(getResult());
                     }
                 },
                 set: (data, cb) => {
                     Object.assign(_storage.sync, data);
                     console.log('[STORAGE.SYNC.SET]', JSON.stringify(data));
-                    if (typeof cb === 'function') setTimeout(() => cb(), 0);
-                    return Promise.resolve();
+                    if (typeof cb === 'function') {
+                        setTimeout(() => cb(), 0);
+                        return; // возвращает undefined
+                    } else {
+                        return Promise.resolve();
+                    }
                 },
                 remove: (keys, cb) => {
                     if (typeof keys === 'string') delete _storage.sync[keys];
                     else keys.forEach(k => delete _storage.sync[k]);
-                    if (typeof cb === 'function') setTimeout(() => cb(), 0);
-                    return Promise.resolve();
+                    if (typeof cb === 'function') {
+                        setTimeout(() => cb(), 0);
+                        return; // возвращает undefined
+                    } else {
+                        return Promise.resolve();
+                    }
                 }
             },
             onChanged: {

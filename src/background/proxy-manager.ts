@@ -205,11 +205,12 @@ class ProxyManagerService {
         // Регистрируем обработчик для авторизации прокси
         if (chrome.webRequest && chrome.webRequest.onAuthRequired) {
             chrome.webRequest.onAuthRequired.addListener(
-                (details: any, asyncCallback?: (response: any) => void) => {
+                (details: chrome.webRequest.OnAuthRequiredDetails, asyncCallback?: (response: chrome.webRequest.BlockingResponse) => void) => {
                     const response = this.handleAuthRequired(details);
                     if (asyncCallback) {
                         asyncCallback(response);
                     }
+                    return response;
                 },
                 { urls: ['<all_urls>'] },
                 ['asyncBlocking']

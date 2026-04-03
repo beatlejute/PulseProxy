@@ -12,6 +12,8 @@ jest.mock('../../src/shared/storage', () => ({
         setSyncEnabled: jest.fn().mockResolvedValue(undefined),
         getProxyCheckEnabled: jest.fn().mockResolvedValue(true),
         setProxyCheckEnabled: jest.fn().mockResolvedValue(undefined),
+        getTheme: jest.fn().mockResolvedValue('light'),
+        setTheme: jest.fn().mockResolvedValue(undefined),
         exportAllData: jest.fn().mockResolvedValue({
             version: '1.0.0',
             exportDate: '2025-01-24T00:00:00.000Z',
@@ -87,6 +89,7 @@ describe('settings.ts - SettingsService', () => {
             <select id="language-select"></select>
             <input type="checkbox" id="sync-toggle">
             <input type="checkbox" id="proxy-check-toggle">
+            <input type="checkbox" id="theme-toggle">
             <button id="export-button">Export</button>
             <button id="import-button">Import</button>
             <input type="file" id="import-file-input" accept=".json">
@@ -550,6 +553,65 @@ describe('settings.ts - SettingsService', () => {
 
             expect(showAlert).toHaveBeenCalledWith('importValidationError');
         });
+
+        it('should show newerVersion confirm dialog when warnings contain newerVersion (version > EXPORT_FORMAT_VERSION)', async () => {
+            (Storage.validateImportData as jest.Mock).mockReturnValue({
+                valid: true,
+                errors: [],
+                warnings: ['newerVersion'],
+                data: { version: '1.0.0', data: {} },
+            });
+            (showConfirm as jest.Mock).mockResolvedValue(true);
+
+            await Settings.init();
+
+            const fileInput = document.getElementById('import-file-input') as HTMLInputElement;
+            const file = createMockFile('{"version":999}');
+
+            Object.defineProperty(fileInput, 'files', {
+                value: [file],
+                writable: true,
+            });
+
+            fileInput.dispatchEvent(new Event('change'));
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            expect(showConfirm).toHaveBeenCalledWith(
+                'newerVersionConfirm',
+                expect.objectContaining({ okText: 'continue', cancelText: 'cancel' })
+            );
+        });
+
+        it('should not show newerVersion confirm dialog when warnings are empty (version <= EXPORT_FORMAT_VERSION)', async () => {
+            (Storage.validateImportData as jest.Mock).mockReturnValue({
+                valid: true,
+                errors: [],
+                warnings: [],
+                data: { version: '1.0.0', data: {} },
+            });
+            (showConfirm as jest.Mock).mockResolvedValue(true);
+
+            await Settings.init();
+
+            const fileInput = document.getElementById('import-file-input') as HTMLInputElement;
+            const file = createMockFile('{"version":1}');
+
+            Object.defineProperty(fileInput, 'files', {
+                value: [file],
+                writable: true,
+            });
+
+            fileInput.dispatchEvent(new Event('change'));
+
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            expect(showConfirm).not.toHaveBeenCalledWith(
+                'newerVersionConfirm',
+                expect.anything()
+            );
+            expect(showConfirm).toHaveBeenCalledWith('importConfirm');
+        });
     });
 
     describe('showSaveSuccess()', () => {
@@ -613,6 +675,45 @@ describe('settings.ts - SettingsService', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
 
             expect(Storage.setProxyCheckEnabled).toHaveBeenCalledWith(false);
+        });
+    });
+
+    describe('initThemeToggle()', () => {
+        it('should save theme to storage when setTheme is called', async () => {
+            (Storage.getTheme as jest.Mock).mockResolvedValue('light');
+
+            await Settings.init();
+
+            const toggle = document.getElementById('theme-toggle') as HTMLInputElement;
+            toggle.checked = true;
+            toggle.dispatchEvent(new Event('change'));
+
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            expect(Storage.setTheme).toHaveBeenCalledWith('dark');
+        });
+
+        it('should reflect current theme from storage on init', async () => {
+            (Storage.getTheme as jest.Mock).mockResolvedValue('dark');
+
+            await Settings.init();
+
+            const toggle = document.getElementById('theme-toggle') as HTMLInputElement;
+            expect(toggle.checked).toBe(true);
+        });
+
+        it('should apply CSS class to document.body on theme change', async () => {
+            (Storage.getTheme as jest.Mock).mockResolvedValue('light');
+
+            await Settings.init();
+
+            const toggle = document.getElementById('theme-toggle') as HTMLInputElement;
+            toggle.checked = true;
+            toggle.dispatchEvent(new Event('change'));
+
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            expect(document.body.classList.contains('theme-dark')).toBe(true);
         });
     });
 

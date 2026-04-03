@@ -1,0 +1,248 @@
+{
+  "tickets": [
+    {
+      "id": "BUG-026-001",
+      "title": "[i18n] UI \u043e\u0442\u043e\u0431\u0440\u0430\u0436\u0430\u0435\u0442 \u0441\u044b\u0440\u044b\u0435 i18n-\u043a\u043b\u044e\u0447\u0438 \u0432\u043c\u0435\u0441\u0442\u043e \u043f\u0435\u0440\u0435\u0432\u043e\u0434\u043e\u0432 \u0432 test-popup.html",
+      "type": "bug",
+      "priority": 2,
+      "created_at": "2026-03-30T11:40:00Z",
+      "updated_at": "2026-03-30T11:55:30.956Z",
+      "completed_at": "2026-03-30T11:55:30.956Z",
+      "status": "done",
+      "file": ".workflow/tickets\\done\\BUG-026-001.md"
+    },
+    {
+      "id": "QA-022",
+      "title": "Smoke-\u0442\u0435\u0441\u0442: \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u0435 popup \u0438 \u0431\u0430\u0437\u043e\u0432\u0430\u044f \u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044f",
+      "type": "qa",
+      "priority": 1,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-29T15:06:26.547Z",
+      "completed_at": "2026-03-29T15:06:26.547Z",
+      "status": "done",
+      "file": ".workflow/tickets\\done\\QA-022.md"
+    },
+    {
+      "id": "QA-023",
+      "title": "QA: CRUD \u043f\u0440\u043e\u043a\u0441\u0438-\u0441\u0435\u0440\u0432\u0435\u0440\u043e\u0432 (\u0432\u0441\u0435 \u0442\u0438\u043f\u044b + \u0430\u0443\u0442\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f + \u043d\u0435\u0433\u0430\u0442\u0438\u0432\u043d\u044b\u0435)",
+      "type": "qa",
+      "priority": 1,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-30T11:46:43.593Z",
+      "completed_at": "2026-03-30T11:46:43.593Z",
+      "status": "done",
+      "file": ".workflow/tickets\\done\\QA-023.md"
+    },
+    {
+      "id": "QA-025",
+      "title": "QA: CRUD \u043f\u0440\u0435\u0441\u0435\u0442\u043e\u0432 (\u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0435, \u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435, drag-n-drop, \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u0435)",
+      "type": "qa",
+      "priority": 2,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-30T16:31:34.130Z",
+      "completed_at": "2026-03-30T16:31:34.130Z",
+      "status": "done",
+      "file": ".workflow/tickets\\done\\QA-025.md"
+    },
+    {
+      "id": "QA-026",
+      "title": "QA: \u041f\u043e\u0438\u0441\u043a \u043f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0445 \u043f\u0440\u043e\u043a\u0441\u0438 (\u043c\u043e\u0434\u0430\u043b\u044c\u043d\u043e\u0435 \u043e\u043a\u043d\u043e, IP:Port, \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435)",
+      "type": "qa",
+      "priority": 3,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-30T12:18:10.544Z",
+      "completed_at": "2026-03-30T12:18:10.544Z",
+      "status": "done",
+      "file": ".workflow/tickets\\done\\QA-026.md"
+    },
+    {
+      "id": "QA-027",
+      "title": "QA: \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 (\u0442\u0435\u043c\u0430, \u044f\u0437\u044b\u043a x8, \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f, proxy all sites, proxy check)",
+      "type": "qa",
+      "priority": 2,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-29T17:34:14.734Z",
+      "completed_at": "2026-03-29T17:34:14.734Z",
+      "status": "done",
+      "file": ".workflow/tickets\\done\\QA-027.md"
+    },
+    {
+      "id": "QA-028",
+      "title": "QA: \u0418\u043c\u043f\u043e\u0440\u0442/\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u0438 (JSON, \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430, \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435)",
+      "type": "qa",
+      "priority": 2,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-30T16:49:17.144Z",
+      "completed_at": "2026-03-30T16:49:17.144Z",
+      "status": "done",
+      "file": ".workflow/tickets\\done\\QA-028.md"
+    },
+    {
+      "id": "QA-030",
+      "title": "QA: \u0412\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u0430\u044f \u0438\u043d\u0441\u043f\u0435\u043a\u0446\u0438\u044f UI (\u0432\u0441\u0435 \u0432\u043a\u043b\u0430\u0434\u043a\u0438, light/dark, \u043c\u043e\u0434\u0430\u043b\u043a\u0438)",
+      "type": "qa",
+      "priority": 2,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-29T17:55:46.063Z",
+      "completed_at": "2026-03-29T17:55:46.063Z",
+      "status": "done",
+      "file": ".workflow/tickets\\done\\QA-030.md"
+    },
+    {
+      "id": "QA-024",
+      "title": "QA: \u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435/\u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u043a\u0441\u0438 (toggle) + Service Worker",
+      "type": "qa",
+      "priority": 1,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-31T06:54:08.680Z",
+      "completed_at": "2026-03-31T06:52:37.197Z",
+      "status": "blocked",
+      "file": ".workflow/tickets\\blocked\\QA-024.md"
+    },
+    {
+      "id": "QA-029",
+      "title": "QA: \u041a\u0440\u043e\u0441\u0441-\u0444\u0443\u043d\u043a\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u044b\u0435 \u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438 (\u043f\u0440\u043e\u043a\u0441\u0438 \u2194 \u043f\u0440\u0435\u0441\u0435\u0442\u044b \u2194 \u043d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438)",
+      "type": "qa",
+      "priority": 2,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-29T00:00:00Z",
+      "completed_at": "",
+      "status": "backlog",
+      "file": ".workflow/tickets\\backlog\\QA-029.md"
+    },
+    {
+      "id": "QA-031",
+      "title": "QA: Edge-cases \u0438 stress-\u0441\u0446\u0435\u043d\u0430\u0440\u0438\u0438 (20+ \u043f\u0440\u043e\u043a\u0441\u0438, punycode, \u0431\u044b\u0441\u0442\u0440\u043e\u0435 \u0437\u0430\u043a\u0440\u044b\u0442\u0438\u0435)",
+      "type": "qa",
+      "priority": 3,
+      "created_at": "2026-03-29T00:00:00Z",
+      "updated_at": "2026-03-29T00:00:00Z",
+      "completed_at": "",
+      "status": "backlog",
+      "file": ".workflow/tickets\\backlog\\QA-031.md"
+    }
+  ],
+  "metrics": {
+    "total": 11,
+    "by_status": {
+      "done": 8,
+      "blocked": 1,
+      "backlog": 2
+    },
+    "by_type": {
+      "bug": 1,
+      "qa": 10
+    },
+    "done_count": 8,
+    "blocked_count": 1,
+    "in_progress_count": 0,
+    "ready_count": 0,
+    "backlog_count": 2,
+    "done_rate": 72.72727272727273,
+    "blocked_rate": 9.090909090909092,
+    "in_progress_rate": 0.0,
+    "velocity_day": 4.5,
+    "velocity_week": 31.5,
+    "completed_tickets": [
+      {
+        "id": "BUG-026-001",
+        "title": "[i18n] UI \u043e\u0442\u043e\u0431\u0440\u0430\u0436\u0430\u0435\u0442 \u0441\u044b\u0440\u044b\u0435 i18n-\u043a\u043b\u044e\u0447\u0438 \u0432\u043c\u0435\u0441\u0442\u043e \u043f\u0435\u0440\u0435\u0432\u043e\u0434\u043e\u0432 \u0432 test-popup.html",
+        "type": "bug",
+        "priority": 2,
+        "created_at": "2026-03-30T11:40:00Z",
+        "updated_at": "2026-03-30T11:55:30.956Z",
+        "completed_at": "2026-03-30T11:55:30.956Z",
+        "status": "done",
+        "file": ".workflow/tickets\\done\\BUG-026-001.md"
+      },
+      {
+        "id": "QA-022",
+        "title": "Smoke-\u0442\u0435\u0441\u0442: \u043e\u0442\u043a\u0440\u044b\u0442\u0438\u0435 popup \u0438 \u0431\u0430\u0437\u043e\u0432\u0430\u044f \u043d\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044f",
+        "type": "qa",
+        "priority": 1,
+        "created_at": "2026-03-29T00:00:00Z",
+        "updated_at": "2026-03-29T15:06:26.547Z",
+        "completed_at": "2026-03-29T15:06:26.547Z",
+        "status": "done",
+        "file": ".workflow/tickets\\done\\QA-022.md"
+      },
+      {
+        "id": "QA-023",
+        "title": "QA: CRUD \u043f\u0440\u043e\u043a\u0441\u0438-\u0441\u0435\u0440\u0432\u0435\u0440\u043e\u0432 (\u0432\u0441\u0435 \u0442\u0438\u043f\u044b + \u0430\u0443\u0442\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f + \u043d\u0435\u0433\u0430\u0442\u0438\u0432\u043d\u044b\u0435)",
+        "type": "qa",
+        "priority": 1,
+        "created_at": "2026-03-29T00:00:00Z",
+        "updated_at": "2026-03-30T11:46:43.593Z",
+        "completed_at": "2026-03-30T11:46:43.593Z",
+        "status": "done",
+        "file": ".workflow/tickets\\done\\QA-023.md"
+      },
+      {
+        "id": "QA-025",
+        "title": "QA: CRUD \u043f\u0440\u0435\u0441\u0435\u0442\u043e\u0432 (\u0441\u043e\u0437\u0434\u0430\u043d\u0438\u0435, \u0440\u0435\u0434\u0430\u043a\u0442\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435, drag-n-drop, \u0443\u0434\u0430\u043b\u0435\u043d\u0438\u0435)",
+        "type": "qa",
+        "priority": 2,
+        "created_at": "2026-03-29T00:00:00Z",
+        "updated_at": "2026-03-30T16:31:34.130Z",
+        "completed_at": "2026-03-30T16:31:34.130Z",
+        "status": "done",
+        "file": ".workflow/tickets\\done\\QA-025.md"
+      },
+      {
+        "id": "QA-026",
+        "title": "QA: \u041f\u043e\u0438\u0441\u043a \u043f\u0443\u0431\u043b\u0438\u0447\u043d\u044b\u0445 \u043f\u0440\u043e\u043a\u0441\u0438 (\u043c\u043e\u0434\u0430\u043b\u044c\u043d\u043e\u0435 \u043e\u043a\u043d\u043e, IP:Port, \u0434\u043e\u0431\u0430\u0432\u043b\u0435\u043d\u0438\u0435)",
+        "type": "qa",
+        "priority": 3,
+        "created_at": "2026-03-29T00:00:00Z",
+        "updated_at": "2026-03-30T12:18:10.544Z",
+        "completed_at": "2026-03-30T12:18:10.544Z",
+        "status": "done",
+        "file": ".workflow/tickets\\done\\QA-026.md"
+      },
+      {
+        "id": "QA-027",
+        "title": "QA: \u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438 (\u0442\u0435\u043c\u0430, \u044f\u0437\u044b\u043a x8, \u0441\u0438\u043d\u0445\u0440\u043e\u043d\u0438\u0437\u0430\u0446\u0438\u044f, proxy all sites, proxy check)",
+        "type": "qa",
+        "priority": 2,
+        "created_at": "2026-03-29T00:00:00Z",
+        "updated_at": "2026-03-29T17:34:14.734Z",
+        "completed_at": "2026-03-29T17:34:14.734Z",
+        "status": "done",
+        "file": ".workflow/tickets\\done\\QA-027.md"
+      },
+      {
+        "id": "QA-028",
+        "title": "QA: \u0418\u043c\u043f\u043e\u0440\u0442/\u042d\u043a\u0441\u043f\u043e\u0440\u0442 \u043a\u043e\u043d\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u0438 (JSON, \u0441\u0442\u0440\u0443\u043a\u0442\u0443\u0440\u0430, \u0432\u043e\u0441\u0441\u0442\u0430\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435)",
+        "type": "qa",
+        "priority": 2,
+        "created_at": "2026-03-29T00:00:00Z",
+        "updated_at": "2026-03-30T16:49:17.144Z",
+        "completed_at": "2026-03-30T16:49:17.144Z",
+        "status": "done",
+        "file": ".workflow/tickets\\done\\QA-028.md"
+      },
+      {
+        "id": "QA-030",
+        "title": "QA: \u0412\u0438\u0437\u0443\u0430\u043b\u044c\u043d\u0430\u044f \u0438\u043d\u0441\u043f\u0435\u043a\u0446\u0438\u044f UI (\u0432\u0441\u0435 \u0432\u043a\u043b\u0430\u0434\u043a\u0438, light/dark, \u043c\u043e\u0434\u0430\u043b\u043a\u0438)",
+        "type": "qa",
+        "priority": 2,
+        "created_at": "2026-03-29T00:00:00Z",
+        "updated_at": "2026-03-29T17:55:46.063Z",
+        "completed_at": "2026-03-29T17:55:46.063Z",
+        "status": "done",
+        "file": ".workflow/tickets\\done\\QA-030.md"
+      },
+      {
+        "id": "QA-024",
+        "title": "QA: \u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435/\u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d\u0438\u0435 \u043f\u0440\u043e\u043a\u0441\u0438 (toggle) + Service Worker",
+        "type": "qa",
+        "priority": 1,
+        "created_at": "2026-03-29T00:00:00Z",
+        "updated_at": "2026-03-31T06:54:08.680Z",
+        "completed_at": "2026-03-31T06:52:37.197Z",
+        "status": "blocked",
+        "file": ".workflow/tickets\\blocked\\QA-024.md"
+      }
+    ]
+  }
+}

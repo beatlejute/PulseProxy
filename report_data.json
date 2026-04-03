@@ -1,0 +1,90 @@
+{
+  "total": 11,
+  "done_count": 8,
+  "blocked_count": 1,
+  "in_progress_count": 0,
+  "ready_count": 0,
+  "backlog_count": 2,
+  "velocity_day": 4.5,
+  "velocity_week": 31.5,
+  "done_rate": 72.72727272727273,
+  "blocked_rate": 9.090909090909092,
+  "in_progress_rate": 0.0,
+  "type_distribution": {
+    "bug": 1,
+    "qa": 10
+  },
+  "done_tickets": [
+    {
+      "id": "BUG-026-001",
+      "title": "[i18n] UI отображает сырые i18n-ключи вместо переводов в test-popup.html",
+      "role": "agent",
+      "result": "PASS",
+      "time": "15 мин"
+    },
+    {
+      "id": "QA-022",
+      "title": "Smoke-тест: открытие popup и базовая навигация",
+      "role": "agent",
+      "result": "PASS",
+      "time": "15.1 ч"
+    },
+    {
+      "id": "QA-023",
+      "title": "QA: CRUD прокси-серверов (все типы + аутентификация + негативные)",
+      "role": "agent",
+      "result": "PASS",
+      "time": "35.8 ч"
+    },
+    {
+      "id": "QA-025",
+      "title": "QA: CRUD пресетов (создание, редактирование, drag-n-drop, удаление)",
+      "role": "agent",
+      "result": "PASS",
+      "time": "40.5 ч"
+    },
+    {
+      "id": "QA-026",
+      "title": "QA: Поиск публичных прокси (модальное окно, IP:Port, добавление)",
+      "role": "agent",
+      "result": "PASS",
+      "time": "36.3 ч"
+    },
+    {
+      "id": "QA-027",
+      "title": "QA: Настройки (тема, язык x8, синхронизация, proxy all sites, proxy check)",
+      "role": "agent",
+      "result": "PASS",
+      "time": "17.6 ч"
+    },
+    {
+      "id": "QA-028",
+      "title": "QA: Импорт/Экспорт конфигурации (JSON, структура, восстановление)",
+      "role": "agent",
+      "result": "PASS",
+      "time": "40.8 ч"
+    },
+    {
+      "id": "QA-030",
+      "title": "QA: Визуальная инспекция UI (все вкладки, light/dark, модалки)",
+      "role": "agent",
+      "result": "PASS",
+      "time": "17.9 ч"
+    }
+  ],
+  "blocked_tickets": [
+    {
+      "id": "QA-024",
+      "title": "QA: Подключение/отключение прокси (toggle) + Service Worker",
+      "reason": "Аномалия: тикет завершён, но находится в blocked",
+      "required": "Переместить в done"
+    }
+  ],
+  "anomalies": [
+    {
+      "type": "blocked_but_completed",
+      "ticket": "QA-024",
+      "description": "Тикет QA-024 находится в blocked, но имеет completed_at"
+    }
+  ]
+}

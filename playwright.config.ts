@@ -20,15 +20,8 @@ export default defineConfig({
     projects: [
         {
             name: 'chromium',
-            use: { 
+            use: {
                 ...devices['Desktop Chrome'],
-                // Путь к расширению
-                launchOptions: {
-                    args: [
-                        '--disable-extensions-except=./dist',
-                        '--load-extension=./dist',
-                    ],
-                },
             },
         },
     ],

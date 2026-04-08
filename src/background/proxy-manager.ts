@@ -111,6 +111,10 @@ class ProxyManagerService {
     private cachedPacScript: string | null = null;
     private cachedConfigHash: string | null = null;
 
+    // Track the defaultProxy ID that was used for the last enable() call
+    // to detect proxy switches and reconnect instead of disconnect
+    private lastConnectedProxyId: string | null = null;
+
     // Returns proxy label (host:port) if URL is routed through proxy, null if DIRECT
     getProxyForUrl(url: string): string | null {
         let host: string;
@@ -261,7 +265,17 @@ class ProxyManagerService {
         if (targetState === ProxyState.CONNECTED) {
             await this.enable();
         } else {
-            await this.disable();
+            // Check if the default proxy has changed since last connection.
+            // If so, treat this as a reconnect request rather than a disconnect.
+            const defaultProxy = await Storage.getDefaultProxy();
+            const currentProxyId = defaultProxy?.id ?? null;
+
+            if (currentProxyId !== this.lastConnectedProxyId) {
+                console.log('ProxyManager: Proxy changed (last:', this.lastConnectedProxyId, ', current:', currentProxyId, '), reconnecting');
+                await this.enable();
+            } else {
+                await this.disable();
+            }
         }
     }
 
@@ -281,6 +295,7 @@ class ProxyManagerService {
             const pacScript = this.cachedPacScript;
             await this.updateRoutingCache();
             const defaultProxy = await Storage.getDefaultProxy();
+            this.lastConnectedProxyId = defaultProxy?.id ?? null;
             return this.applyPacScript(pacScript, defaultProxy);
         }
 
@@ -308,12 +323,16 @@ class ProxyManagerService {
         }
 
         const pacScript = await this.generatePacScript();
-        
+
         this.cachedPacScript = pacScript;
         this.cachedConfigHash = configHash;
         console.log('ProxyManager: Cached new PAC script (hash:', configHash + ')');
-        
+
         await this.updateRoutingCache();
+
+        // Track the proxy ID used for this connection
+        this.lastConnectedProxyId = defaultProxy?.id ?? null;
+
         return this.applyPacScript(pacScript, defaultProxy);
     }
 
@@ -363,6 +382,7 @@ class ProxyManagerService {
                     Storage.setCurrentState(ProxyState.ERROR);
                 } else {
                     console.log('ProxyManager: Proxy disabled');
+                    this.lastConnectedProxyId = null;
                     Storage.setCurrentState(ProxyState.DISCONNECTED);
                 }
                 resolve();

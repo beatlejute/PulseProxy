@@ -6,8 +6,10 @@ import { createElementFromTemplate, setAttr } from './safe-dom';
 import { ModalHelper } from './modal-helper';
 import { checkProxyBeforeAdd } from './proxy-form-modal';
 import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
+import { fetchWithFallback } from '../shared/fetch-with-fallback';
 
-const PUBLIC_PROXIES_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/proxys.json';
+const PUBLIC_PROXIES_PRIMARY_URL = 'https://raw.githubusercontent.com/beatlejute/PulseProxy/refs/heads/main/sources/proxys.json';
+const PUBLIC_PROXIES_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/proxys.json';
 
 export function validateIpPortFormat(input: string): boolean {
     const ipPortRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}$/;
@@ -161,11 +163,12 @@ async function loadAndRenderPublicProxies(
 ): Promise<void> {
     try {
         if (!cachedProxies) {
-            const response = await fetch(`${PUBLIC_PROXIES_URL}?_t=${Date.now()}`);
-            if (!response.ok) {
-                throw new Error('Failed to load proxies');
-            }
-            const rawData: PublicProxiesResponse = await response.json();
+            const cacheBuster = `?_t=${Date.now()}`;
+            const urls = [
+                `${PUBLIC_PROXIES_PRIMARY_URL}${cacheBuster}`,
+                `${PUBLIC_PROXIES_FALLBACK_URL}${cacheBuster}`,
+            ];
+            const rawData = await fetchWithFallback<PublicProxiesResponse>(urls);
             cachedProxies = normalizeProxies(rawData);
         }
 

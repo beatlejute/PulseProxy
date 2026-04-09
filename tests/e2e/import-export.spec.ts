@@ -33,9 +33,25 @@ async function dismissModalIfPresent(popup: Page): Promise<void> {
 }
 
 async function openSettingsTab(popup: Page): Promise<void> {
+    // Wait for the popup DOM to be fully loaded and tabs initialized
+    await popup.waitForLoadState('domcontentloaded');
+    await popup.waitForTimeout(1000);
+
     const settingsTab = popup.locator('[data-tab="settings"]');
-    await expect(settingsTab).toBeVisible();
-    await settingsTab.click();
+    await expect(settingsTab).toBeVisible({ timeout: 10000 });
+
+    // Check if settings content is already visible (tab already open)
+    const settingsContent = popup.locator('#tab-settings.active');
+    const isActive = await settingsContent.isVisible().catch(() => false);
+    if (!isActive) {
+        // Force open the tab via JavaScript to avoid toggle behavior (clicking active tab closes it)
+        await popup.evaluate(() => {
+            const tab = document.querySelector('[data-tab="settings"]') as HTMLElement;
+            if (tab) tab.click();
+        });
+        await expect(settingsContent).toBeVisible({ timeout: 10000 });
+    }
+
     await popup.waitForTimeout(500);
     await popup.evaluate(() => { window.scrollTo(0, document.body.scrollHeight); });
     await popup.waitForTimeout(500);
@@ -161,6 +177,7 @@ test.describe('Import/Export — configuration (JSON)', () => {
 
         // Navigate to settings, verify buttons
         await openSettingsTab(page);
+        await page.locator('#export-button').waitFor({ state: 'visible', timeout: 10000 });
         await expect(page.locator('#export-button')).toBeVisible();
         await expect(page.locator('#import-button')).toBeVisible();
         await expect(page.locator('#import-file-input')).toHaveAttribute('accept', '.json');

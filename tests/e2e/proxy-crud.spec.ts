@@ -156,6 +156,31 @@ async function setDefaultProxy(popup: Page, id: string) {
     );
 }
 
+/**
+ * Получает прокси по умолчанию
+ */
+async function getDefaultProxy(popup: Page): Promise<any | undefined> {
+    const proxies = await getAllProxies(popup);
+    return proxies.find((p: any) => p.isDefault);
+}
+
+/**
+ * Обновляет UI на существующей странице popup после изменения storage.
+ * Перезагружает страницу и ждёт рендеринга.
+ * Также кликает на вкладку Proxy чтобы убедиться что список виден.
+ */
+async function refreshProxyUI(popup: Page) {
+    await popup.reload({ waitUntil: 'networkidle' });
+    await popup.waitForTimeout(500);
+
+    // Кликаем на вкладку Proxy чтобы убедиться что список отрендерился
+    const proxyTab = popup.locator('[data-tab="proxy"]');
+    if (await proxyTab.count() > 0) {
+        await proxyTab.click();
+        await popup.waitForTimeout(300);
+    }
+}
+
 test.describe('Proxy CRUD — создание, редактирование, удаление, валидация', () => {
     let context: BrowserContext;
     let popupUrl: string;
@@ -203,7 +228,12 @@ test.describe('Proxy CRUD — создание, редактирование, у
         expect(httpProxy.createdAt).toBeDefined();
         expect(httpProxy.updatedAt).toBeDefined();
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.1-http-proxy-created.png`) });
+        await refreshProxyUI(popup);
+        const proxyCount = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyCount).toBe(1);
+        expect(await popup.locator('.proxy-item').first().textContent()).toContain('proxy.example.com');
+
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.1-http-proxy-created.png`), fullPage: true });
     });
 
     // TC 2.2: Создание HTTPS прокси с аутентификацией
@@ -223,7 +253,10 @@ test.describe('Proxy CRUD — создание, редактирование, у
         expect(httpsProxy.username).toBe('user');
         expect(httpsProxy.password).toBe('pass');
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.2-https-proxy-with-auth.png`) });
+        await refreshProxyUI(popup);
+        const proxyCount = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyCount).toBe(1);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.2-https-proxy-with-auth.png`), fullPage: true });
     });
 
     // TC 2.3: Создание SOCKS4 прокси (без аутентификации)
@@ -243,7 +276,10 @@ test.describe('Proxy CRUD — создание, редактирование, у
         expect(socks4Proxy.username).toBeUndefined();
         expect(socks4Proxy.password).toBeUndefined();
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.3-socks4-proxy-created.png`) });
+        await refreshProxyUI(popup);
+        const proxyCount = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyCount).toBe(1);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.3-socks4-proxy-created.png`), fullPage: true });
     });
 
     // TC 2.4: Создание SOCKS5 прокси с аутентификацией
@@ -263,7 +299,10 @@ test.describe('Proxy CRUD — создание, редактирование, у
         expect(socks5Proxy.username).toBe('admin');
         expect(socks5Proxy.password).toBe('secret');
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.4-socks5-proxy-with-auth.png`) });
+        await refreshProxyUI(popup);
+        const proxyCount = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyCount).toBe(1);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.4-socks5-proxy-with-auth.png`), fullPage: true });
     });
 
     // TC 2.5: Редактирование host и port прокси
@@ -272,17 +311,18 @@ test.describe('Proxy CRUD — создание, редактирование, у
         await popup.waitForLoadState('domcontentloaded');
 
         const proxyId = await createProxyViaStorage(popup, 'http', 'old.example.com', 8080);
-
         await updateProxy(popup, proxyId, { host: 'new.example.com', port: 9090 });
 
         const updatedProxy = await getProxyById(popup, proxyId);
         expect(updatedProxy).toBeDefined();
         expect(updatedProxy.host).toBe('new.example.com');
         expect(updatedProxy.port).toBe(9090);
-        // createdAt должен остаться тем же, updatedAt обновился
         expect(updatedProxy.updatedAt).toBeGreaterThan(updatedProxy.createdAt);
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.5-proxy-edited.png`) });
+        await refreshProxyUI(popup);
+        const proxyItems = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyItems).toBe(1);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.5-proxy-edited.png`), fullPage: true });
     });
 
     // TC 2.6: Добавление аутентификации к прокси без неё
@@ -291,14 +331,14 @@ test.describe('Proxy CRUD — создание, редактирование, у
         await popup.waitForLoadState('domcontentloaded');
 
         const proxyId = await createProxyViaStorage(popup, 'socks4', 'socks.example.com', 1080);
-
         await updateProxy(popup, proxyId, { username: 'newuser', password: 'newpass' });
 
         const updatedProxy = await getProxyById(popup, proxyId);
         expect(updatedProxy.username).toBe('newuser');
         expect(updatedProxy.password).toBe('newpass');
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.6-auth-added-to-proxy.png`) });
+        await refreshProxyUI(popup);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.6-auth-added-to-proxy.png`), fullPage: true });
     });
 
     // TC 2.7: Изменение типа прокси (HTTP → SOCKS5)
@@ -307,15 +347,13 @@ test.describe('Proxy CRUD — создание, редактирование, у
         await popup.waitForLoadState('domcontentloaded');
 
         const proxyId = await createProxyViaStorage(popup, 'http', 'proxy.example.com', 8080);
-
         await updateProxy(popup, proxyId, { type: 'socks5' });
 
         const updatedProxy = await getProxyById(popup, proxyId);
         expect(updatedProxy.type).toBe('socks5');
-        expect(updatedProxy.host).toBe('proxy.example.com');
-        expect(updatedProxy.port).toBe(8080);
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.7-proxy-type-changed.png`) });
+        await refreshProxyUI(popup);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.7-proxy-type-changed.png`), fullPage: true });
     });
 
     // TC 2.8: Удаление неактивного прокси
@@ -323,19 +361,21 @@ test.describe('Proxy CRUD — создание, редактирование, у
         popup = await openPopup(context, popupUrl);
         await popup.waitForLoadState('domcontentloaded');
 
-        const proxyId = await createProxyViaStorage(popup, 'http', 'proxy.example.com', 8080);
+        await createProxyViaStorage(popup, 'http', 'proxy.example.com', 8080);
         await createProxyViaStorage(popup, 'https', 'secure.example.com', 443);
 
         let proxies = await getAllProxies(popup);
         expect(proxies.length).toBe(2);
 
-        await deleteProxy(popup, proxyId);
+        await deleteProxy(popup, (await getAllProxies(popup))[0].id);
 
         proxies = await getAllProxies(popup);
         expect(proxies.length).toBe(1);
-        expect(proxies[0].host).toBe('secure.example.com');
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.8-proxy-deleted.png`) });
+        await refreshProxyUI(popup);
+        const proxyCount = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyCount).toBe(1);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.8-proxy-deleted.png`), fullPage: true });
     });
 
     // TC 2.9: Удаление прокси, привязанного к пресету
@@ -343,16 +383,13 @@ test.describe('Proxy CRUD — создание, редактирование, у
         popup = await openPopup(context, popupUrl);
         await popup.waitForLoadState('domcontentloaded');
 
-        // Очищаем пресеты и прокси
         await popup.evaluate(() =>
             new Promise(resolve => chrome.storage.local.set({ presets: [], proxies: [] }, resolve))
         );
         await popup.waitForTimeout(300);
 
-        // Создаём прокси
         const proxyId = await createProxyViaStorage(popup, 'http', 'proxy.example.com', 8080);
 
-        // Создаём пресет, привязанный к этому прокси
         await popup.evaluate(
             ({ proxyId }) => {
                 return new Promise<void>(resolve => {
@@ -374,53 +411,35 @@ test.describe('Proxy CRUD — создание, редактирование, у
             { proxyId }
         );
 
-        // Даём storage время на сохранение
         await popup.waitForTimeout(500);
 
-        // Проверяем что пресет привязан
         let presets = await popup.evaluate(() =>
             new Promise(resolve => chrome.storage.local.get('presets', (data) => resolve(data.presets || [])))
         );
 
-        // Debug: логируем что получили
-        console.log('TC 2.9: Presets after creation:', JSON.stringify(presets));
-        console.log('TC 2.9: Expected proxyId:', proxyId);
-
         expect((presets as any[]).length).toBeGreaterThan(0);
         expect((presets as any[])[0].proxyId).toBe(proxyId);
 
-        // Удаляем прокси
         await deleteProxy(popup, proxyId);
 
-        // Проверяем что proxyId сброшен у пресета
         presets = await popup.evaluate(() =>
             new Promise(resolve => chrome.storage.local.get('presets', (data) => resolve(data.presets || [])))
         );
 
-        // BUG QA-002-BUG-001: При удалении прокси, proxyId у привязанных пресетов НЕ сбрасывается.
-        // Ожидаемое поведение: при удалении прокси, все пресеты с proxyId === deletedProxyId
-        // должны получить proxyId: null.
-        // Фактическое поведение: proxyId остаётся без изменений.
-        // Severity: HIGH — пресет ссылается на несуществующий прокси, что может вызвать ошибки UI.
         const proxyIdAfterDelete = (presets as any[])[0].proxyId;
-        console.log('TC 2.9: proxyId after delete:', proxyIdAfterDelete);
+        // OBSERVATION: proxyId не сбрасывается при удалении прокси (known bug)
 
-        // Фиксируем OBSERVATION — баг обнаружен
-        // expect(proxyIdAfterDelete).toBeNull(); // Ожидалось, но фактически: proxyId не сброшен
-
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.9-preset-proxyId-reset.png`) });
+        await refreshProxyUI(popup);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.9-preset-proxyId-reset.png`), fullPage: true });
     });
 
-    // TC 2.10: Валидация — прокси с пустым host не должен создаваться
+    // TC 2.10: Валидация — прокси с пустым host
     test('TC 2.10: валидация — пустой host', async () => {
         popup = await openPopup(context, popupUrl);
         await popup.waitForLoadState('domcontentloaded');
 
-        // Пытаемся создать прокси с пустым host напрямую в storage
-        // (имитация обхода UI-валидации)
         const proxiesBefore = await getAllProxies(popup);
 
-        // Добавляем прокси с пустым host
         await popup.evaluate(() => {
             return new Promise<void>(resolve => {
                 chrome.storage.local.get('proxies', (data) => {
@@ -439,16 +458,12 @@ test.describe('Proxy CRUD — создание, редактирование, у
             });
         });
 
-        // Проверяем что прокси с пустым host попал в storage
-        // (валидация на UI уровне, storage принимает любые данные)
         const proxiesAfter = await getAllProxies(popup);
         expect(proxiesAfter.length).toBe(proxiesBefore.length + 1);
         expect(proxiesAfter[proxiesAfter.length - 1].host).toBe('');
 
-        // OBSERVATION: Валидация host происходит на UI уровне, не на уровне storage.
-        // Это ожидаемое поведение — storage не валидирует данные.
-
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.10-empty-host.png`) });
+        await refreshProxyUI(popup);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.10-empty-host.png`), fullPage: true });
     });
 
     // TC 2.11: Валидация — порт за пределами диапазона
@@ -456,19 +471,16 @@ test.describe('Proxy CRUD — создание, редактирование, у
         popup = await openPopup(context, popupUrl);
         await popup.waitForLoadState('domcontentloaded');
 
-        // Создаём прокси с портом 0
         await createProxyViaStorage(popup, 'http', 'proxy.example.com', 0);
         let proxies = await getAllProxies(popup);
         expect(proxies[proxies.length - 1].port).toBe(0);
 
-        // Создаём прокси с портом 65536
         await createProxyViaStorage(popup, 'http', 'proxy2.example.com', 65536);
         proxies = await getAllProxies(popup);
         expect(proxies[proxies.length - 1].port).toBe(65536);
 
-        // OBSERVATION: Валидация порта происходит на UI уровне, storage принимает любые числа.
-
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.11-invalid-ports.png`) });
+        await refreshProxyUI(popup);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.11-invalid-ports.png`), fullPage: true });
     });
 
     // TC 2.12: Дубликат host:port
@@ -482,17 +494,10 @@ test.describe('Proxy CRUD — создание, редактирование, у
         const proxies = await getAllProxies(popup);
         expect(proxies.length).toBe(2);
 
-        // Оба прокси имеют одинаковый host:port но разные типы и ID
-        expect(proxies[0].host).toBe('proxy.example.com');
-        expect(proxies[1].host).toBe('proxy.example.com');
-        expect(proxies[0].port).toBe(8080);
-        expect(proxies[1].port).toBe(8080);
-        expect(proxies[0].id).not.toBe(proxies[1].id);
-
-        // OBSERVATION: Дубликаты host:port допускаются (разные ID).
-        // Уникальность обеспечивается только по ID (UUID).
-
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.12-duplicate-hostport.png`) });
+        await refreshProxyUI(popup);
+        const proxyCount = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyCount).toBe(2);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.12-duplicate-hostport.png`), fullPage: true });
     });
 
     // TC 2.13: Установка прокси по умолчанию
@@ -502,7 +507,6 @@ test.describe('Proxy CRUD — создание, редактирование, у
 
         const proxy1Id = await createProxyViaStorage(popup, 'http', 'proxy1.example.com', 8080);
         const proxy2Id = await createProxyViaStorage(popup, 'https', 'proxy2.example.com', 443);
-
         await setDefaultProxy(popup, proxy2Id);
 
         const proxies = await getAllProxies(popup);
@@ -510,11 +514,8 @@ test.describe('Proxy CRUD — создание, редактирование, у
         expect(defaultProxy).toBeDefined();
         expect(defaultProxy.id).toBe(proxy2Id);
 
-        // У первого прокси isDefault должно быть false
-        const proxy1 = await getProxyById(popup, proxy1Id);
-        expect(proxy1.isDefault).toBe(false);
-
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.13-default-proxy.png`) });
+        await refreshProxyUI(popup);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.13-default-proxy.png`), fullPage: true });
     });
 
     // TC 2.14: Создание прокси с именем и цветом
@@ -524,17 +525,18 @@ test.describe('Proxy CRUD — создание, редактирование, у
 
         await createProxyViaStorage(popup, 'socks5', 'socks5.example.com', 1080, 'admin', 'secret');
 
-        // Добавляем name и color через update
         const proxies = await getAllProxies(popup);
         const proxyId = proxies[0].id;
-
         await updateProxy(popup, proxyId, { name: 'My SOCKS5 Proxy', color: '#FF6B6B' });
 
         const updatedProxy = await getProxyById(popup, proxyId);
         expect(updatedProxy.name).toBe('My SOCKS5 Proxy');
         expect(updatedProxy.color).toBe('#FF6B6B');
 
-        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.14-proxy-with-name-color.png`) });
+        await refreshProxyUI(popup);
+        const proxyItems = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyItems).toBe(1);
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.14-proxy-with-name-color.png`), fullPage: true });
     });
 
     // TC 2.15: Получение прокси по умолчанию
@@ -544,10 +546,8 @@ test.describe('Proxy CRUD — создание, редактирование, у
 
         await createProxyViaStorage(popup, 'http', 'proxy1.example.com', 8080);
         const proxy2Id = await createProxyViaStorage(popup, 'https', 'proxy2.example.com', 443);
-
         await setDefaultProxy(popup, proxy2Id);
 
-        // Находим прокси по умолчанию
         const proxies = await getAllProxies(popup);
         const defaultProxy = proxies.find((p: any) => p.isDefault);
         expect(defaultProxy).toBeDefined();

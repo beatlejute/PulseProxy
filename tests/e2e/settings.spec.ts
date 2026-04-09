@@ -40,10 +40,19 @@ async function dismissModalIfPresent(popup: Page): Promise<void> {
 }
 
 async function openSettingsTab(popup: Page): Promise<void> {
+    // Wait for the popup to be fully loaded
+    await popup.waitForLoadState('domcontentloaded');
+    await popup.waitForTimeout(1000);
+
     const settingsTab = popup.locator('[data-tab="settings"]');
-    await expect(settingsTab).toBeVisible();
+    await expect(settingsTab).toBeVisible({ timeout: 10000 });
+
+    // Click to activate the settings tab
     await settingsTab.click();
-    await popup.waitForTimeout(500);
+
+    // Wait for the settings tab content to become visible (active class added)
+    const settingsContent = popup.locator('#tab-settings.active');
+    await expect(settingsContent).toBeVisible({ timeout: 10000 });
 }
 
 test.describe('Settings — popup configuration', () => {
@@ -132,13 +141,20 @@ test.describe('Settings — popup configuration', () => {
 
     test('sync: toggle persists in storage', async () => {
         const syncToggle = popup.locator('#sync-toggle');
-        await dismissModalIfPresent(popup);
+        await expect(syncToggle).toBeVisible();
 
         const initial = await syncToggle.isChecked();
 
-        // Toggle to opposite state
-        await syncToggle.click({ force: true });
+        // Toggle to opposite state — this triggers a confirmation dialog
+        await syncToggle.click();
         await popup.waitForTimeout(500);
+
+        // Handle the confirmation dialog
+        const confirmBtn = popup.locator('.modal-footer .btn-primary');
+        if (await confirmBtn.isVisible().catch(() => false)) {
+            await confirmBtn.click();
+            await popup.waitForTimeout(500);
+        }
 
         const afterFirstToggle = await popup.evaluate(() =>
             new Promise<{ syncEnabled?: boolean }>(resolve =>
@@ -148,7 +164,15 @@ test.describe('Settings — popup configuration', () => {
         expect(afterFirstToggle.syncEnabled).toBe(!initial);
 
         // Toggle back
-        await syncToggle.click({ force: true });
+        await syncToggle.click();
+        await popup.waitForTimeout(500);
+
+        // Handle the confirmation dialog again
+        const confirmBtn2 = popup.locator('.modal-footer .btn-primary');
+        if (await confirmBtn2.isVisible().catch(() => false)) {
+            await confirmBtn2.click();
+            await popup.waitForTimeout(500);
+        }
         await popup.waitForTimeout(500);
 
         const afterSecondToggle = await popup.evaluate(() =>
@@ -160,21 +184,29 @@ test.describe('Settings — popup configuration', () => {
     });
 
     test('proxy all sites: button toggles proxyByDefault in storage', async () => {
-        const button = popup.locator('#proxy-by-default-toggle');
-        await dismissModalIfPresent(popup);
+        // The proxy-by-default-toggle is in the Presets tab, not Settings
+        const presetsTab = popup.locator('[data-tab="presets"]');
+        await expect(presetsTab).toBeVisible({ timeout: 10000 });
+        await presetsTab.click();
+        await popup.waitForTimeout(500);
 
-        const initial = await popup.evaluate(() =>
+        const presetsContent = popup.locator('#tab-presets.active');
+        await expect(presetsContent).toBeVisible({ timeout: 10000 });
+
+        const button = popup.locator('#proxy-by-default-toggle');
+        await expect(button).toBeVisible();
+
+        const rawInitial = await popup.evaluate(() =>
             new Promise<boolean | undefined>(resolve =>
                 chrome.storage.local.get(['proxyByDefault'], (r: any) => resolve(r.proxyByDefault))
             )
         );
+        // Storage returns undefined by default, but getProxyByDefault() returns ?? true
+        const initial = rawInitial ?? true;
 
         // First click
-        await popup.evaluate(() => {
-            const btn = document.getElementById('proxy-by-default-toggle');
-            btn?.click();
-        });
-        await popup.waitForTimeout(500);
+        await button.click();
+        await popup.waitForTimeout(1000);
 
         const afterFirst = await popup.evaluate(() =>
             new Promise<boolean | undefined>(resolve =>
@@ -184,10 +216,7 @@ test.describe('Settings — popup configuration', () => {
         expect(afterFirst).toBe(!initial);
 
         // Second click — toggle back
-        await popup.evaluate(() => {
-            const btn = document.getElementById('proxy-by-default-toggle');
-            btn?.click();
-        });
+        await button.click();
         await popup.waitForTimeout(500);
 
         const afterSecond = await popup.evaluate(() =>
@@ -205,11 +234,15 @@ test.describe('Settings — popup configuration', () => {
 
     test('proxy check: toggle persists in storage', async () => {
         const proxyCheckToggle = popup.locator('#proxy-check-toggle');
-        await dismissModalIfPresent(popup);
+        await expect(proxyCheckToggle).toBeVisible();
 
         const initial = await proxyCheckToggle.isChecked();
 
-        await proxyCheckToggle.click({ force: true });
+        await popup.evaluate(() => {
+            const toggle = document.getElementById('proxy-check-toggle') as HTMLInputElement;
+            toggle.checked = !toggle.checked;
+            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+        });
         await popup.waitForTimeout(500);
 
         const afterFirst = await popup.evaluate(() =>
@@ -219,7 +252,11 @@ test.describe('Settings — popup configuration', () => {
         );
         expect(afterFirst.proxyCheckEnabled).toBe(!initial);
 
-        await proxyCheckToggle.click({ force: true });
+        await popup.evaluate(() => {
+            const toggle = document.getElementById('proxy-check-toggle') as HTMLInputElement;
+            toggle.checked = !toggle.checked;
+            toggle.dispatchEvent(new Event('change', { bubbles: true }));
+        });
         await popup.waitForTimeout(500);
 
         const afterSecond = await popup.evaluate(() =>

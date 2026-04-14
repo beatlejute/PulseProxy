@@ -528,7 +528,7 @@
   "welcomeStep3Desc": { "message": "Click the shield button to enable the proxy" },
   "welcomeGetStarted": { "message": "Get Started" },
   "labelTheme": {
-    "message": "Theme",
-    "description": "Label for theme toggle"
+    "message": "Dark theme",
+    "description": "Label for dark theme toggle checkbox"
   }
 }

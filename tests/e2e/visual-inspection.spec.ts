@@ -56,6 +56,15 @@ async function setThemeViaStorage(popup: Page, theme: 'light' | 'dark'): Promise
     await popup.reload();
     await popup.waitForLoadState('domcontentloaded');
     await popup.waitForTimeout(1000);
+    // Wait for i18n applyTranslations() to complete — Storage.init() → I18n.init() → applyTranslations()
+    // Guard: element must exist AND have non-empty, non-fallback text.
+    // Without null-guard: label===null → undefined !== 'Theme' → resolves early (false positive).
+    await popup.waitForFunction(() => {
+        const label = document.querySelector('[data-i18n="labelTheme"]');
+        if (!label) return false;
+        const text = label.textContent?.trim();
+        return !!text && text !== 'Theme';
+    }, { timeout: 10000 });
     await dismissModalIfPresent(popup);
 }
 
@@ -415,16 +424,115 @@ test.describe('Visual UI Inspection — all tabs, themes, modals', () => {
         const themeToggle = popup.locator('#theme-toggle');
         await expect(themeToggle).toBeVisible({ timeout: 5000 });
 
-        // Проверяем что это checkbox с label
+        // DOM-проверка: это checkbox с label
         const type = await themeToggle.getAttribute('type');
         expect(type).toBe('checkbox');
 
         const themeLabel = popup.locator('label[for="theme-toggle"]');
         await expect(themeLabel).toBeVisible({ timeout: 5000 });
         const labelText = await themeLabel.textContent();
-        expect(labelText?.length).toBeGreaterThan(0);
+        expect(labelText?.trim()).toBe('Dark theme');
+
+        // CSS-проверка: точные значения как у sync-toggle / proxy-check-toggle (style.css строки 327-332, 346-350)
+        const checkboxStyles = await themeToggle.evaluate((el) => {
+            const style = window.getComputedStyle(el);
+            // Резолвим --action-color в RGB для сравнения с accentColor
+            const tempEl = document.createElement('span');
+            document.body.appendChild(tempEl);
+            tempEl.style.color = 'var(--action-color)';
+            const actionColorResolved = window.getComputedStyle(tempEl).color;
+            document.body.removeChild(tempEl);
+            return {
+                width: style.width,
+                height: style.height,
+                accentColor: style.accentColor,
+                cursor: style.cursor,
+                actionColorResolved,
+            };
+        });
+        expect(checkboxStyles.width).toBe('14px');
+        expect(checkboxStyles.height).toBe('14px');
+        expect(checkboxStyles.cursor).toBe('pointer');
+        // accent-color должен соответствовать --action-color
+        expect(checkboxStyles.accentColor).toBe(checkboxStyles.actionColorResolved);
+
+        // Контейнер: flex-direction: row (label рядом, не снизу)
+        const containerFlexDir = await popup.locator('.setting-group.theme-toggle').evaluate((el) => {
+            return window.getComputedStyle(el).flexDirection;
+        });
+        expect(containerFlexDir).toBe('row');
+
+        // Горизонтальное выравнивание: центры checkbox и label на одной оси
+        const toggleBBox = await themeToggle.boundingBox();
+        const labelBBox = await themeLabel.boundingBox();
+        expect(toggleBBox).not.toBeNull();
+        expect(labelBBox).not.toBeNull();
+        const yDiff = Math.abs(
+            (toggleBBox!.y + toggleBBox!.height / 2) - (labelBBox!.y + labelBBox!.height / 2)
+        );
+        expect(yDiff).toBeLessThan(12);
 
         await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-9.10-theme-toggle-light.png`) });
+    });
+
+    test('TC 9.10-dark: Settings tab — переключатель темы читаем в dark-теме', async () => {
+        popup = await openPopup(context, popupUrl);
+        await waitForPopupReady(popup);
+        await dismissModalIfPresent(popup);
+        await setThemeViaStorage(popup, 'dark');
+        await switchTab(popup, 'settings');
+
+        const themeToggle = popup.locator('#theme-toggle');
+        await expect(themeToggle).toBeVisible({ timeout: 5000 });
+
+        // Visibility: элемент присутствует в DOM и не скрыт
+        const toggleBBox = await themeToggle.boundingBox();
+        expect(toggleBBox).not.toBeNull();
+        expect(toggleBBox!.width).toBeGreaterThan(0);
+        expect(toggleBBox!.height).toBeGreaterThan(0);
+
+        // CSS-проверка: те же значения что в light-теме (width/height/cursor)
+        const checkboxStyles = await themeToggle.evaluate((el) => {
+            const style = window.getComputedStyle(el);
+            const tempEl = document.createElement('span');
+            document.body.appendChild(tempEl);
+            tempEl.style.color = 'var(--action-color)';
+            const actionColorResolved = window.getComputedStyle(tempEl).color;
+            document.body.removeChild(tempEl);
+            return {
+                width: style.width,
+                height: style.height,
+                accentColor: style.accentColor,
+                cursor: style.cursor,
+                actionColorResolved,
+            };
+        });
+        expect(checkboxStyles.width).toBe('14px');
+        expect(checkboxStyles.height).toBe('14px');
+        expect(checkboxStyles.cursor).toBe('pointer');
+        // accent-color соответствует --action-color (тема применена корректно)
+        expect(checkboxStyles.accentColor).toBe(checkboxStyles.actionColorResolved);
+
+        // Contrast: accent-color чекбокса отличается от фона контейнера (читаемость)
+        const contrastCheck = await popup.locator('.setting-group.theme-toggle').evaluate((container) => {
+            const containerBg = window.getComputedStyle(container).backgroundColor;
+            const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+            const checkboxAccent = window.getComputedStyle(checkbox).accentColor;
+            return { containerBg, checkboxAccent };
+        });
+        expect(contrastCheck.checkboxAccent).not.toBe(contrastCheck.containerBg);
+
+        // Label видна рядом с чекбоксом
+        const themeLabel = popup.locator('label[for="theme-toggle"]');
+        await expect(themeLabel).toBeVisible({ timeout: 5000 });
+
+        // Контейнер: flex-direction: row (как в light)
+        const containerFlexDir = await popup.locator('.setting-group.theme-toggle').evaluate((el) => {
+            return window.getComputedStyle(el).flexDirection;
+        });
+        expect(containerFlexDir).toBe('row');
+
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-9.10-dark-theme-toggle-dark.png`) });
     });
 
     test('TC 9.11: Settings tab — dropdown языка консистентен (light)', async () => {

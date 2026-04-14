@@ -528,7 +528,7 @@
   "welcomeStep3Desc": { "message": "Нажмите кнопку-щит для включения прокси" },
   "welcomeGetStarted": { "message": "Начать" },
   "labelTheme": {
-    "message": "Тема",
-    "description": "Label for theme toggle"
+    "message": "Тёмная тема",
+    "description": "Label for dark theme toggle checkbox"
   }
 }

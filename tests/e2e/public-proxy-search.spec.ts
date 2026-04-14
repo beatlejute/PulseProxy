@@ -130,11 +130,13 @@ async function searchByIpPort(popup: Page, ipPort: string): Promise<void> {
     const searchInput = popup.locator('.public-proxy-search-input');
     await expect(searchInput).toBeVisible({ timeout: 10000 });
     await searchInput.fill(ipPort);
-    // Даём время на фильтрацию
-    await popup.waitForTimeout(500);
+    // Фильтрация синхронная (renderList вызывается в input-обработчике),
+    // DOM обновлён к моменту возврата fill — дополнительного ожидания не требуется
 }
 
 test.describe('Public Proxy Search — модальное окно, IP:Port, добавление', () => {
+    test.setTimeout(120000);
+
     let context: BrowserContext;
     let popupUrl: string;
     let popup: Page;

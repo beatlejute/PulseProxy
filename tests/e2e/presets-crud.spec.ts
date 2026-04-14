@@ -36,11 +36,18 @@ function ensureArtifactsDir() {
 }
 
 /**
- * Очищает все пресеты и прокси из storage перед тестом
+ * Очищает все пресеты, прокси и SW-состояние из storage
  */
 async function clearStorage(popup: Page) {
     await popup.evaluate(() =>
-        new Promise(resolve => chrome.storage.local.set({ presets: [], proxies: [] }, resolve))
+        new Promise(resolve => chrome.storage.local.set({
+            presets: [], proxies: [],
+            targetState: 'disconnected', currentState: 'disconnected',
+            proxyByDefault: false,
+        }, resolve))
+    );
+    await popup.evaluate(() =>
+        new Promise<void>(resolve => chrome.storage.local.remove(['errorProxy'], () => resolve()))
     );
 }
 
@@ -296,6 +303,17 @@ test.describe('Presets CRUD — создание, редактирование, 
         await context?.close();
     });
 
+    test.beforeEach(async () => {
+        // Сбрасываем SW-состояние перед каждым тестом: очищаем storage включая targetState/currentState.
+        // Это предотвращает порядко-зависимые падения в полном сьюте.
+        if (context) {
+            const resetPopup = await openPopup(context, popupUrl);
+            await clearStorage(resetPopup);
+            await resetPopup.waitForTimeout(300);
+            await resetPopup.close();
+        }
+    });
+
     test.afterEach(async () => {
         await popup?.close();
         // Очищаем storage после каждого теста
@@ -506,7 +524,10 @@ test.describe('Presets CRUD — создание, редактирование, 
         expect(presetsReloaded[1].name).toBe('Preset A');
         expect(presetsReloaded[2].name).toBe('Preset B');
 
-        await newPopup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-4.8-drag-n-drop-reorder.png`) }).catch(() => {});
+        // Переключаемся на вкладку Presets чтобы скриншот показывал список
+        await switchToPresetsTab(newPopup);
+        await waitForPresetsRender(newPopup);
+
         await saveScreenshot(newPopup, `${ARTIFACT_PREFIX}-4.8-drag-n-drop-reorder.png`);
         await newPopup.close();
     });

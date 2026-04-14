@@ -528,7 +528,7 @@
   "welcomeStep3Desc": { "message": "Klicken Sie auf die Schild-Schaltfläche, um den Proxy zu aktivieren" },
   "welcomeGetStarted": { "message": "Loslegen" },
   "labelTheme": {
-    "message": "Thema",
-    "description": "Label for theme toggle"
+    "message": "Dunkles Design",
+    "description": "Label for dark theme toggle checkbox"
   }
 }

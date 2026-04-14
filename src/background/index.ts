@@ -74,6 +74,10 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
         case 'toggleProxy':
             ProxyManager.toggle();
             break;
+        case 'resetProxyCache':
+            ProxyManager.resetCache();
+            sendResponse({ success: true });
+            break;
         case 'updateIcon':
             if (message.iconPath) {
                 IconManager.setIcon(message.iconPath);
@@ -82,6 +86,21 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
         case 'checkProxy':
             if (message.proxy) {
                 checkProxy(message.proxy).then(sendResponse).catch(() => sendResponse('error'));
+                return true;
+            }
+            break;
+        case 'deleteProxy':
+            if (message.proxyId) {
+                console.log('Background: Deleting proxy via Storage API:', message.proxyId);
+                Storage.deleteProxy(message.proxyId)
+                    .then(() => {
+                        console.log('Background: Proxy deleted successfully');
+                        sendResponse({ success: true });
+                    })
+                    .catch((e: unknown) => {
+                        console.error('Background: Error deleting proxy:', e);
+                        sendResponse({ success: false, error: String(e) });
+                    });
                 return true;
             }
             break;

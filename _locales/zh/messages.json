@@ -528,7 +528,7 @@
   "welcomeStep3Desc": { "message": "点击盾牌按钮启用代理" },
   "welcomeGetStarted": { "message": "开始使用" },
   "labelTheme": {
-    "message": "主题",
-    "description": "Label for theme toggle"
+    "message": "深色主题",
+    "description": "Label for dark theme toggle checkbox"
   }
 }

@@ -528,7 +528,7 @@
   "welcomeStep3Desc": { "message": "Cliquez sur le bouton bouclier pour activer le proxy" },
   "welcomeGetStarted": { "message": "Commencer" },
   "labelTheme": {
-    "message": "Thème",
-    "description": "Label for theme toggle"
+    "message": "Thème sombre",
+    "description": "Label for dark theme toggle checkbox"
   }
 }

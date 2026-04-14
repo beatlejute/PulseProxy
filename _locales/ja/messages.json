@@ -528,7 +528,7 @@
   "welcomeStep3Desc": { "message": "シールドボタンをクリックしてプロキシを有効にします" },
   "welcomeGetStarted": { "message": "始める" },
   "labelTheme": {
-    "message": "テーマ",
-    "description": "Label for theme toggle"
+    "message": "ダークテーマ",
+    "description": "Label for dark theme toggle checkbox"
   }
 }

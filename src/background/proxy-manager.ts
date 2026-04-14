@@ -13,22 +13,27 @@ import { trackEvent } from '../shared/analytics';
  * @returns true if valid, false otherwise
  */
 export function validateProxyHost(host: string): boolean {
+    console.log('ProxyManager: validateProxyHost called with host:', JSON.stringify(host));
     if (!host || typeof host !== 'string') {
+        console.log('ProxyManager: validateProxyHost false — host missing or not string');
         return false;
     }
 
     // Reject if longer than max domain length (253 chars)
     if (host.length > 253) {
+        console.log('ProxyManager: validateProxyHost false — host too long');
         return false;
     }
 
     // Reject obvious XSS injection patterns
     if (/[<>"'`]/.test(host) || /script|alert|onerror|onclick|onload/i.test(host)) {
+        console.log('ProxyManager: validateProxyHost false — XSS pattern detected');
         return false;
     }
 
     // Reject spaces and @ symbols
     if (/[\s@]/.test(host)) {
+        console.log('ProxyManager: validateProxyHost false — space or @ symbol detected');
         return false;
     }
 
@@ -110,6 +115,12 @@ class ProxyManagerService {
     // PAC caching
     private cachedPacScript: string | null = null;
     private cachedConfigHash: string | null = null;
+
+    // Generation counter: incremented on every applyPacScript call, disable(), and resetCache().
+    // The applyPacScript callback compares its captured generation against the current value;
+    // if they differ, the callback is stale (superseded by a later enable/disable) and is ignored.
+    // This prevents stale applyPacScript callbacks from overwriting a newer currentState.
+    private enableGeneration = 0;
 
     // Track the defaultProxy ID that was used for the last enable() call
     // to detect proxy switches and reconnect instead of disconnect
@@ -195,11 +206,14 @@ class ProxyManagerService {
 
     private computeConfigHash(presets: any[], proxies: any[], proxyByDefault: boolean): string {
         const config = JSON.stringify({ presets, proxies, proxyByDefault });
+        console.log('ProxyManager: computeConfigHash input:', config);
         let hash = 5381;
         for (let i = 0; i < config.length; i++) {
             hash = ((hash << 5) + hash) + config.charCodeAt(i);
         }
-        return (hash >>> 0).toString(36);
+        const result = (hash >>> 0).toString(36);
+        console.log('ProxyManager: computeConfigHash result:', result);
+        return result;
     }
 
     private registerAuthHandler(): void {
@@ -260,22 +274,26 @@ class ProxyManagerService {
 
     async toggle(): Promise<void> {
         const targetState = await Storage.getTargetState();
-        console.log('ProxyManager: Toggling, targetState =', targetState);
+        const currentState = await Storage.getCurrentState();
+        const defaultProxy = await Storage.getDefaultProxy();
+        const currentProxyId = defaultProxy?.id ?? null;
+        console.log('ProxyManager: Toggling, targetState =', targetState, 'currentState =', currentState, 'currentProxyId =', currentProxyId, 'lastConnectedProxyId =', this.lastConnectedProxyId);
 
-        if (targetState === ProxyState.CONNECTED) {
+        // When currentState is ERROR and the default proxy has changed since the last
+        // connection attempt, check targetState to determine action.
+        // This fixes DEF-QA059-3: ERROR+changedId branch was ignoring targetState
+        // and always calling enable(), causing infinite reconnect loop when user
+        // wants to disconnect.
+        if (currentState === ProxyState.ERROR && currentProxyId !== this.lastConnectedProxyId) {
+            if (targetState === ProxyState.DISCONNECTED) {
+                await this.disable();
+            } else {
+                await this.enable();
+            }
+        } else if (targetState === ProxyState.CONNECTED) {
             await this.enable();
         } else {
-            // Check if the default proxy has changed since last connection.
-            // If so, treat this as a reconnect request rather than a disconnect.
-            const defaultProxy = await Storage.getDefaultProxy();
-            const currentProxyId = defaultProxy?.id ?? null;
-
-            if (currentProxyId !== this.lastConnectedProxyId) {
-                console.log('ProxyManager: Proxy changed (last:', this.lastConnectedProxyId, ', current:', currentProxyId, '), reconnecting');
-                await this.enable();
-            } else {
-                await this.disable();
-            }
+            await this.disable();
         }
     }
 
@@ -290,36 +308,43 @@ class ProxyManagerService {
         ]);
 
         const configHash = this.computeConfigHash(activePresets, proxies, proxyByDefault);
+
+        // Get defaultProxy early to validate before cache check
+        const defaultProxy = await Storage.getDefaultProxy();
+
+        // Validate proxy host and port BEFORE any caching or applying logic
+        // This prevents cache-hit from bypassing validation (DEF-QA059-1)
+        if (defaultProxy) {
+            console.log('ProxyManager: enable() validating defaultProxy:', defaultProxy.host, defaultProxy.port);
+            if (!validateProxyHost(defaultProxy.host)) {
+                const error = new Error(`Invalid proxy host: ${defaultProxy.host}`);
+                console.error('ProxyManager:', error.message);
+                await Storage.setCurrentState(ProxyState.ERROR);
+                throw error;
+            }
+
+            if (!validateProxyPort(defaultProxy.port)) {
+                const error = new Error(`Invalid proxy port: ${defaultProxy.port}`);
+                console.error('ProxyManager:', error.message);
+                await Storage.setCurrentState(ProxyState.ERROR);
+                throw error;
+            }
+        }
+
+        console.log('ProxyManager: enable() cache check — configHash:', configHash, 'cachedConfigHash:', this.cachedConfigHash, 'cachedPacScript exists:', !!this.cachedPacScript);
         if (configHash === this.cachedConfigHash && this.cachedPacScript) {
             console.log('ProxyManager: Using cached PAC script (hash:', configHash + ')');
             const pacScript = this.cachedPacScript;
             await this.updateRoutingCache();
-            const defaultProxy = await Storage.getDefaultProxy();
             this.lastConnectedProxyId = defaultProxy?.id ?? null;
-            return this.applyPacScript(pacScript, defaultProxy);
+            const gen = ++this.enableGeneration;
+            return this.applyPacScript(pacScript, defaultProxy, gen);
         }
-
-        const defaultProxy = await Storage.getDefaultProxy();
 
         if (!defaultProxy) {
-            console.error('ProxyManager: No proxy configured');
-            await Storage.setCurrentState(ProxyState.ERROR);
+            console.log('ProxyManager: No proxy configured');
+            await Storage.setCurrentState(ProxyState.DISCONNECTED);
             return;
-        }
-
-        // Validate proxy host and port before generating PAC script
-        if (!validateProxyHost(defaultProxy.host)) {
-            const error = new Error(`Invalid proxy host: ${defaultProxy.host}`);
-            console.error('ProxyManager:', error.message);
-            await Storage.setCurrentState(ProxyState.ERROR);
-            throw error;
-        }
-
-        if (!validateProxyPort(defaultProxy.port)) {
-            const error = new Error(`Invalid proxy port: ${defaultProxy.port}`);
-            console.error('ProxyManager:', error.message);
-            await Storage.setCurrentState(ProxyState.ERROR);
-            throw error;
         }
 
         const pacScript = await this.generatePacScript();
@@ -333,10 +358,11 @@ class ProxyManagerService {
         // Track the proxy ID used for this connection
         this.lastConnectedProxyId = defaultProxy?.id ?? null;
 
-        return this.applyPacScript(pacScript, defaultProxy);
+        const gen = ++this.enableGeneration;
+        return this.applyPacScript(pacScript, defaultProxy, gen);
     }
 
-    private async applyPacScript(pacScript: string, defaultProxy?: ProxyServer): Promise<void> {
+    private async applyPacScript(pacScript: string, defaultProxy?: ProxyServer, gen = 0): Promise<void> {
         return new Promise((resolve) => {
             chrome.proxy.settings.set(
                 {
@@ -344,6 +370,14 @@ class ProxyManagerService {
                     scope: 'regular',
                 },
                 async () => {
+                    // Stale-callback guard: if enableGeneration changed since this applyPacScript
+                    // was called (e.g., disable() or resetCache() ran in the meantime), ignore
+                    // the callback so it cannot overwrite the newer currentState.
+                    if (gen !== this.enableGeneration) {
+                        console.log('ProxyManager: Stale applyPacScript callback ignored (gen', gen, '!== current', this.enableGeneration + ')');
+                        resolve();
+                        return;
+                    }
                     if (chrome.runtime.lastError) {
                         console.error('ProxyManager: Error setting proxy:', chrome.runtime.lastError.message);
                         Storage.setCurrentState(ProxyState.ERROR);
@@ -374,6 +408,14 @@ class ProxyManagerService {
 
     async disable(): Promise<void> {
         console.log('ProxyManager: Disabling proxy...');
+        // Invalidate any in-flight applyPacScript callbacks so they cannot
+        // overwrite the 'disconnected' state we are about to set.
+        ++this.enableGeneration;
+
+        // Clear routing cache so getProxyForUrl() returns null while proxy is disabled.
+        // This prevents the auto-recovery handler (webRequest.onCompleted) from
+        // falsely switching currentState to 'connected' when no proxy is active.
+        this.clearRoutingCache();
 
         return new Promise((resolve) => {
             chrome.proxy.settings.clear({ scope: 'regular' }, () => {
@@ -388,6 +430,15 @@ class ProxyManagerService {
                 resolve();
             });
         });
+    }
+
+    private clearRoutingCache(): void {
+        this.proxyByDefault = false;
+        this.defaultProxyLabel = '';
+        this.defaultProxyServer = null;
+        this.ignoreDomains = new Set();
+        this.domainProxyMap = new Map();
+        this.domainProxyServerMap = new Map();
     }
 
     private async updateRoutingCache(): Promise<void> {
@@ -550,6 +601,17 @@ class ProxyManagerService {
                 return fallbackProxy;
             }
         `;
+    }
+
+    resetCache(): void {
+        console.log('ProxyManager: resetCache called, clearing cachedConfigHash and cachedPacScript');
+        this.cachedConfigHash = null;
+        this.cachedPacScript = null;
+        this.lastConnectedProxyId = null;
+        // Invalidate any in-flight applyPacScript callbacks.
+        ++this.enableGeneration;
+        // Clear routing cache to prevent stale auto-recovery.
+        this.clearRoutingCache();
     }
 }
 

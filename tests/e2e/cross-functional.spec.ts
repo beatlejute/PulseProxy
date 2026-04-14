@@ -61,7 +61,15 @@ async function clearAllStorage(popup: Page) {
         new Promise(resolve => chrome.storage.local.set({
             presets: [], proxies: [], proxyByDefault: false,
             theme: 'light', language: 'en', syncEnabled: false,
+            targetState: 'disconnected', currentState: 'disconnected',
         }, resolve))
+    );
+    await popup.evaluate(() =>
+        new Promise<void>(resolve => chrome.storage.local.remove(['errorProxy'], () => resolve()))
+    );
+    // Сброс кэша ProxyManager для полной изоляции тестов
+    await popup.evaluate(() =>
+        new Promise(resolve => chrome.runtime.sendMessage({ action: 'resetProxyCache' }, resolve))
     );
 }
 
@@ -126,6 +134,15 @@ test.describe('Cross-functional — proxy + presets + settings integration', () 
 
     test.afterAll(async () => {
         await context?.close();
+    });
+
+    test.beforeEach(async () => {
+        // Сбрасываем SW-состояние перед каждым тестом: очищаем storage включая targetState/currentState.
+        // Это предотвращает порядко-зависимые падения в полном сьюте.
+        const resetPopup = await openPopup(context, popupUrl);
+        await clearAllStorage(resetPopup);
+        await resetPopup.waitForTimeout(300);
+        await resetPopup.close();
     });
 
     test.afterEach(async () => {
@@ -280,15 +297,24 @@ test.describe('Cross-functional — proxy + presets + settings integration', () 
         );
         const presetBefore = (presetsBefore as any[]).find(p => p.id === presetId);
         expect(presetBefore.proxyId).toBe(proxyId);
+        expect(presetBefore.name).toBe('Orphan Test Preset');
 
-        // Delete the proxy
+        // Delete the proxy using the Storage API (triggers cascade cleanup)
+        // This simulates the real UI behavior where Storage.deleteProxy() is called
         await popup.evaluate(
             ({ proxyId }) => {
-                return new Promise<void>(resolve => {
-                    chrome.storage.local.get('proxies', (data) => {
-                        const proxies = (data.proxies || []).filter((p: any) => p.id !== proxyId);
-                        chrome.storage.local.set({ proxies }, () => resolve());
-                    });
+                return new Promise<void>((resolve, reject) => {
+                    // Access the Storage module through the extension's background page
+                    chrome.runtime.sendMessage(
+                        { action: 'deleteProxy', proxyId },
+                        (response) => {
+                            if (response?.success) {
+                                resolve();
+                            } else {
+                                reject(new Error('Failed to delete proxy via Storage API'));
+                            }
+                        }
+                    );
                 });
             },
             { proxyId }
@@ -302,17 +328,18 @@ test.describe('Cross-functional — proxy + presets + settings integration', () 
         const deletedProxy = (proxiesAfter as any[]).find(p => p.id === proxyId);
         expect(deletedProxy).toBeUndefined();
 
-        // Verify preset still exists (should handle orphaned proxyId)
+        // CRITICAL: Verify preset still exists with orphaned proxyId set to null
+        // This is the main assertion — preset should NOT disappear
         const presetsAfter = await popup.evaluate(() =>
             new Promise(resolve => chrome.storage.local.get('presets', (data) => resolve(data.presets || [])))
         );
         const presetAfter = (presetsAfter as any[]).find(p => p.id === presetId);
         expect(presetAfter).toBeDefined();
         expect(presetAfter.name).toBe('Orphan Test Preset');
-        // The preset may still reference the deleted proxyId — this is the known bug QA-002-BUG-001.
-        // The key assertion is that the preset does NOT crash or disappear.
+        // After cascade cleanup, proxyId should be null (orphaned reference cleared)
+        expect(presetAfter.proxyId).toBeNull();
 
-        // Navigate to presets tab to ensure UI doesn't crash
+        // Navigate to presets tab to ensure UI doesn't crash with orphaned proxyId
         await openPresetsTab(popup);
         await popup.waitForTimeout(500);
 

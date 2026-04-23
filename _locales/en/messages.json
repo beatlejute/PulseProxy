@@ -530,5 +530,9 @@
   "labelTheme": {
     "message": "Dark theme",
     "description": "Label for dark theme toggle checkbox"
+  },
+  "selectDefaultProxyTitle": {
+    "message": "Select default proxy",
+    "description": "Title for select default proxy modal"
   }
 }

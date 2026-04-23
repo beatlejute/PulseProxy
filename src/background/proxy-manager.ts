@@ -101,6 +101,7 @@ export function validateProxyPort(port: number): boolean {
 class ProxyManagerService {
     private domains: string[] = [];
     private credentials: Map<string, { username: string; password: string }> = new Map();
+    private temporaryCredentials: Map<string, { username: string; password: string }> = new Map();
     private authHandlerRegistered = false;
 
     // PAC routing state (mirrors the active PAC script logic)
@@ -240,11 +241,15 @@ class ProxyManagerService {
     private handleAuthRequired(
         details: any
     ): any {
-        // Ищем credentials для данного прокси
         const challenger = details.challenger;
         if (challenger) {
             const key = `${challenger.host}:${challenger.port}`;
             console.log('ProxyManager: Auth required for', key, 'isProxy:', details.isProxy, 'available keys:', Array.from(this.credentials.keys()));
+            const tempCreds = this.temporaryCredentials.get(key);
+            if (tempCreds) {
+                console.log('ProxyManager: Providing auth from temporaryCredentials for', key);
+                return { authCredentials: { username: tempCreds.username, password: tempCreds.password } };
+            }
             const creds = this.credentials.get(key);
             if (creds) {
                 console.log('ProxyManager: Providing auth for', key);
@@ -252,8 +257,15 @@ class ProxyManagerService {
             }
         }
 
-        // Отменяем запрос если нет credentials — не показывать системный диалог
         return { cancel: true };
+    }
+
+    addTemporaryCredentials(host: string, port: number, username: string, password: string): void {
+        this.temporaryCredentials.set(`${host}:${port}`, { username, password });
+    }
+
+    removeTemporaryCredentials(host: string, port: number): void {
+        this.temporaryCredentials.delete(`${host}:${port}`);
     }
 
     private async loadCredentials(): Promise<void> {
@@ -483,8 +495,12 @@ class ProxyManagerService {
     }
 
     // Форматирование прокси для PAC-скрипта
-    private formatProxyForPac(proxy: ProxyServer): string {
+    private formatProxyForPac(proxy: Partial<ProxyServer>): string {
         const { type, host, port } = proxy;
+
+        if (!type || !host || typeof port !== 'number') {
+            throw new Error(`Invalid proxy: missing required fields`);
+        }
 
         // Validate host and port before formatting
         if (!validateProxyHost(host)) {
@@ -508,12 +524,25 @@ class ProxyManagerService {
         }
     }
 
-    private async generatePacScript(): Promise<string> {
+    /**
+     * Generates PAC script for proxy configuration.
+     *
+     * @param options - Optional configuration
+     * @param options.testRule - Optional test rule to inject as the first line inside FindProxyForURL.
+     *                         Useful for testing connectivity via a specific proxy.
+     * @returns PAC script as string
+     *
+     * @invariant The cache `cachedPacScript` stores PAC WITHOUT testRule — testRule is only used
+     *            for one-off connectivity tests and is never persisted in the cached script.
+     */
+    private async generatePacScript(options?: { testRule?: string }): Promise<string> {
         const activePresets = await Storage.getActivePresets();
         const proxies = await Storage.getProxies();
         const defaultProxy = proxies.find(p => p.isDefault);
         const proxyByDefault = await Storage.getProxyByDefault();
         
+        const testRuleInjection = options?.testRule ?? '';
+
         // Создаём маппинг домен -> прокси
         const domainProxyMap: { [domain: string]: string } = {};
         
@@ -582,6 +611,7 @@ class ProxyManagerService {
             }
 
             function FindProxyForURL(url, host) {
+                ${testRuleInjection}
                 // Check ignore list first (always DIRECT)
                 for (var i = 0; i < ignoreList.length; i++) {
                     if (matchDomain(host, ignoreList[i])) {
@@ -612,6 +642,49 @@ class ProxyManagerService {
         ++this.enableGeneration;
         // Clear routing cache to prevent stale auto-recovery.
         this.clearRoutingCache();
+    }
+
+    /**
+     * Generates a one-off PAC script for connectivity testing.
+     *
+     * @param testProxy - Proxy configuration to test
+     * @param testId - Unique test identifier for URL matching
+     * @returns PAC script as string
+     *
+     * @async
+     * @contract When `isConnected === true` and `generatePacScript` throws, the promise rejects.
+     *          In `checkProxy`, this rejection is caught and converted to return value `'error'`.
+     */
+    async generateCheckPacScript(testProxy: Partial<ProxyServer>, testId: string): Promise<string> {
+        const proxyString = this.formatProxyForPac(testProxy);
+        const safeTestId = testId.replace(/[^a-zA-Z0-9-]/g, '');
+        const testRule = `if (host === "example.com" && url.indexOf("_pulse_check=${safeTestId}") !== -1) return ${JSON.stringify(proxyString)};`;
+
+        if (this.isConnected) {
+            return this.generatePacScript({ testRule });
+        }
+
+        return `
+            function FindProxyForURL(url, host) {
+                ${testRule}
+                return "DIRECT";
+            }
+        `;
+    }
+
+    async restoreAfterCheck(wasConnected: boolean): Promise<void> {
+        if (wasConnected) {
+            if (this.cachedPacScript) {
+                const gen = ++this.enableGeneration;
+                await this.applyPacScript(this.cachedPacScript, this.defaultProxyServer ?? undefined, gen);
+            }
+        } else {
+            await this.disable();
+        }
+    }
+
+    get isConnected(): boolean {
+        return this.cachedPacScript !== null;
     }
 }
 

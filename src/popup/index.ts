@@ -9,6 +9,7 @@ import { RemoteConfig } from '../shared/remote-config';
 import { ProxyState, StorageKeys, DOMIds } from '../shared/constants';
 import { ProxyStateType, StorageChanges } from '../types';
 import { showConfirm } from './dialog';
+import { showSelectDefaultProxyModal } from './select-default-proxy-modal';
 
 class PopupApp {
     async init(): Promise<void> {
@@ -48,21 +49,38 @@ class PopupApp {
     }
 
     private async handleMainButtonClick(): Promise<void> {
-        const currentTargetState = await Storage.getTargetState();
+        const currentState = await Storage.getCurrentState();
         const newTargetState: ProxyStateType =
-            currentTargetState === ProxyState.CONNECTED
+            currentState === ProxyState.CONNECTED
                 ? ProxyState.DISCONNECTED
                 : ProxyState.CONNECTED;
 
-        // Если пытаемся включить прокси, но прокси не настроены - предложить добавить
-        if (newTargetState === ProxyState.CONNECTED && !ProxyList.hasProxies()) {
-            const shouldAdd = await showConfirm(I18n.getMessage('noProxiesConfigured'));
-            if (shouldAdd) {
-                ProxyList.openAddProxyForm();
+        if (newTargetState === ProxyState.CONNECTED) {
+            const proxies = await Storage.getProxies();
+            // REGRESSION-GUARD (TC-D3f, PLAN-014): proxies.length === 0 → показать диалог "добавить прокси"
+            if (proxies.length === 0) {
+                const shouldAdd = await showConfirm(I18n.getMessage('noProxiesConfigured'));
+                if (shouldAdd) {
+                    ProxyList.openAddProxyForm();
+                }
+                return;
             }
-            return;
+            const defaultProxy = await Storage.getDefaultProxy();
+            if (!defaultProxy) {
+                let selectedId: string | null;
+                if (proxies.length === 1) {
+                    selectedId = proxies[0].id;
+                } else {
+                    selectedId = await showSelectDefaultProxyModal(proxies);
+                    if (!selectedId) {
+                        return;
+                    }
+                }
+                await Storage.setDefaultProxy(selectedId);
+            }
         }
 
+        // REGRESSION-GUARD (TC-D3e, PLAN-014): defaultProxy задан → штатный путь без модалки
         console.log('Popup: Toggling proxy to', newTargetState);
         await Storage.setTargetState(newTargetState);
     }

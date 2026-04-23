@@ -6,17 +6,11 @@ import { mockHelpers } from './__mocks__/chrome';
 // Очистка моков перед каждым тестом
 beforeEach(() => {
     mockHelpers.resetAllMocks();
+    (global.fetch as jest.Mock).mockReset();
 });
 
-// Мок для fetch API
-global.fetch = jest.fn(() =>
-    Promise.resolve({
-        json: () => Promise.resolve({}),
-        text: () => Promise.resolve(''),
-        ok: true,
-        status: 200,
-    } as Response)
-);
+// Мок для fetch API — переключаемое поведение per-test
+global.fetch = jest.fn();
 
 // Мок для window.confirm и window.alert (jsdom не реализует их)
 global.confirm = jest.fn(() => true);
@@ -91,6 +85,25 @@ if (typeof DataTransfer === 'undefined') {
 
 // Установка таймаута для тестов (опционально)
 jest.setTimeout(10000);
+
+// Хелперы для переключения поведения fetch per-test
+export function mockFetchSuccess(status = 200): void {
+    (global.fetch as jest.Mock).mockResolvedValueOnce(
+        new Response(null, { status })
+    );
+}
+
+export function mockFetchNetworkError(): void {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(
+        new TypeError('Failed to fetch')
+    );
+}
+
+export function mockFetchTimeout(): void {
+    (global.fetch as jest.Mock).mockRejectedValueOnce(
+        new DOMException('The operation was aborted', 'AbortError')
+    );
+}
 
 // Экспорт для использования в тестах
 export { mockHelpers };

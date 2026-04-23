@@ -19,6 +19,7 @@ A Chrome/Chromium browser extension for easy proxy management with support for m
 - **Ignore List**: Define domains that should bypass the proxy
 - **Proxy All Sites Mode**: Option to proxy all traffic by default
 - **Settings Sync**: Synchronize your settings across devices using Chrome sync
+- **Proxy Health Check**: Automatic validation of proxy availability — dead or unreachable proxies are marked as error/timeout and not silently treated as working
 - **Multi-language Support**: Available in 8 languages:
   - English
   - Deutsch (German)
@@ -111,6 +112,8 @@ pulse-proxy/
 2. Add a proxy server in the "Proxy" tab
 3. Create presets with domain rules in the "Presets" tab
 4. Toggle the connection button to enable/disable the proxy
+   - If you have only one proxy added, it is automatically selected when you turn the proxy on for the first time.
+   - If you have multiple proxies but none is selected as default, a "Select default proxy" modal will appear.
 5. Configure additional settings in the "Settings" tab
 
 ### Adding a Proxy Server
@@ -124,6 +127,8 @@ pulse-proxy/
    - **Port**: Proxy server port (1-65535)
    - **Authentication**: Enable and enter credentials if required
 4. Click "Save"
+
+After entering a proxy address, the extension automatically verifies its availability (when automatic proxy checking is enabled). Dead or unreachable proxies receive an error indicator and are not silently treated as working.
 
 ### Creating Presets
 

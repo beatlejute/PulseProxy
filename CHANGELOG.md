@@ -2,6 +2,12 @@
 
 All notable changes to PulseProxy VPN will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Fixed proxy health check incorrectly reporting dead proxies as `ok`. Root cause: PAC script generated for the check phase was syntactically invalid when an active proxy was already connected, causing Chrome to fall back to DIRECT connection and receive 200 from the test endpoint regardless of actual proxy availability. Check now uses `cache: 'no-store'` for defense-in-depth against HTTP caching.
+- Fixed silent failure when toggling proxy without a default selected. Now auto-selects the only proxy if just one exists, or opens a "Select default proxy" modal if there are several.
+
 ## [1.1.3] - 2026-02-19
 
 ### Fixed

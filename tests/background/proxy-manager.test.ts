@@ -467,6 +467,91 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
 
             expect(result).toEqual({ cancel: true });
         });
+
+        it('TC 1: credentials берутся из temporaryCredentials когда основной map пуст', async () => {
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [],
+            });
+
+            await ProxyManager.init();
+
+            (ProxyManager as any).addTemporaryCredentials('temp.host', 8080, 'temp_user', 'temp_pass');
+
+            const result = await mockHelpers.triggerAuthRequired({
+                requestId: '1',
+                url: 'http://test.com',
+                method: 'GET',
+                frameId: 0,
+                parentFrameId: -1,
+                tabId: 1,
+                type: 'main_frame' as chrome.webRequest.ResourceType,
+                timeStamp: Date.now(),
+                challenger: { host: 'temp.host', port: 8080 },
+            });
+
+            expect(result).toEqual({
+                authCredentials: { username: 'temp_user', password: 'temp_pass' },
+            });
+        });
+
+        it('TC 2: fallback на основной credentials map когда temporaryCredentials пуст', async () => {
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [createProxy('working.host', 3128, 'http', true, 'main_user', 'main_pass')],
+            });
+
+            await ProxyManager.init();
+
+            const result = await mockHelpers.triggerAuthRequired({
+                requestId: '1',
+                url: 'http://test.com',
+                method: 'GET',
+                frameId: 0,
+                parentFrameId: -1,
+                tabId: 1,
+                type: 'main_frame' as chrome.webRequest.ResourceType,
+                timeStamp: Date.now(),
+                challenger: { host: 'working.host', port: 3128 },
+            });
+
+            expect(result).toEqual({
+                authCredentials: { username: 'main_user', password: 'main_pass' },
+            });
+        });
+
+        it('TC 3: temporaryCredentials имеют приоритет над основным credentials map', async () => {
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [createProxy('shared.host', 3128, 'http', true, 'main_user', 'main_pass')],
+            });
+
+            await ProxyManager.init();
+
+            (ProxyManager as any).addTemporaryCredentials('shared.host', 3128, 'temp_user', 'temp_pass');
+
+            const result = await mockHelpers.triggerAuthRequired({
+                requestId: '1',
+                url: 'http://test.com',
+                method: 'GET',
+                frameId: 0,
+                parentFrameId: -1,
+                tabId: 1,
+                type: 'main_frame' as chrome.webRequest.ResourceType,
+                timeStamp: Date.now(),
+                challenger: { host: 'shared.host', port: 3128 },
+            });
+
+            expect(result).toEqual({
+                authCredentials: { username: 'temp_user', password: 'temp_pass' },
+            });
+        });
     });
 
     describe('loadCredentials()', () => {
@@ -895,6 +980,184 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
         });
     });
 
+    describe('generateCheckPacScript()', () => {
+        const TEST_PROXY = createProxy('1.2.3.4', 8080, 'http');
+        const TEST_ID = 'test-uuid-123';
+
+        beforeEach(() => {
+            (ProxyManager as any).cachedPacScript = null;
+        });
+
+        it('TC 1: proxy connected — test rule precedes cachedPacScript routing rules', async () => {
+            const CACHE_MARKER = '__CACHED_PAC_MARKER__';
+            (ProxyManager as any).cachedPacScript =
+                `function FindProxyForURL(url, host) { /* ${CACHE_MARKER} */ return "DIRECT"; }`;
+
+            const result = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
+
+            const checkPos = result.indexOf(`_pulse_check=${TEST_ID}`);
+            const cachePos = result.indexOf(CACHE_MARKER);
+            expect(checkPos).toBeGreaterThanOrEqual(0);
+            expect(cachePos).toBeGreaterThan(0);
+            expect(checkPos).toBeLessThan(cachePos);
+        });
+
+        it('TC 2: proxy connected — cachedPacScript block is embedded without modification', async () => {
+            const fakeCachedScript =
+                `function FindProxyForURL(url, host) { return "PROXY 9.9.9.9:3128"; }`;
+            (ProxyManager as any).cachedPacScript = fakeCachedScript;
+
+            const result = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
+
+            expect(result).toContain(fakeCachedScript);
+        });
+
+        it('TC 3: proxy disconnected — PAC contains test route and DIRECT fallback, no other routes', async () => {
+            // cachedPacScript is null → disconnected state
+
+            const result = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
+
+            expect(result).toContain(`_pulse_check=${TEST_ID}`);
+            expect(result).toContain('PROXY 1.2.3.4:8080');
+            expect(result).toContain('DIRECT');
+            // No full PAC routing structures that appear in generatePacScript() output
+            expect(result).not.toMatch(/domainProxyMap\s*=/);
+            expect(result).not.toMatch(/ignoreList\s*=/);
+        });
+
+        it('TC 4: testId UUID is correctly inserted into the _pulse_check condition', async () => {
+            const result = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
+
+            expect(result).toContain(`url.indexOf("_pulse_check=${TEST_ID}") !== -1`);
+        });
+
+        describe('TC 5: proxy string format per proxy type', () => {
+            it('HTTP proxy → PROXY host:port', async () => {
+                const proxy = createProxy('10.0.0.1', 8888, 'http');
+                const result = await (ProxyManager as any).generateCheckPacScript(proxy, TEST_ID);
+                expect(result).toContain('PROXY 10.0.0.1:8888');
+            });
+
+            it('HTTPS proxy → HTTPS host:port', async () => {
+                const proxy = createProxy('10.0.0.2', 443, 'https');
+                const result = await (ProxyManager as any).generateCheckPacScript(proxy, TEST_ID);
+                expect(result).toContain('HTTPS 10.0.0.2:443');
+            });
+
+            it('SOCKS4 proxy → SOCKS host:port', async () => {
+                const proxy = createProxy('10.0.0.3', 1080, 'socks4');
+                const result = await (ProxyManager as any).generateCheckPacScript(proxy, TEST_ID);
+                expect(result).toContain('SOCKS 10.0.0.3:1080');
+            });
+
+            it('SOCKS5 proxy → SOCKS5 host:port', async () => {
+                const proxy = createProxy('10.0.0.4', 1081, 'socks5');
+                const result = await (ProxyManager as any).generateCheckPacScript(proxy, TEST_ID);
+                expect(result).toContain('SOCKS5 10.0.0.4:1081');
+            });
+        });
+
+        it('TC1 (execution): connected — new Function синтаксис не бросает; тест-URL → proxyString(testProxy)', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [createPreset(['custom.com'])],
+                migrationCompleted: true,
+            });
+            // Устанавливаем connected state (cachedPacScript !== null)
+            (ProxyManager as any).cachedPacScript = '__connected__';
+
+            const pac = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
+
+            // Syntax check: new Function не должен бросить
+            let FindProxyForURL: (url: string, host: string) => string;
+            expect(() => {
+                const execPac = new Function(pac + '; return FindProxyForURL;');
+                FindProxyForURL = execPac();
+            }).not.toThrow();
+
+            // Execution: тест-URL → proxyString(testProxy) = "PROXY 1.2.3.4:8080"
+            const testUrl = `http://example.com/?_pulse_check=${TEST_ID}`;
+            expect(FindProxyForURL!(testUrl, 'example.com')).toBe('PROXY 1.2.3.4:8080');
+        });
+
+        it('TC2 (execution): disconnected — тест-URL → proxyString(testProxy); прочие URL → DIRECT', async () => {
+            // cachedPacScript = null (disconnected) — уже установлен beforeEach
+
+            const pac = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
+
+            const execPac = new Function(pac + '; return FindProxyForURL;');
+            const FindProxyForURL = execPac() as (url: string, host: string) => string;
+
+            // тест-URL → testProxy
+            expect(FindProxyForURL(
+                `http://example.com/?_pulse_check=${TEST_ID}`,
+                'example.com'
+            )).toBe('PROXY 1.2.3.4:8080');
+
+            // прочие URL → DIRECT
+            expect(FindProxyForURL('https://other.com/', 'other.com')).toBe('DIRECT');
+        });
+
+        it('TC3 (execution): connected — testRule не перехватывает штатный трафик domainProxyMap', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [createPreset(['youtube.com'])],
+                migrationCompleted: true,
+            });
+            (ProxyManager as any).cachedPacScript = '__connected__';
+
+            const pac = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
+
+            const execPac = new Function(pac + '; return FindProxyForURL;');
+            const FindProxyForURL = execPac() as (url: string, host: string) => string;
+
+            // (a) тест-URL → testProxy ("PROXY 1.2.3.4:8080")
+            expect(FindProxyForURL(
+                `http://example.com/?_pulse_check=${TEST_ID}`,
+                'example.com'
+            )).toBe('PROXY 1.2.3.4:8080');
+
+            // (b) youtube.com → штатный роутинг, НЕ testProxy
+            const youtubeResult = FindProxyForURL('https://youtube.com/', 'youtube.com');
+            expect(youtubeResult).not.toBe('PROXY 1.2.3.4:8080');
+            expect(youtubeResult).toBe('PROXY 10.0.0.1:3128');
+        });
+
+        it('TC4: кэш не затронут — cachedPacScript и cachedConfigHash идентичны до/после вызова', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [createPreset(['custom.com'])],
+                migrationCompleted: true,
+            });
+            const cachedPacBefore = '__snapshot_pac__';
+            const cachedHashBefore = 'snap-hash-xyz';
+            (ProxyManager as any).cachedPacScript = cachedPacBefore;
+            (ProxyManager as any).cachedConfigHash = cachedHashBefore;
+
+            await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
+
+            expect((ProxyManager as any).cachedPacScript).toBe(cachedPacBefore);
+            expect((ProxyManager as any).cachedConfigHash).toBe(cachedHashBefore);
+        });
+
+        it('TC4b: Storage.get* throws → generateCheckPacScript reject; cachedPacScript не затронут', async () => {
+            const cachedPacBefore = '__original_pac__';
+            (ProxyManager as any).cachedPacScript = cachedPacBefore;
+
+            // Симулируем сбой Storage при первом обращении к chrome.storage.local.get
+            (chrome.storage.local.get as jest.Mock).mockImplementationOnce(() => {
+                throw new Error('Storage failure');
+            });
+
+            await expect(
+                (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID)
+            ).rejects.toThrow();
+
+            // cachedPacScript не затронут
+            expect((ProxyManager as any).cachedPacScript).toBe(cachedPacBefore);
+        });
+    });
+
     describe('validateProxyHost()', () => {
         let validateProxyHost: (host: string) => boolean;
 
@@ -1221,11 +1484,123 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             const presets1 = [{ id: '1', domains: ['test.com'] }];
             const presets2 = [{ id: '1', domains: ['new.com'] }];
             const proxies = [{ id: '1', host: '127.0.0.1', port: 8080 }];
-            
+
             const hash1 = computeConfigHash(presets1, proxies, false);
             const hash2 = computeConfigHash(presets2, proxies, false);
-            
+
             expect(hash1).not.toBe(hash2);
+        });
+    });
+
+    describe('restoreAfterCheck()', () => {
+        const PAC_CONTENT = 'function FindProxyForURL(url, host) { return "PROXY test.host:8080"; }';
+
+        beforeEach(() => {
+            (ProxyManager as any).cachedPacScript = null;
+        });
+
+        it('TC 1: wasConnected === true — вызывает applyPacScript(cachedPacScript)', async () => {
+            // Arrange: устанавливаем кешированный PAC-скрипт
+            (ProxyManager as any).cachedPacScript = PAC_CONTENT;
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+            (chrome.proxy.settings.clear as jest.Mock).mockClear();
+
+            // Act
+            await (ProxyManager as any).restoreAfterCheck(true);
+
+            // Assert: applyPacScript был вызван с cachedPacScript
+            expect(chrome.proxy.settings.set).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    value: expect.objectContaining({
+                        pacScript: expect.objectContaining({ data: PAC_CONTENT }),
+                    }),
+                }),
+                expect.any(Function)
+            );
+            // disable() НЕ вызывался
+            expect(chrome.proxy.settings.clear).not.toHaveBeenCalled();
+        });
+
+        it('TC 2: wasConnected === false — вызывает disable()', async () => {
+            // Arrange
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+            (chrome.proxy.settings.clear as jest.Mock).mockClear();
+
+            // Act
+            await (ProxyManager as any).restoreAfterCheck(false);
+
+            // Assert: disable() был вызван
+            expect(chrome.proxy.settings.clear).toHaveBeenCalledWith(
+                { scope: 'regular' },
+                expect.any(Function)
+            );
+            // applyPacScript НЕ вызывался
+            expect(chrome.proxy.settings.set).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('addTemporaryCredentials() / removeTemporaryCredentials()', () => {
+        it('TC 1: credentials добавляются в отдельный temporaryCredentials map', async () => {
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [],
+            });
+            await ProxyManager.init();
+
+            (ProxyManager as any).addTemporaryCredentials('proxy.host', 8080, 'user', 'pass');
+
+            const temporaryCredentials = (ProxyManager as any).temporaryCredentials as Map<string, { username: string; password: string }>;
+            expect(temporaryCredentials.get('proxy.host:8080')).toEqual({ username: 'user', password: 'pass' });
+        });
+
+        it('TC 2: credentials удаляются из temporaryCredentials map', async () => {
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [],
+            });
+            await ProxyManager.init();
+
+            (ProxyManager as any).addTemporaryCredentials('proxy.host', 8080, 'user', 'pass');
+            (ProxyManager as any).removeTemporaryCredentials('proxy.host', 8080);
+
+            const temporaryCredentials = (ProxyManager as any).temporaryCredentials as Map<string, { username: string; password: string }>;
+            expect(temporaryCredentials.has('proxy.host:8080')).toBe(false);
+        });
+
+        it('TC 3: addTemporaryCredentials не затрагивает основной credentials map', async () => {
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [createProxy('main.host', 1080, 'http', true, 'main_user', 'main_pass')],
+            });
+            await ProxyManager.init();
+
+            (ProxyManager as any).addTemporaryCredentials('temp.host', 9090, 'tmp', 'pwd');
+
+            const credentials = (ProxyManager as any).credentials as Map<string, { username: string; password: string }>;
+            expect(credentials.get('main.host:1080')).toEqual({ username: 'main_user', password: 'main_pass' });
+        });
+
+        it('TC 4: при совпадении host:port — temporary не перезаписывает основной map и наоборот', async () => {
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [createProxy('shared.host', 3128, 'http', true, 'main_user', 'main_pass')],
+            });
+            await ProxyManager.init();
+
+            (ProxyManager as any).addTemporaryCredentials('shared.host', 3128, 'temp_user', 'temp_pass');
+
+            const credentials = (ProxyManager as any).credentials as Map<string, { username: string; password: string }>;
+            const temporaryCredentials = (ProxyManager as any).temporaryCredentials as Map<string, { username: string; password: string }>;
+            expect(credentials.get('shared.host:3128')).toEqual({ username: 'main_user', password: 'main_pass' });
+            expect(temporaryCredentials.get('shared.host:3128')).toEqual({ username: 'temp_user', password: 'temp_pass' });
         });
     });
 });

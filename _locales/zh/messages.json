@@ -530,5 +530,9 @@
   "labelTheme": {
     "message": "深色主题",
     "description": "Label for dark theme toggle checkbox"
+  },
+  "selectDefaultProxyTitle": {
+    "message": "选择默认代理",
+    "description": "Title for select default proxy modal"
   }
 }

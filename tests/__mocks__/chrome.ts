@@ -160,9 +160,13 @@ const mockStorageOnChanged = {
     getRules: jest.fn(),
 };
 
+// Callback для chrome.proxy.settings.set
+let proxySettingsCallback: (() => void) | null = null;
+
 // Мок chrome.proxy.settings
 const mockProxySettings = {
     set: jest.fn((details, callback) => {
+        proxySettingsCallback = callback ?? null;
         if (callback) callback();
     }),
     get: jest.fn((details, callback) => {
@@ -334,6 +338,14 @@ export const mockHelpers = {
         mockRuntime.lastError = error ? { message: error } : null;
     },
 
+    // Триггер callback chrome.proxy.settings.set()
+    triggerProxySettingsCallback(): void {
+        if (proxySettingsCallback) {
+            proxySettingsCallback();
+            proxySettingsCallback = null;
+        }
+    },
+
     // Сброс всех моков
     resetAllMocks: () => {
         jest.clearAllMocks();
@@ -341,6 +353,7 @@ export const mockHelpers = {
         mockHelpers.setLastError(null);
         storageChangeListeners.length = 0;
         authRequiredListeners.length = 0;
+        proxySettingsCallback = null;
     },
 
     // Триггер события onAuthRequired

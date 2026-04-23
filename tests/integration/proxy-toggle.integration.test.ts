@@ -500,4 +500,76 @@ describe('Proxy Toggle Integration Tests', () => {
             expect(chrome.proxy.settings.set).toHaveBeenCalled();
         });
     });
+
+    describe('D3: toggle without defaultProxy', () => {
+        it('TC-D3-int-1: single proxy should enable with full cycle (setDefaultProxy → setTargetState → toggle → enable)', async () => {
+            // Initial state: one proxy without isDefault flag, no defaultProxy set
+            mockHelpers.setLocalStorageData({
+                presets: [createPreset(['example.com'])],
+                proxies: [{ ...createProxy('127.0.0.1', 8080), id: 'proxy-1', isDefault: false }],
+                targetState: ProxyState.DISCONNECTED,
+                currentState: ProxyState.DISCONNECTED,
+                migrationCompleted: true,
+            });
+
+            // Simulate popup setting defaultProxy (handleMainButtonClick does this for single proxy)
+            await Storage.setDefaultProxy('proxy-1');
+
+            // Then set targetState to CONNECTED (which triggers toggle)
+            await Storage.setTargetState(ProxyState.CONNECTED);
+
+            // Call toggle to execute the full integration cycle
+            await ProxyManager.toggle();
+
+            // Verify the full path worked: chrome.proxy.settings.set was called with the defaultProxy
+            expect(chrome.proxy.settings.set).toHaveBeenCalledWith(
+                {
+                    value: {
+                        mode: 'pac_script',
+                        pacScript: { data: expect.any(String) },
+                    },
+                    scope: 'regular',
+                },
+                expect.any(Function)
+            );
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pacScript = setCall[0].value.pacScript.data;
+            expect(pacScript).toContain('127.0.0.1:8080');
+            expect(pacScript).toContain('example.com');
+        });
+
+        it('TC-D3-int-2: multi proxy with modal cancel should not enable proxy (targetState stays DISCONNECTED)', async () => {
+            // Initial state: two proxies without isDefault flag, no defaultProxy set
+            mockHelpers.setLocalStorageData({
+                presets: [createPreset(['test.com'])],
+                proxies: [
+                    { ...createProxy('10.0.0.1', 8080), id: 'proxy-1', isDefault: false },
+                    { ...createProxy('10.0.0.2', 8081), id: 'proxy-2', isDefault: false },
+                ],
+                targetState: ProxyState.DISCONNECTED,
+                currentState: ProxyState.DISCONNECTED,
+                migrationCompleted: true,
+            });
+
+            // When modal returns null (user canceled), popup returns early without setting defaultProxy or targetState
+            // So targetState remains DISCONNECTED
+            const targetState = await Storage.getTargetState();
+            expect(targetState).toBe(ProxyState.DISCONNECTED);
+
+            // Reset mocks to check if toggle is called
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+            (chrome.proxy.settings.clear as jest.Mock).mockClear();
+
+            // Call toggle with DISCONNECTED state
+            await ProxyManager.toggle();
+
+            // Verify proxy was disabled (clear called) and not enabled (set not called)
+            expect(chrome.proxy.settings.set).not.toHaveBeenCalled();
+            expect(chrome.proxy.settings.clear).toHaveBeenCalledWith(
+                { scope: 'regular' },
+                expect.any(Function)
+            );
+        });
+    });
 });

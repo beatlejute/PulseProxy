@@ -44,7 +44,10 @@ jest.mock('../../src/shared/storage', () => ({
         getTargetState: jest.fn().mockResolvedValue('disconnected'),
         setTargetState: jest.fn().mockResolvedValue(undefined),
         getCurrentState: jest.fn().mockResolvedValue('disconnected'),
-        onChange: jest.fn()
+        onChange: jest.fn(),
+        getProxies: jest.fn().mockResolvedValue([]),
+        getDefaultProxy: jest.fn().mockResolvedValue(undefined),
+        setDefaultProxy: jest.fn().mockResolvedValue(undefined)
     }
 }));
 
@@ -56,6 +59,13 @@ jest.mock('../../src/shared/i18n', () => ({
     }
 }));
 
+jest.mock('../../src/popup/dialog', () => ({
+    showConfirm: jest.fn()
+}));
+jest.mock('../../src/popup/select-default-proxy-modal', () => ({
+    showSelectDefaultProxyModal: jest.fn()
+}));
+
 // Import after mocks
 import { UI } from '../../src/popup/ui';
 import { Settings } from '../../src/popup/settings';
@@ -65,7 +75,10 @@ import { Presets } from '../../src/popup/presets';
 import { Storage } from '../../src/shared/storage';
 import { I18n } from '../../src/shared/i18n';
 import { ProxyState, StorageKeys, DOMIds } from '../../src/shared/constants';
+import { showConfirm } from '../../src/popup/dialog';
+import { showSelectDefaultProxyModal } from '../../src/popup/select-default-proxy-modal';
 
+// SYNC: src/popup/index.ts handleMainButtonClick — синхронизировано 2026-04-21
 // Recreate PopupApp class for testing (since it's not exported)
 class PopupApp {
     async init(): Promise<void> {
@@ -90,19 +103,36 @@ class PopupApp {
     }
 
     async handleMainButtonClick(): Promise<void> {
-        const currentTargetState = await Storage.getTargetState();
-        const newTargetState = currentTargetState === ProxyState.CONNECTED
+        const currentState = await Storage.getCurrentState();
+        const newTargetState = currentState === ProxyState.CONNECTED
             ? ProxyState.DISCONNECTED
             : ProxyState.CONNECTED;
 
-        if (newTargetState === ProxyState.CONNECTED && !ProxyList.hasProxies()) {
-            const shouldAdd = confirm(I18n.getMessage('noProxiesConfigured'));
-            if (shouldAdd) {
-                ProxyList.openAddProxyForm();
+        if (newTargetState === ProxyState.CONNECTED) {
+            const proxies = await Storage.getProxies();
+            if (proxies.length === 0) {
+                const shouldAdd = await showConfirm(I18n.getMessage('noProxiesConfigured'));
+                if (shouldAdd) {
+                    ProxyList.openAddProxyForm();
+                }
+                return;
             }
-            return;
+            const defaultProxy = await Storage.getDefaultProxy();
+            if (!defaultProxy) {
+                let selectedId: string | null;
+                if (proxies.length === 1) {
+                    selectedId = proxies[0].id;
+                } else {
+                    selectedId = await showSelectDefaultProxyModal(proxies);
+                    if (!selectedId) {
+                        return;
+                    }
+                }
+                await Storage.setDefaultProxy(selectedId);
+            }
         }
 
+        console.log('Popup: Toggling proxy to', newTargetState);
         await Storage.setTargetState(newTargetState);
     }
 
@@ -187,79 +217,199 @@ describe('PopupApp', () => {
         });
 
         it('should toggle from disconnected to connected', async () => {
-            (Storage.getTargetState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
-            (ProxyList.hasProxies as jest.Mock).mockReturnValue(true);
-            
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([{ id: 'p1', name: 'proxy1', host: 'example.com', port: 8080, isDefault: false }]);
+            (Storage.getDefaultProxy as jest.Mock).mockResolvedValue('p1');
+
             await app.handleMainButtonClick();
-            
+
             expect(Storage.setTargetState).toHaveBeenCalledWith(ProxyState.CONNECTED);
         });
 
         it('should toggle from connected to disconnected', async () => {
-            (Storage.getTargetState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
-            
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
+
             await app.handleMainButtonClick();
-            
+
             expect(Storage.setTargetState).toHaveBeenCalledWith(ProxyState.DISCONNECTED);
         });
 
-        it('should show confirm when no proxies configured', async () => {
-            (Storage.getTargetState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
-            (ProxyList.hasProxies as jest.Mock).mockReturnValue(false);
-            
-            const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
-            
+        it('should toggle to connected when currentState=disconnected but targetState=connected (desync recovery)', async () => {
+            // Рассинхронизация: фактический стейт — disconnected, но желаемый остался connected
+            // (например, enable() провалился, а targetState не откатился).
+            // Клик должен инвертировать ФАКТИЧЕСКОЕ состояние, а не желание.
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([{ id: 'p1', name: 'proxy1', host: 'example.com', port: 8080, isDefault: false }]);
+            (Storage.getDefaultProxy as jest.Mock).mockResolvedValue('p1');
+
             await app.handleMainButtonClick();
-            
-            expect(confirmSpy).toHaveBeenCalledWith('noProxiesConfigured');
+
+            expect(Storage.setTargetState).toHaveBeenCalledWith(ProxyState.CONNECTED);
+        });
+
+        it('should treat error state as non-connected and toggle to connected', async () => {
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.ERROR);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([{ id: 'p1', name: 'proxy1', host: 'example.com', port: 8080, isDefault: false }]);
+            (Storage.getDefaultProxy as jest.Mock).mockResolvedValue('p1');
+
+            await app.handleMainButtonClick();
+
+            expect(Storage.setTargetState).toHaveBeenCalledWith(ProxyState.CONNECTED);
+        });
+
+        it('should show confirm when no proxies configured', async () => {
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([]);
+            (showConfirm as jest.Mock).mockResolvedValue(false);
+
+            await app.handleMainButtonClick();
+
+            expect(showConfirm).toHaveBeenCalledWith('noProxiesConfigured');
             expect(Storage.setTargetState).not.toHaveBeenCalled();
-            
-            confirmSpy.mockRestore();
+            expect(ProxyList.openAddProxyForm).not.toHaveBeenCalled();
         });
 
         it('should open add proxy form if user confirms', async () => {
-            (Storage.getTargetState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
-            (ProxyList.hasProxies as jest.Mock).mockReturnValue(false);
-            
-            const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
-            
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([]);
+            (showConfirm as jest.Mock).mockResolvedValue(true);
+
             await app.handleMainButtonClick();
-            
+
             expect(ProxyList.openAddProxyForm).toHaveBeenCalled();
             expect(Storage.setTargetState).not.toHaveBeenCalled();
-            
-            confirmSpy.mockRestore();
         });
 
         it('should not open form if user declines', async () => {
-            (Storage.getTargetState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
-            (ProxyList.hasProxies as jest.Mock).mockReturnValue(false);
-            
-            const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
-            
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([]);
+            (showConfirm as jest.Mock).mockResolvedValue(false);
+
             await app.handleMainButtonClick();
-            
+
             expect(ProxyList.openAddProxyForm).not.toHaveBeenCalled();
-            
-            confirmSpy.mockRestore();
+        });
+
+        // TC-D3a: single proxy, авто-выбор
+        it('TC-D3a: should auto-select single proxy without modal', async () => {
+            const singleProxy = { id: 'p1', name: 'proxy1', host: 'example.com', port: 8080, isDefault: false };
+
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([singleProxy]);
+            (Storage.getDefaultProxy as jest.Mock).mockResolvedValue(undefined);
+
+            await app.handleMainButtonClick();
+
+            expect(Storage.setDefaultProxy).toHaveBeenCalledTimes(1);
+            expect(Storage.setDefaultProxy).toHaveBeenCalledWith('p1');
+            expect(showSelectDefaultProxyModal).not.toHaveBeenCalled();
+            expect(Storage.setTargetState).toHaveBeenCalledTimes(1);
+            expect(Storage.setTargetState).toHaveBeenCalledWith(ProxyState.CONNECTED);
+        });
+
+        // TC-D3b: multi proxy, открытие модалки
+        it('TC-D3b: should show modal when multiple proxies and no default', async () => {
+            const proxies = [
+                { id: 'p1', name: 'proxy1', host: 'example.com', port: 8080, isDefault: false },
+                { id: 'p2', name: 'proxy2', host: 'example.com', port: 8081, isDefault: false }
+            ];
+
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue(proxies);
+            (Storage.getDefaultProxy as jest.Mock).mockResolvedValue(undefined);
+            (showSelectDefaultProxyModal as jest.Mock).mockResolvedValue(null);
+
+            await app.handleMainButtonClick();
+
+            expect(showSelectDefaultProxyModal).toHaveBeenCalledWith(proxies);
+            expect(Storage.setTargetState).not.toHaveBeenCalled();
+        });
+
+        // TC-D3c: multi proxy, выбор в модалке
+        it('TC-D3c: should set default proxy when user selects in modal', async () => {
+            const proxies = [
+                { id: 'p1', name: 'proxy1', host: 'example.com', port: 8080, isDefault: false },
+                { id: 'p2', name: 'proxy2', host: 'example.com', port: 8081, isDefault: false }
+            ];
+
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue(proxies);
+            (Storage.getDefaultProxy as jest.Mock).mockResolvedValue(undefined);
+            (showSelectDefaultProxyModal as jest.Mock).mockResolvedValue('p2');
+
+            await app.handleMainButtonClick();
+
+            expect(Storage.setDefaultProxy).toHaveBeenCalledTimes(1);
+            expect(Storage.setDefaultProxy).toHaveBeenCalledWith('p2');
+            expect(Storage.setTargetState).toHaveBeenCalledTimes(1);
+            expect(Storage.setTargetState).toHaveBeenCalledWith(ProxyState.CONNECTED);
+        });
+
+        // TC-D3d: multi proxy, отмена модалки
+        it('TC-D3d: should do nothing when user cancels modal', async () => {
+            const proxies = [
+                { id: 'p1', name: 'proxy1', host: 'example.com', port: 8080, isDefault: false },
+                { id: 'p2', name: 'proxy2', host: 'example.com', port: 8081, isDefault: false }
+            ];
+
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue(proxies);
+            (Storage.getDefaultProxy as jest.Mock).mockResolvedValue(undefined);
+            (showSelectDefaultProxyModal as jest.Mock).mockResolvedValue(null);
+
+            await app.handleMainButtonClick();
+
+            expect(Storage.setDefaultProxy).not.toHaveBeenCalled();
+            expect(Storage.setTargetState).not.toHaveBeenCalled();
+        });
+
+        // TC-D3e: regression: defaultProxy задан
+        it('TC-D3e: regression - should skip modal when default proxy is already set', async () => {
+            const existingDefaultProxy = 'p1';
+
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([
+                { id: 'p1', name: 'proxy1', host: 'example.com', port: 8080, isDefault: false }
+            ]);
+            (Storage.getDefaultProxy as jest.Mock).mockResolvedValue(existingDefaultProxy);
+
+            await app.handleMainButtonClick();
+
+            expect(showSelectDefaultProxyModal).not.toHaveBeenCalled();
+            expect(Storage.setDefaultProxy).not.toHaveBeenCalled();
+            expect(Storage.setTargetState).toHaveBeenCalledTimes(1);
+            expect(Storage.setTargetState).toHaveBeenCalledWith(ProxyState.CONNECTED);
+        });
+
+        // TC-D3f: regression: пустой список прокси
+        it('TC-D3f: regression - should show dialog when proxies list is empty', async () => {
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getProxies as jest.Mock).mockResolvedValue([]);
+            (showConfirm as jest.Mock).mockResolvedValue(false);
+
+            await app.handleMainButtonClick();
+
+            expect(showConfirm).toHaveBeenCalledWith('noProxiesConfigured');
+            expect(Storage.setDefaultProxy).not.toHaveBeenCalled();
+            expect(Storage.setTargetState).not.toHaveBeenCalled();
         });
     });
 
     describe('button click binding', () => {
         it('should call handleMainButtonClick on button click', async () => {
-            (Storage.getTargetState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+            (Storage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
             (ProxyList.hasProxies as jest.Mock).mockReturnValue(true);
-            
+
             await app.init();
             jest.clearAllMocks();
-            
+
             const button = document.getElementById(DOMIds.MAIN_BUTTON) as HTMLButtonElement;
             button.click();
-            
+
             // Wait for async handler
             await new Promise(resolve => setTimeout(resolve, 0));
-            
-            expect(Storage.getTargetState).toHaveBeenCalled();
+
+            expect(Storage.getCurrentState).toHaveBeenCalled();
         });
     });
 

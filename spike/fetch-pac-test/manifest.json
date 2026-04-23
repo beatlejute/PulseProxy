@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "PAC Fetch Spike Test",
+  "version": "1.0",
+  "description": "Spike: verifies if fetch() from service worker routes through PAC script",
+  "permissions": [
+    "proxy"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

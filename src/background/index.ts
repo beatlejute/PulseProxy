@@ -2,7 +2,7 @@ import { ProxyManager } from './proxy-manager';
 import { IconManager } from './icon-manager';
 import { Storage } from '../shared/storage';
 import { StorageKeys, SYNC_STORAGE_KEYS, ProxyState } from '../shared/constants';
-import { ExtensionMessage, StorageChanges, CheckProxyResult } from '../types';
+import { ExtensionMessage, StorageChanges, CheckProxyResult, ProxyServer } from '../types';
 import { trackEvent, sendGA4Event } from '../shared/analytics';
 
 const HEARTBEAT_ALARM = 'ga4_heartbeat';
@@ -161,32 +161,36 @@ chrome.webRequest.onCompleted.addListener(
 const CHECK_PROXY_URL = 'http://example.com/';
 const CHECK_PROXY_TIMEOUT_MS = 15000;
 
+let isChecking = false;
+
+export function getIsChecking(): boolean {
+    return isChecking;
+}
+
+export function resetIsChecking(): void {
+    isChecking = false;
+}
+
 async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promise<CheckProxyResult> {
+    if (isChecking) {
+        return 'error';
+    }
+    isChecking = true;
+
     const { type, host, port, username, password } = proxy;
     console.log('Background: Checking proxy:', `${type}://${host}:${port}`);
 
-    const proxyString = type === 'socks4' ? `SOCKS ${host}:${port}`
-        : type === 'socks5' ? `SOCKS5 ${host}:${port}`
-        : type === 'https' ? `HTTPS ${host}:${port}`
-        : `PROXY ${host}:${port}`;
-
-    const pacScript = `function FindProxyForURL(url, host) { return ${JSON.stringify(proxyString)}; }`;
-
-    // Remember current state to restore after check
     const wasConnected = (await Storage.getCurrentState()) === ProxyState.CONNECTED;
 
-    // Temporary auth handler if credentials provided
-    let authListener: ((details: chrome.webRequest.OnAuthRequiredDetails, asyncCallback?: (response: chrome.webRequest.BlockingResponse) => void) => chrome.webRequest.BlockingResponse | undefined) | null = null;
     if (username && password) {
-        authListener = (_details, asyncCallback) => {
-            if (asyncCallback) asyncCallback({ authCredentials: { username: username!, password: password! } });
-            return undefined;
-        };
-        chrome.webRequest.onAuthRequired.addListener(authListener, { urls: ['<all_urls>'] }, ['asyncBlocking']);
+        ProxyManager.addTemporaryCredentials(host, port, username, password);
     }
 
     try {
-        // Set temporary PAC
+        const testId = crypto.randomUUID();
+        const testProxy: Partial<ProxyServer> = { type, host, port };
+        const pacScript = await ProxyManager.generateCheckPacScript(testProxy, testId);
+
         await new Promise<void>(resolve => {
             chrome.proxy.settings.set(
                 { value: { mode: 'pac_script', pacScript: { data: pacScript } }, scope: 'regular' },
@@ -194,53 +198,35 @@ async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promis
             );
         });
 
-        // Small delay to ensure PAC is applied
-        await new Promise(r => setTimeout(r, 200));
-
-        const result = await new Promise<CheckProxyResult>((resolve) => {
-            let done = false;
-            let tabId: number | null = null;
-
-            const finish = (result: CheckProxyResult) => {
-                if (done) return;
-                done = true;
-                chrome.webNavigation.onCompleted.removeListener(onNav);
-                chrome.webNavigation.onErrorOccurred.removeListener(onNavError);
-                if (tabId !== null) chrome.tabs.remove(tabId).catch(() => {});
-                console.log('Background: Proxy check result:', result, `${host}:${port}`);
-                resolve(result);
-            };
-
-            const onNav = (details: chrome.webNavigation.WebNavigationFramedCallbackDetails) => {
-                if (details.tabId === tabId && details.frameId === 0 && details.url.startsWith('http')) finish('ok');
-            };
-            const onNavError = (details: chrome.webNavigation.WebNavigationFramedErrorCallbackDetails) => {
-                if (details.tabId === tabId && details.frameId === 0 && details.url.startsWith('http')) finish('error');
-            };
-
-            chrome.webNavigation.onCompleted.addListener(onNav);
-            chrome.webNavigation.onErrorOccurred.addListener(onNavError);
-
-            setTimeout(() => finish('timeout'), CHECK_PROXY_TIMEOUT_MS);
-
-            // Cache-busting to force a real network request through the proxy
-            const checkUrl = `${CHECK_PROXY_URL}?_t=${Date.now()}`;
-            chrome.tabs.create({ url: checkUrl, active: false }, (tab) => {
-                tabId = tab.id ?? null;
+        const url = `http://example.com/?_pulse_check=${testId}`;
+        let response: Response;
+        try {
+            // Bypass HTTP cache — the test must hit the network via PAC, not return a cached response.
+            response = await fetch(url, {
+                signal: AbortSignal.timeout(CHECK_PROXY_TIMEOUT_MS),
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                },
             });
-        });
-
-        return result;
-    } finally {
-        // Always cleanup and restore, even if an error occurred
-        if (authListener) chrome.webRequest.onAuthRequired.removeListener(authListener);
-
-        console.log('Background: Restoring proxy state, wasConnected:', wasConnected);
-        if (wasConnected) {
-            await ProxyManager.enable();
-        } else {
-            await ProxyManager.disable();
+        } catch (e) {
+            if (e instanceof DOMException && e.name === 'AbortError') {
+                return 'timeout';
+            }
+            return 'error';
         }
+
+        return response.ok ? 'ok' : 'error';
+    } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') {
+            return 'timeout';
+        }
+        return 'error';
+    } finally {
+        isChecking = false;
+        ProxyManager.removeTemporaryCredentials(host, port);
+        await ProxyManager.restoreAfterCheck(wasConnected);
     }
 }
 

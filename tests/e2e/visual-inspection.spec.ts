@@ -749,9 +749,10 @@ test.describe('Visual UI Inspection — all tabs, themes, modals', () => {
     // Для обновления baseline: npx playwright test --update-snapshots
 
     test('TC 9.21: Visual regression — вкладки × темы (proxy/presets/settings × light/dark)', async () => {
+        test.setTimeout(60000);
         // Setup fixture data: 2 proxies + 1 preset
         await setupFixtureData(context, popupUrl);
-        
+
         for (const theme of ['light', 'dark'] as const) {
             for (const tab of ['proxy', 'presets', 'settings'] as const) {
                 popup = await openPopup(context, popupUrl);

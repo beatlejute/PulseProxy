@@ -43,6 +43,8 @@ export interface ModalConfig {
     closeOnOverlayClick?: boolean;
     /** Закрыть по Escape (по умолчанию true) */
     closeOnEscape?: boolean;
+    /** Сделать overlay на полную высоту экрана */
+    fullHeight?: boolean;
 }
 
 /**
@@ -107,6 +109,9 @@ export class ModalHelper {
         // Создаём оверлей
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay';
+        if (config.fullHeight) {
+            overlay.classList.add('modal-overlay--fullheight');
+        }
 
         // Создаём модальное окно
         const modal = document.createElement('div');

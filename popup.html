@@ -8,25 +8,26 @@
 </head>
 <body>
     <div class="container">
-        <button id="main-button" class="main-button disconnected">
+        <button id="main-button" class="main-button disconnected" role="switch" aria-pressed="false" aria-label="Proxy off">
             <svg class="shield-icon" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
                 <!-- Щит -->
                 <path class="shield-bg" d="M50 0 L95 15 L95 55 C95 85 50 115 50 115 C50 115 5 85 5 55 L5 15 Z"/>
+                <text class="shield-label" x="50" y="28">OFF</text>
                 <!-- Линия пульса для connected/connecting -->
                 <g class="pulse-container">
                     <clipPath id="pulse-clip">
-                        <rect x="20" y="30" width="60" height="60"/>
+                        <rect x="20" y="40" width="60" height="50"/>
                     </clipPath>
                     <g clip-path="url(#pulse-clip)">
-                        <path class="pulse-line" d="M20 60 L35 60 L42 40 L50 80 L58 40 L65 60 L80 60 L95 60 L102 40 L110 80 L118 40 L125 60 L140 60"/>
+                         <path class="pulse-line" d="M20 65 L35 65 L42 45 L50 85 L58 45 L65 65 L80 65 L95 65 L102 45 L110 85 L118 45 L125 65 L140 65"/>
                     </g>
                 </g>
                 <!-- Прямая линия для disconnected/error -->
-                <line class="flat-line" x1="20" y1="60" x2="80" y2="60"/>
+                 <line class="flat-line" x1="20" y1="65" x2="80" y2="65"/>
                 <!-- Бейдж с галочкой для connected -->
                 <g class="checkmark-badge">
-                    <circle cx="75" cy="95" r="12" class="badge-circle"/>
-                    <path class="checkmark" d="M69 95 L73 99 L81 91" />
+                     <circle cx="75" cy="100" r="10" class="badge-circle"/>
+                     <path class="checkmark" d="M70 100 L73 103 L80 96" />
                 </g>
             </svg>
         </button>

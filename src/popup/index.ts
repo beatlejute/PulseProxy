@@ -49,9 +49,9 @@ class PopupApp {
     }
 
     private async handleMainButtonClick(): Promise<void> {
-        const currentState = await Storage.getCurrentState();
+        const targetState = await Storage.getTargetState();
         const newTargetState: ProxyStateType =
-            currentState === ProxyState.CONNECTED
+            targetState === ProxyState.CONNECTED
                 ? ProxyState.DISCONNECTED
                 : ProxyState.CONNECTED;
 

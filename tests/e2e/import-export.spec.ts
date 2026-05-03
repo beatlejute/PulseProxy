@@ -141,10 +141,14 @@ test.describe('Import/Export — configuration (JSON)', () => {
         await context?.close();
     });
 
-    // TC 7.1: Create proxy + presets → Export → JSON file has correct structure
+    // TC 7.1: Create proxy + presets → Click #export-button → JSON file downloaded with correct structure
     test('TC 7.1: export generates valid JSON with correct structure', async () => {
         const page = await openPopup(context, popupUrl);
         await dismissModalIfPresent(page);
+
+        // Clear storage to ensure test data isolation (removes extension defaults like "default-custom-preset")
+        await page.evaluate(() => new Promise<void>(resolve => chrome.storage.sync.clear(() => resolve())));
+        await page.waitForTimeout(500);
 
         // Seed data
         await seedStorageSync(page, {
@@ -182,23 +186,53 @@ test.describe('Import/Export — configuration (JSON)', () => {
         await expect(page.locator('#import-button')).toBeVisible();
         await expect(page.locator('#import-file-input')).toHaveAttribute('accept', '.json');
 
-        // Read from sync (same source the export service uses)
-        const syncStorage = await readSyncStorage(page);
-        const exportData = {
-            version: EXPORT_FORMAT_VERSION,
-            exportedAt: new Date().toISOString(),
-            data: {
-                proxies: (syncStorage.proxies as any[]) || [],
-                presets: (syncStorage.presets as any[]) || [],
-                theme: (syncStorage.theme as string) || 'light',
-                language: (syncStorage.language as string) || 'en',
-                proxyByDefault: (syncStorage.proxyByDefault as boolean) ?? false,
-                proxyCheckEnabled: (syncStorage.proxyCheckEnabled as boolean) ?? true,
-            },
-        };
+        // Install an in-page interceptor for URL.createObjectURL so that when the real
+        // handleExport() creates a Blob and triggers a download via <a download>, we
+        // capture the exact JSON payload that would be saved to disk.
+        await page.evaluate(() => {
+            (window as unknown as { __capturedExport: string | null }).__capturedExport = null;
+            (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename = null;
+            const origCreate = URL.createObjectURL.bind(URL);
+            URL.createObjectURL = function (obj: Blob | MediaSource): string {
+                if (obj instanceof Blob && obj.type === 'application/json') {
+                    obj.text().then((text) => {
+                        (window as unknown as { __capturedExport: string | null }).__capturedExport = text;
+                    });
+                }
+                return origCreate(obj);
+            };
+            // Capture filename from the anchor `download` attribute used by handleExport().
+            const origAppend = document.body.appendChild.bind(document.body);
+            (document.body as HTMLElement).appendChild = function <T extends Node>(node: T): T {
+                if (node instanceof HTMLAnchorElement && node.download) {
+                    (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename = node.download;
+                }
+                return origAppend(node) as T;
+            };
+        });
 
-        // Save exported JSON
-        fs.writeFileSync(path.join(ARTIFACTS_DIR, 'tc-7.1-export.json'), JSON.stringify(exportData, null, 2), 'utf-8');
+        // Click the real export button — this invokes Settings.handleExport() which
+        // calls Storage.exportAllData() and triggers a download via <a download>.
+        await page.locator('#export-button').click();
+
+        // Wait for the JSON payload to be captured.
+        await expect.poll(
+            async () => page.evaluate(() => (window as unknown as { __capturedExport: string | null }).__capturedExport),
+            { timeout: 5000, message: 'Export was not triggered (URL.createObjectURL did not receive a JSON Blob)' }
+        ).not.toBeNull();
+
+        const capturedJson = await page.evaluate(
+            () => (window as unknown as { __capturedExport: string | null }).__capturedExport
+        );
+        const capturedFilename = await page.evaluate(
+            () => (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename
+        );
+
+        expect(capturedJson).not.toBeNull();
+        const exportData = JSON.parse(capturedJson as string);
+
+        // Save exported JSON as evidence
+        fs.writeFileSync(path.join(ARTIFACTS_DIR, 'tc-7.1-export.json'), capturedJson as string, 'utf-8');
 
         // Validate structure
         expect(exportData.version).toBe(EXPORT_FORMAT_VERSION);
@@ -214,7 +248,10 @@ test.describe('Import/Export — configuration (JSON)', () => {
         const presetIds = exportData.data.presets.map((p: any) => p.id);
         expect(presetIds).toContain('exp-preset-1');
 
-        console.log('TC 7.1: PASS');
+        // Filename sanity: handleExport() uses `pulseproxy-settings-YYYY-MM-DD.json`
+        expect(capturedFilename).toMatch(/^pulseproxy-settings-\d{4}-\d{2}-\d{2}\.json$/);
+
+        console.log('TC 7.1: PASS (real #export-button click, captured filename=' + capturedFilename + ')');
         await page.close();
     });
 

@@ -5,6 +5,7 @@ import { SupportedLanguage, I18nKey, ThemeType } from '../types';
 import { showAlert, showConfirm } from './dialog';
 import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
 import { RemoteConfig } from '../shared/remote-config';
+import { UI } from './ui';
 
 class SettingsService {
     private languageSelect: HTMLSelectElement | null = null;
@@ -90,6 +91,7 @@ class SettingsService {
             const newLang = this.languageSelect!.value as SupportedLanguage;
             await I18n.setLanguage(newLang);
             I18n.applyTranslations();
+            UI.updateState(UI.getCurrentState());
         });
     }
 

@@ -13,6 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const TEST_DATA_DIR = path.join(__dirname, '../../reports');
+const REPORTS_DIR = path.join(__dirname, '../../reports');
 
 function readJson(filename: string) {
     const raw = fs.readFileSync(path.join(TEST_DATA_DIR, filename), 'utf-8');
@@ -64,8 +65,13 @@ test.describe('Edge-cases и stress-сценарии', () => {
 
         await proxyList?.evaluate(el => { el.scrollTop = el.scrollHeight; });
         await page.waitForTimeout(300);
+        // Screenshot at bottom of scroll — visual evidence for "scrolling works"
+        await page.screenshot({ path: path.join(REPORTS_DIR, 'QA-122-TC10.1-scroll-bottom.png') });
+
         await proxyList?.evaluate(el => { el.scrollTop = 0; });
         await page.waitForTimeout(300);
+        // Screenshot at top — shows full proxy list without overflow
+        await page.screenshot({ path: path.join(REPORTS_DIR, 'QA-122-TC10.1-scroll-top.png') });
 
         const startTime = Date.now();
         await page.click('[data-tab="settings"]');
@@ -108,6 +114,9 @@ test.describe('Edge-cases и stress-сценарии', () => {
         expect(presetContent).toBeTruthy();
         const overflow = await presetContent?.evaluate(el => el.scrollWidth > el.clientWidth);
         expect(overflow).toBeFalsy();
+
+        // Screenshot — visual evidence of 55+ domains without horizontal overflow
+        await page.screenshot({ path: path.join(REPORTS_DIR, 'QA-122-TC10.2-domains-no-overflow.png') });
 
         await page.close();
     });
@@ -188,6 +197,9 @@ test.describe('Edge-cases и stress-сценарии', () => {
         }));
         expect(nameOverflow).toBeTruthy();
 
+        // Screenshot — visual evidence: long name is truncated elegantly, no layout breakage
+        await page.screenshot({ path: path.join(REPORTS_DIR, 'QA-122-TC10.4-long-name-truncation.png') });
+
         await page.close();
     });
 
@@ -230,6 +242,9 @@ test.describe('Edge-cases и stress-сценарии', () => {
         const hasPort65535 = allText.some((t: string | null) => t?.includes(':65535'));
         expect(hasPort1).toBeTruthy();
         expect(hasPort65535).toBeTruthy();
+
+        // Screenshot — visual evidence: both boundary ports displayed in details
+        await page.screenshot({ path: path.join(REPORTS_DIR, 'QA-122-TC10.5-boundary-ports.png') });
 
         await page.close();
     });

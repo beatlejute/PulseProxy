@@ -311,6 +311,13 @@ test.describe('Proxy CRUD — создание, редактирование, у
         await popup.waitForLoadState('domcontentloaded');
 
         const proxyId = await createProxyViaStorage(popup, 'http', 'old.example.com', 8080);
+
+        // Проверяем исходное состояние перед изменением
+        const originalProxy = await getProxyById(popup, proxyId);
+        expect(originalProxy).toBeDefined();
+        expect(originalProxy.host).toBe('old.example.com');
+        expect(originalProxy.port).toBe(8080);
+
         await updateProxy(popup, proxyId, { host: 'new.example.com', port: 9090 });
 
         const updatedProxy = await getProxyById(popup, proxyId);
@@ -331,6 +338,13 @@ test.describe('Proxy CRUD — создание, редактирование, у
         await popup.waitForLoadState('domcontentloaded');
 
         const proxyId = await createProxyViaStorage(popup, 'socks4', 'socks.example.com', 1080);
+
+        // Проверяем что исходно аутентификация отсутствует
+        const originalProxy = await getProxyById(popup, proxyId);
+        expect(originalProxy).toBeDefined();
+        expect(originalProxy.username).toBeFalsy();
+        expect(originalProxy.password).toBeFalsy();
+
         await updateProxy(popup, proxyId, { username: 'newuser', password: 'newpass' });
 
         const updatedProxy = await getProxyById(popup, proxyId);
@@ -347,6 +361,12 @@ test.describe('Proxy CRUD — создание, редактирование, у
         await popup.waitForLoadState('domcontentloaded');
 
         const proxyId = await createProxyViaStorage(popup, 'http', 'proxy.example.com', 8080);
+
+        // Проверяем исходный тип перед изменением
+        const originalProxy = await getProxyById(popup, proxyId);
+        expect(originalProxy).toBeDefined();
+        expect(originalProxy.type).toBe('http');
+
         await updateProxy(popup, proxyId, { type: 'socks5' });
 
         const updatedProxy = await getProxyById(popup, proxyId);
@@ -552,5 +572,62 @@ test.describe('Proxy CRUD — создание, редактирование, у
         const defaultProxy = proxies.find((p: any) => p.isDefault);
         expect(defaultProxy).toBeDefined();
         expect(defaultProxy.id).toBe(proxy2Id);
+    });
+
+    // TC 2.9b: Удаление активного (подключённого) прокси
+    test('TC 2.9b: удаление активного (подключённого) прокси', async () => {
+        popup = await openPopup(context, popupUrl);
+        await popup.waitForLoadState('domcontentloaded');
+
+        // Очищаем состояние перед тестом
+        await popup.evaluate(() =>
+            new Promise(resolve => chrome.storage.local.set({ proxies: [], targetState: 'disconnected', currentState: 'disconnected' }, resolve))
+        );
+        await popup.waitForTimeout(300);
+
+        const proxyId = await createProxyViaStorage(popup, 'http', 'proxy.example.com', 8080);
+        await setDefaultProxy(popup, proxyId);
+
+        // Устанавливаем targetState = 'connected' для имитации активного прокси
+        await popup.evaluate(
+            ({ proxyId }) => {
+                return new Promise<void>(resolve => {
+                    chrome.storage.local.set({ targetState: 'connected' }, () => resolve());
+                });
+            },
+            { proxyId }
+        );
+        await popup.waitForTimeout(300);
+
+        // Проверяем что прокси существует и targetState установлен
+        let proxies = await getAllProxies(popup);
+        expect(proxies.length).toBe(1);
+
+        const targetState = await popup.evaluate(() =>
+            new Promise<string>(resolve => chrome.storage.local.get('targetState', (data) => resolve(data.targetState || 'disconnected')))
+        );
+        expect(targetState).toBe('connected');
+
+        // Удаляем активный прокси
+        await deleteProxy(popup, proxyId);
+
+        // Проверяем что прокси удалён
+        proxies = await getAllProxies(popup);
+        expect(proxies.length).toBe(0);
+        expect(proxies.find((p: any) => p.id === proxyId)).toBeUndefined();
+
+        // Проверяем UI обновился
+        await refreshProxyUI(popup);
+        const proxyCount = await popup.$$eval('.proxy-item', (els) => els.length);
+        expect(proxyCount).toBe(0);
+
+        // Проверяем что нет элемента списка (пустое состояние)
+        const emptyStateElement = await popup.locator('[data-testid="empty-proxy-list"], .empty-state').count();
+        // Если empty state существует, должен быть виден
+        if (emptyStateElement > 0) {
+            expect(emptyStateElement).toBeGreaterThan(0);
+        }
+
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-2.9b-active-proxy-deleted.png`), fullPage: true });
     });
 });

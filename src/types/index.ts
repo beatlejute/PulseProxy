@@ -227,7 +227,11 @@ export type I18nKey =
     | 'proxyCheckFailedTitle'
     | 'saveAnyway'
     | 'labelProxyCheck'
-    | 'labelVersion';
+     | 'labelVersion'
+     | 'ariaProxyOn'
+     | 'ariaProxyOff'
+     | 'ariaProxyConnecting'
+     | 'ariaProxyError';
 
 // Структура экспортируемых данных
 export interface ExportData {

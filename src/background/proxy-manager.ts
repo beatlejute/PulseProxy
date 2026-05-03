@@ -430,14 +430,14 @@ class ProxyManagerService {
         this.clearRoutingCache();
 
         return new Promise((resolve) => {
-            chrome.proxy.settings.clear({ scope: 'regular' }, () => {
+            chrome.proxy.settings.clear({ scope: 'regular' }, async () => {
                 if (chrome.runtime.lastError) {
                     console.error('ProxyManager: Error clearing proxy:', chrome.runtime.lastError.message);
-                    Storage.setCurrentState(ProxyState.ERROR);
+                    await Storage.setCurrentState(ProxyState.ERROR);
                 } else {
                     console.log('ProxyManager: Proxy disabled');
                     this.lastConnectedProxyId = null;
-                    Storage.setCurrentState(ProxyState.DISCONNECTED);
+                    await Storage.setCurrentState(ProxyState.DISCONNECTED);
                 }
                 resolve();
             });

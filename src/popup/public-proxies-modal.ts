@@ -27,7 +27,8 @@ export async function showPublicProxiesModal(
 ): Promise<void> {
     const { body, closeModal, build } = ModalHelper.create({
         title: I18n.getMessage('publicProxiesTitle'),
-        modalClass: 'public-proxies-modal'
+        modalClass: 'public-proxies-modal',
+        fullHeight: true
     });
 
     // Warning block

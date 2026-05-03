@@ -12,13 +12,18 @@ type MessagesData = Record<string, MessageEntry>;
 class I18nService {
     private currentLanguage: SupportedLanguage = DEFAULT_LANGUAGE;
     private messages: MessagesData = {};
+    private fallbackMessages: MessagesData = {};
 
     async init(): Promise<void> {
         // Загрузить сохранённый язык или определить по браузеру
         const savedLang = await Storage.getLanguage();
         this.currentLanguage = savedLang || this.detectBrowserLanguage();
+        // Загрузить fallback сообщения на английском
+        await this.loadMessages(DEFAULT_LANGUAGE, true);
         // Загрузить переводы для текущего языка
-        await this.loadMessages(this.currentLanguage);
+        if (this.currentLanguage !== DEFAULT_LANGUAGE) {
+            await this.loadMessages(this.currentLanguage);
+        }
     }
 
     private detectBrowserLanguage(): SupportedLanguage {
@@ -28,17 +33,23 @@ class I18nService {
             : DEFAULT_LANGUAGE;
     }
 
-    private async loadMessages(lang: SupportedLanguage): Promise<void> {
+    private async loadMessages(lang: SupportedLanguage, isFallback: boolean = false): Promise<void> {
         try {
             const url = chrome.runtime.getURL(`_locales/${lang}/messages.json`);
             const response = await fetch(url);
-            this.messages = await response.json();
-            console.log(`I18n: Loaded messages for language: ${lang}`);
+            const messages = await response.json();
+
+            if (isFallback) {
+                this.fallbackMessages = messages;
+                console.log(`I18n: Loaded fallback messages for language: ${lang}`);
+            } else {
+                this.messages = messages;
+                console.log(`I18n: Loaded messages for language: ${lang}`);
+            }
         } catch (error) {
             console.error(`I18n: Failed to load messages for ${lang}:`, error);
-            // Fallback к дефолтному языку
-            if (lang !== DEFAULT_LANGUAGE) {
-                await this.loadMessages(DEFAULT_LANGUAGE);
+            if (!isFallback && lang !== DEFAULT_LANGUAGE) {
+                await this.loadMessages(DEFAULT_LANGUAGE, true);
             }
         }
     }
@@ -46,12 +57,20 @@ class I18nService {
     async setLanguage(lang: SupportedLanguage): Promise<void> {
         this.currentLanguage = lang;
         await Storage.setLanguage(lang);
-        await this.loadMessages(lang);
+        if (lang !== DEFAULT_LANGUAGE) {
+            await this.loadMessages(lang);
+        } else {
+            this.messages = this.fallbackMessages;
+            console.log(`I18n: Set language to: ${lang}`);
+        }
     }
 
     getMessage(key: I18nKey, substitutions?: string[]): string {
-        // Используем загруженные переводы
-        const entry = this.messages[key];
+        // Используем загруженные переводы или fallback на английский
+        let entry = this.messages[key];
+        if (!entry?.message) {
+            entry = this.fallbackMessages[key];
+        }
         if (!entry?.message) return key;
         
         let message = entry.message;

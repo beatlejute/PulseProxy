@@ -27,13 +27,14 @@
 }
 
 html, body {
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-  width: 280px !important;
-  max-width: 280px !important;
-  min-width: 280px !important;
-  background-color: var(--background-color);
+   margin: 0;
+   padding: 0;
+   overflow-x: hidden;
+   width: 280px !important;
+   max-width: 280px !important;
+   min-width: 280px !important;
+   height: 600px;
+   background-color: var(--background-color);
 }
 
 .container {
@@ -47,7 +48,7 @@ html, body {
   overflow: visible;
   display: flex;
   flex-direction: column;
-  min-height: 220px;
+  height: 100%;
   position: relative;
 }
 
@@ -66,8 +67,25 @@ html, body {
   transition: transform 0.2s ease, filter 0.3s ease;
 }
 
-.main-button:hover {
-  transform: scale(1.05);
+.main-button.disconnected:hover,
+.main-button.connected:hover {
+  transform: scale(1.08);
+}
+
+.main-button.disconnected:hover .shield-icon,
+.main-button.connected:hover .shield-icon {
+  filter: drop-shadow(0 0 6px rgba(255, 221, 45, 0.5));
+}
+
+/* Accessibility: Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .main-button.disconnected:hover,
+  .main-button.connected:hover {
+    transform: none;
+  }
+  .main-button {
+    transition: none;
+  }
 }
 
 .main-button:active {
@@ -78,18 +96,36 @@ html, body {
 .shield-icon {
   width: 100%;
   height: 100%;
+  transition: filter 0.3s ease;
 }
 
 .shield-bg {
-  transition: fill 0.3s ease;
+   transition: fill 0.3s ease;
+}
+
+ .shield-label {
+    fill: white;
+    font-family: Arial, sans-serif;
+    font-size: 10px;
+    font-weight: 500;
+    text-anchor: middle;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    opacity: 0.55;
+    pointer-events: none;
+}
+
+.theme-light .shield-label {
+    fill: #191919;
+    opacity: 0.7;
 }
 
 .pulse-line, .flat-line {
-  fill: none;
-  stroke: white;
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+   fill: none;
+   stroke: white;
+   stroke-width: 4;
+   stroke-linecap: round;
+   stroke-linejoin: round;
 }
 
 .pulse-container {
@@ -160,6 +196,10 @@ html, body {
 .main-button.connecting .shield-bg {
   fill: var(--loading-color);
   animation: shield-pulse 1s ease-in-out infinite;
+}
+
+.main-button.connecting .shield-label {
+  fill: #191919;
 }
 
 .main-button.connecting .pulse-container {
@@ -501,6 +541,8 @@ button.support-project {
 
 .presets-section {
   margin-bottom: 20px;
+  flex: 1;
+  min-height: 0;
 }
 
 .add-preset-button {
@@ -523,7 +565,8 @@ button.support-project {
 }
 
 #presets-container {
-  max-height: 300px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
@@ -814,7 +857,6 @@ button.support-project {
   background-color: var(--secondary-color);
   border-radius: 8px;
   padding: 3px;
-  margin-top: auto;
   margin-bottom: 10px;
 }
 
@@ -845,16 +887,23 @@ button.support-project {
    ======================================== */
 
 .tab-contents {
-  width: 100%;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .tab-content {
-  display: none;
-}
+   display: none;
+   flex: 1;
+   min-height: 0;
+ }
 
-.tab-content.active {
-  display: block;
-}
+ .tab-content.active {
+   display: flex;
+   flex-direction: column;
+ }
 
 /* ========================================
    Proxy List Styles
@@ -862,12 +911,18 @@ button.support-project {
 
 #proxy-list-container {
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .proxy-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
 }
 
 .proxy-list-header {
@@ -910,7 +965,8 @@ button.support-project {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 250px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -1068,6 +1124,11 @@ button.support-project {
   z-index: 1000;
   padding: 10px;
   min-height: 500px;
+}
+
+.modal-overlay.modal-overlay--fullheight {
+  
+  height: 100vh;
 }
 
 .modal {
@@ -1388,14 +1449,18 @@ button.support-project {
 
 /* Preset Templates Modal */
 .preset-templates-modal {
-  max-height: 400px;
-}
-
-.preset-templates-modal .modal-body {
-  padding: 10px;
+  height: 100%;
+  max-height: none;
   display: flex;
   flex-direction: column;
 }
+.preset-templates-modal .modal-body {
+   padding: 10px;
+   display: flex;
+   flex-direction: column;
+   flex: 1;
+   min-height: 0;
+ }
 
 .preset-search {
   margin-bottom: 10px;
@@ -1422,7 +1487,8 @@ button.support-project {
 }
 
 .preset-templates-list {
-  max-height: 250px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -1576,8 +1642,11 @@ button.support-project {
    ======================================== */
 
 .public-proxies-modal {
-  max-height: 450px;
+  height: 100%;
+  max-height: none;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .proxy-checking-overlay {
@@ -1600,6 +1669,8 @@ button.support-project {
   padding: 10px;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Filters */
@@ -1759,7 +1830,8 @@ button.support-project {
 
 /* Proxies List */
 .public-proxies-list {
-  max-height: 280px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 

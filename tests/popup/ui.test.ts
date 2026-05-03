@@ -7,6 +7,19 @@ jest.mock('../../src/shared/analytics', () => ({
     trackEvent: jest.fn().mockResolvedValue(undefined),
     buildAffiliateUrl: jest.fn((url: string, placement: string) => `${url}?utm_source=${placement}`)
 }));
+jest.mock('../../src/shared/i18n', () => ({
+    I18n: {
+        getMessage: jest.fn((key: string) => {
+            const translations: Record<string, string> = {
+                'ariaProxyOn': 'Proxy is on',
+                'ariaProxyOff': 'Proxy is off',
+                'ariaProxyConnecting': 'Proxy is connecting',
+                'ariaProxyError': 'Proxy has an error'
+            };
+            return translations[key] || key;
+        })
+    }
+}));
 
 // Динамический импорт для правильного порядка инициализации
 let UI: typeof import('../../src/popup/ui').UI;
@@ -107,6 +120,44 @@ describe('ui.ts - UIService', () => {
             UI.updateState('disconnected');
             expect(button?.classList.contains('connected')).toBe(false);
             expect(button?.classList.contains('disconnected')).toBe(true);
+        });
+    });
+
+    describe('updateButtonState() - aria-pressed and aria-label', () => {
+        beforeEach(() => {
+            UI.init();
+        });
+
+        it('should set aria-pressed="true" and correct aria-label when state is CONNECTED', () => {
+            UI.updateState('connected');
+
+            const button = document.getElementById('main-button');
+            expect(button?.getAttribute('aria-pressed')).toBe('true');
+            expect(button?.getAttribute('aria-label')).toBe('Proxy is on');
+        });
+
+        it('should set aria-pressed="false" and correct aria-label when state is DISCONNECTED', () => {
+            UI.updateState('disconnected');
+
+            const button = document.getElementById('main-button');
+            expect(button?.getAttribute('aria-pressed')).toBe('false');
+            expect(button?.getAttribute('aria-label')).toBe('Proxy is off');
+        });
+
+        it('should set aria-pressed="false" and correct aria-label when state is CONNECTING', () => {
+            UI.updateState('connecting');
+
+            const button = document.getElementById('main-button');
+            expect(button?.getAttribute('aria-pressed')).toBe('false');
+            expect(button?.getAttribute('aria-label')).toBe('Proxy is connecting');
+        });
+
+        it('should set aria-pressed="false" and correct aria-label when state is ERROR', () => {
+            UI.updateState('error');
+
+            const button = document.getElementById('main-button');
+            expect(button?.getAttribute('aria-pressed')).toBe('false');
+            expect(button?.getAttribute('aria-label')).toBe('Proxy has an error');
         });
     });
 

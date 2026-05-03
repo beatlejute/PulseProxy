@@ -60,7 +60,8 @@ export async function showPresetTemplatesModal(
 ): Promise<void> {
     const { body, closeModal, build } = ModalHelper.create({
         title: I18n.getMessage('presetListTitle'),
-        modalClass: 'preset-templates-modal'
+        modalClass: 'preset-templates-modal',
+        fullHeight: true
     });
 
     const searchContainer = document.createElement('div');

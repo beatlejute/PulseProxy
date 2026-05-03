@@ -1,12 +1,14 @@
 import { ProxyState, DOMIds, StorageKeys } from '../shared/constants';
-import { ProxyStateType } from '../types';
+import { ProxyStateType, I18nKey } from '../types';
 import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
 import { RemoteConfig } from '../shared/remote-config';
+import { I18n } from '../shared/i18n';
 
 class UIService {
     private button: HTMLButtonElement | null = null;
     private errorBanner: HTMLElement | null = null;
     private errorProxyLabel: HTMLElement | null = null;
+    private currentState: ProxyStateType = ProxyState.DISCONNECTED;
 
     init(): void {
         this.button = document.getElementById(DOMIds.MAIN_BUTTON) as HTMLButtonElement;
@@ -53,8 +55,13 @@ class UIService {
     }
 
     updateState(state: ProxyStateType): void {
+        this.currentState = state;
         this.updateButtonState(state);
         this.updateErrorBanner(state);
+    }
+
+    getCurrentState(): ProxyStateType {
+        return this.currentState;
     }
 
     private updateButtonState(state: ProxyStateType): void {
@@ -70,6 +77,27 @@ class UIService {
 
         // Добавляем текущее состояние
         this.button.classList.add(state);
+        
+        // Обновляем текст надписи на щите
+        const labelMap: Record<ProxyStateType, string> = {
+            [ProxyState.DISCONNECTED]: 'OFF',
+            [ProxyState.CONNECTED]: 'ON',
+            [ProxyState.CONNECTING]: '...',
+            [ProxyState.ERROR]: 'ERROR',
+        };
+        const labelEl = this.button.querySelector('.shield-label');
+        if (labelEl) labelEl.textContent = labelMap[state];
+        
+        // Маппинг состояний на ключи i18n для aria-label
+        const ariaMap: Record<ProxyStateType, I18nKey> = {
+            [ProxyState.DISCONNECTED]: 'ariaProxyOff',
+            [ProxyState.CONNECTED]: 'ariaProxyOn',
+            [ProxyState.CONNECTING]: 'ariaProxyConnecting',
+            [ProxyState.ERROR]: 'ariaProxyError',
+        };
+        this.button.setAttribute('aria-label', I18n.getMessage(ariaMap[state]));
+        
+        this.button.setAttribute('aria-pressed', state === ProxyState.CONNECTED ? 'true' : 'false');
         console.log('UI: Button state updated to', state);
     }
 

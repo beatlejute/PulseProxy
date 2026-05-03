@@ -534,5 +534,9 @@
   "selectDefaultProxyTitle": {
     "message": "Seleccionar proxy predeterminado",
     "description": "Title for select default proxy modal"
-  }
+  },
+  "ariaProxyOn": { "message": "Proxy on", "description": "TODO: needs native translation" },
+  "ariaProxyOff": { "message": "Proxy off", "description": "TODO: needs native translation" },
+  "ariaProxyConnecting": { "message": "Connecting", "description": "TODO: needs native translation" },
+  "ariaProxyError": { "message": "Connection error", "description": "TODO: needs native translation" }
 }

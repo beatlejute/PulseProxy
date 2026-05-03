@@ -504,14 +504,28 @@
   "proxyErrorTitle": {
     "message": "Connection failed",
     "description": "Error banner title when proxy connection fails"
-  }
-,
+  },
+  "ariaProxyOn": {
+    "message": "Proxy on",
+    "description": "ARIA label for main toggle button when proxy is connected"
+  },
+  "ariaProxyOff": {
+    "message": "Proxy off",
+    "description": "ARIA label when proxy is disconnected"
+  },
+  "ariaProxyConnecting": {
+    "message": "Connecting",
+    "description": "ARIA label when proxy is connecting"
+  },
+  "ariaProxyError": {
+    "message": "Connection error",
+    "description": "ARIA label when proxy connection failed"
+  },
   "checkProxy": { "message": "Check" },
   "checkProxyChecking": { "message": "Checking..." },
   "checkProxyOk": { "message": "Connected" },
   "checkProxyError": { "message": "Failed" },
-  "checkProxyTimeout": { "message": "Timeout" }
-,
+  "checkProxyTimeout": { "message": "Timeout" },
   "proxyCheckFailedTitle": { "message": "Proxy seems not working" },
   "saveAnyway": { "message": "Save anyway" },
   "labelVersion": {

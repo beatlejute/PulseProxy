@@ -20,7 +20,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const ARTIFACTS_DIR = path.resolve(__dirname, '../../reports');
-const ARTIFACT_PREFIX = 'QA-009';
+const ARTIFACT_PREFIX = 'QA-117';
 
 function ensureArtifactsDir() {
     if (!fs.existsSync(ARTIFACTS_DIR)) {

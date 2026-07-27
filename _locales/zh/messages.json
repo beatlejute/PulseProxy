@@ -260,7 +260,7 @@
     "description": "Cancel button"
   },
   "continue": {
-    "message": "Continue",
+    "message": "继续",
     "description": "Continue button"
   },
   "save": {
@@ -332,7 +332,7 @@
     "description": "Warning when file version is newer"
   },
   "newerVersionConfirm": {
-    "message": "This file was created with a newer version of the extension. Some data may be incompatible. Continue import?",
+    "message": "此文件由较新版本的扩展程序创建。部分数据可能不兼容。是否继续导入？",
     "description": "Confirmation dialog when importing file from newer version"
   },
   "missingData": {
@@ -504,29 +504,59 @@
   "proxyErrorTitle": {
     "message": "连接失败",
     "description": "Error banner title when proxy connection fails"
-  }
-,
-  "checkProxy": { "message": "检查" },
-  "checkProxyChecking": { "message": "检查中..." },
-  "checkProxyOk": { "message": "已连接" },
-  "checkProxyError": { "message": "失败" },
-  "checkProxyTimeout": { "message": "超时" }
-,
-  "proxyCheckFailedTitle": { "message": "代理似乎无法正常工作" },
-  "saveAnyway": { "message": "仍然保存" },
+  },
+  "checkProxy": {
+    "message": "检查"
+  },
+  "checkProxyChecking": {
+    "message": "检查中..."
+  },
+  "checkProxyOk": {
+    "message": "已连接"
+  },
+  "checkProxyError": {
+    "message": "失败"
+  },
+  "checkProxyTimeout": {
+    "message": "超时"
+  },
+  "proxyCheckFailedTitle": {
+    "message": "代理似乎无法正常工作"
+  },
+  "saveAnyway": {
+    "message": "仍然保存"
+  },
   "labelVersion": {
     "message": "版本",
     "description": "Label for version display in settings"
   },
-  "welcomeTitle": { "message": "欢迎使用 PulseProxy！" },
-  "welcomeSubtitle": { "message": "简单快速的浏览器代理管理" },
-  "welcomeStep1Title": { "message": "添加代理" },
-  "welcomeStep1Desc": { "message": "点击扩展图标并添加您的代理服务器" },
-  "welcomeStep2Title": { "message": "设置预设" },
-  "welcomeStep2Desc": { "message": "选择哪些网站应使用代理" },
-  "welcomeStep3Title": { "message": "连接" },
-  "welcomeStep3Desc": { "message": "点击盾牌按钮启用代理" },
-  "welcomeGetStarted": { "message": "开始使用" },
+  "welcomeTitle": {
+    "message": "欢迎使用 PulseProxy！"
+  },
+  "welcomeSubtitle": {
+    "message": "简单快速的浏览器代理管理"
+  },
+  "welcomeStep1Title": {
+    "message": "添加代理"
+  },
+  "welcomeStep1Desc": {
+    "message": "点击扩展图标并添加您的代理服务器"
+  },
+  "welcomeStep2Title": {
+    "message": "设置预设"
+  },
+  "welcomeStep2Desc": {
+    "message": "选择哪些网站应使用代理"
+  },
+  "welcomeStep3Title": {
+    "message": "连接"
+  },
+  "welcomeStep3Desc": {
+    "message": "点击盾牌按钮启用代理"
+  },
+  "welcomeGetStarted": {
+    "message": "开始使用"
+  },
   "labelTheme": {
     "message": "深色主题",
     "description": "Label for dark theme toggle checkbox"
@@ -535,8 +565,20 @@
     "message": "选择默认代理",
     "description": "Title for select default proxy modal"
   },
-  "ariaProxyOn": { "message": "Proxy on", "description": "TODO: needs native translation" },
-  "ariaProxyOff": { "message": "Proxy off", "description": "TODO: needs native translation" },
-  "ariaProxyConnecting": { "message": "Connecting", "description": "TODO: needs native translation" },
-  "ariaProxyError": { "message": "Connection error", "description": "TODO: needs native translation" }
+  "ariaProxyOn": {
+    "message": "代理已开启",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyOff": {
+    "message": "代理已关闭",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyConnecting": {
+    "message": "连接中",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyError": {
+    "message": "连接错误",
+    "description": "TODO: needs native translation"
+  }
 }

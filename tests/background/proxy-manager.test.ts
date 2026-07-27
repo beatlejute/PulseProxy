@@ -205,6 +205,68 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
         });
     });
 
+    describe('getRouteForUrl()', () => {
+        it('should mark route as viaProxyAll for non-preset sites when proxyByDefault is enabled', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['preset-site.com'])],
+                proxyByDefault: true,
+            });
+
+            await ProxyManager.enable();
+
+            const route = ProxyManager.getRouteForUrl('https://random-site.com/page');
+
+            expect(route).not.toBeNull();
+            expect(route!.viaProxyAll).toBe(true);
+            expect(route!.server.host).toBe('10.0.0.1');
+        });
+
+        it('should not mark route as viaProxyAll for preset-matched sites', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['preset-site.com'])],
+                proxyByDefault: true,
+            });
+
+            await ProxyManager.enable();
+
+            const route = ProxyManager.getRouteForUrl('https://preset-site.com/page');
+
+            expect(route).not.toBeNull();
+            expect(route!.viaProxyAll).toBe(false);
+            expect(route!.server.host).toBe('10.0.0.1');
+        });
+
+        it('should return null for ignore-list sites even when proxyByDefault is enabled', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['ignored.com'], true, true, 'ignore-list')],
+                proxyByDefault: true,
+            });
+
+            await ProxyManager.enable();
+
+            expect(ProxyManager.getRouteForUrl('https://ignored.com/page')).toBeNull();
+        });
+
+        it('should return null for non-preset sites when proxyByDefault is disabled', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['preset-site.com'])],
+                proxyByDefault: false,
+            });
+
+            await ProxyManager.enable();
+
+            expect(ProxyManager.getRouteForUrl('https://random-site.com/page')).toBeNull();
+        });
+    });
+
     describe('disable()', () => {
         it('should clear proxy settings', async () => {
             mockHelpers.setLocalStorageData({ migrationCompleted: true });

@@ -260,7 +260,7 @@
     "description": "Cancel button"
   },
   "continue": {
-    "message": "Continue",
+    "message": "続行",
     "description": "Continue button"
   },
   "save": {
@@ -332,7 +332,7 @@
     "description": "Warning when file version is newer"
   },
   "newerVersionConfirm": {
-    "message": "This file was created with a newer version of the extension. Some data may be incompatible. Continue import?",
+    "message": "このファイルは拡張機能の新しいバージョンで作成されました。一部のデータは互換性がない可能性があります。インポートを続行しますか？",
     "description": "Confirmation dialog when importing file from newer version"
   },
   "missingData": {
@@ -504,29 +504,59 @@
   "proxyErrorTitle": {
     "message": "接続に失敗しました",
     "description": "Error banner title when proxy connection fails"
-  }
-,
-  "checkProxy": { "message": "確認" },
-  "checkProxyChecking": { "message": "確認中..." },
-  "checkProxyOk": { "message": "接続済み" },
-  "checkProxyError": { "message": "失敗" },
-  "checkProxyTimeout": { "message": "タイムアウト" }
-,
-  "proxyCheckFailedTitle": { "message": "プロキシが動作していないようです" },
-  "saveAnyway": { "message": "それでも保存" },
+  },
+  "checkProxy": {
+    "message": "確認"
+  },
+  "checkProxyChecking": {
+    "message": "確認中..."
+  },
+  "checkProxyOk": {
+    "message": "接続済み"
+  },
+  "checkProxyError": {
+    "message": "失敗"
+  },
+  "checkProxyTimeout": {
+    "message": "タイムアウト"
+  },
+  "proxyCheckFailedTitle": {
+    "message": "プロキシが動作していないようです"
+  },
+  "saveAnyway": {
+    "message": "それでも保存"
+  },
   "labelVersion": {
     "message": "バージョン",
     "description": "Label for version display in settings"
   },
-  "welcomeTitle": { "message": "PulseProxyへようこそ！" },
-  "welcomeSubtitle": { "message": "ブラウザ用のシンプルで高速なプロキシ管理" },
-  "welcomeStep1Title": { "message": "プロキシを追加" },
-  "welcomeStep1Desc": { "message": "拡張機能アイコンをクリックしてプロキシサーバーを追加します" },
-  "welcomeStep2Title": { "message": "プリセットを設定" },
-  "welcomeStep2Desc": { "message": "プロキシを使用するサイトを選択します" },
-  "welcomeStep3Title": { "message": "接続" },
-  "welcomeStep3Desc": { "message": "シールドボタンをクリックしてプロキシを有効にします" },
-  "welcomeGetStarted": { "message": "始める" },
+  "welcomeTitle": {
+    "message": "PulseProxyへようこそ！"
+  },
+  "welcomeSubtitle": {
+    "message": "ブラウザ用のシンプルで高速なプロキシ管理"
+  },
+  "welcomeStep1Title": {
+    "message": "プロキシを追加"
+  },
+  "welcomeStep1Desc": {
+    "message": "拡張機能アイコンをクリックしてプロキシサーバーを追加します"
+  },
+  "welcomeStep2Title": {
+    "message": "プリセットを設定"
+  },
+  "welcomeStep2Desc": {
+    "message": "プロキシを使用するサイトを選択します"
+  },
+  "welcomeStep3Title": {
+    "message": "接続"
+  },
+  "welcomeStep3Desc": {
+    "message": "シールドボタンをクリックしてプロキシを有効にします"
+  },
+  "welcomeGetStarted": {
+    "message": "始める"
+  },
   "labelTheme": {
     "message": "ダークテーマ",
     "description": "Label for dark theme toggle checkbox"
@@ -535,8 +565,20 @@
     "message": "デフォルトのプロキシを選択",
     "description": "Title for select default proxy modal"
   },
-  "ariaProxyOn": { "message": "Proxy on", "description": "TODO: needs native translation" },
-  "ariaProxyOff": { "message": "Proxy off", "description": "TODO: needs native translation" },
-  "ariaProxyConnecting": { "message": "Connecting", "description": "TODO: needs native translation" },
-  "ariaProxyError": { "message": "Connection error", "description": "TODO: needs native translation" }
+  "ariaProxyOn": {
+    "message": "プロキシ有効",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyOff": {
+    "message": "プロキシ無効",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyConnecting": {
+    "message": "接続中",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyError": {
+    "message": "接続エラー",
+    "description": "TODO: needs native translation"
+  }
 }

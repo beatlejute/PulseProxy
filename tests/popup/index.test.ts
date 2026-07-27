@@ -59,6 +59,13 @@ jest.mock('../../src/shared/i18n', () => ({
     }
 }));
 
+jest.mock('../../src/shared/remote-config', () => ({
+    RemoteConfig: {
+        init: jest.fn().mockResolvedValue(undefined),
+        referralLink: 'https://example.com/ref'
+    }
+}));
+
 jest.mock('../../src/popup/dialog', () => ({
     showConfirm: jest.fn()
 }));
@@ -74,27 +81,38 @@ import { ProxyList } from '../../src/popup/proxy-list';
 import { Presets } from '../../src/popup/presets';
 import { Storage } from '../../src/shared/storage';
 import { I18n } from '../../src/shared/i18n';
+import { RemoteConfig } from '../../src/shared/remote-config';
 import { ProxyState, StorageKeys, DOMIds } from '../../src/shared/constants';
 import { showConfirm } from '../../src/popup/dialog';
 import { showSelectDefaultProxyModal } from '../../src/popup/select-default-proxy-modal';
 
-// SYNC: src/popup/index.ts handleMainButtonClick — синхронизировано 2026-04-21
+// SYNC: src/popup/index.ts handleMainButtonClick — синхронизировано 2026-07-27
 // Recreate PopupApp class for testing (since it's not exported)
 class PopupApp {
     async init(): Promise<void> {
         await Storage.init();
         await I18n.init();
-        
+
+        // Удалённый конфиг грузим в фоне: сеть не должна блокировать отрисовку попапа
+        void RemoteConfig.init().then(() => this.updateReferralLinks());
+
         UI.init();
         Settings.init();
         Tabs.init();
         await ProxyList.init();
         await Presets.init();
-        
+
         I18n.applyTranslations();
+        this.updateReferralLinks();
         this.bindMainButton();
         await this.loadInitialState();
         this.subscribeToChanges();
+    }
+
+    private updateReferralLinks(): void {
+        document.querySelectorAll<HTMLAnchorElement>('a.referral-link').forEach(link => {
+            link.href = RemoteConfig.referralLink;
+        });
     }
 
     private bindMainButton(): void {
@@ -207,6 +225,30 @@ describe('PopupApp', () => {
         it('should subscribe to storage changes', async () => {
             await app.init();
             expect(Storage.onChange).toHaveBeenCalled();
+        });
+
+        it('should not block init when RemoteConfig.init hangs (offline / blocked host)', async () => {
+            // Зависший сетевой запрос: промис никогда не резолвится
+            (RemoteConfig.init as jest.Mock).mockReturnValueOnce(new Promise(() => {}));
+
+            await app.init();
+
+            // UI полностью инициализирован, несмотря на висящий RemoteConfig
+            expect(UI.init).toHaveBeenCalled();
+            expect(ProxyList.init).toHaveBeenCalled();
+            expect(I18n.applyTranslations).toHaveBeenCalled();
+            expect(UI.updateState).toHaveBeenCalled();
+        });
+
+        it('should update referral links after RemoteConfig loads', async () => {
+            document.body.innerHTML += '<a class="referral-link" href="#">Buy proxies</a>';
+
+            await app.init();
+            // Даём отработать .then() фоновой загрузки конфига
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            const link = document.querySelector<HTMLAnchorElement>('a.referral-link');
+            expect(link?.href).toBe('https://example.com/ref');
         });
     });
 

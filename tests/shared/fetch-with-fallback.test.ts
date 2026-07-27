@@ -20,7 +20,10 @@ describe('fetchWithFallback', () => {
             const result = await fetchWithFallback(['https://primary.com/api']);
             expect(result).toEqual(mockData);
             expect(mockFetch).toHaveBeenCalledTimes(1);
-            expect(mockFetch).toHaveBeenCalledWith('https://primary.com/api', undefined);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://primary.com/api',
+                expect.objectContaining({ signal: expect.any(AbortSignal) })
+            );
         });
 
         it('должен использовать fallback если первый URL не удался', async () => {
@@ -92,7 +95,83 @@ describe('fetchWithFallback', () => {
             } as Response);
 
             await fetchWithFallback(['https://api.com'], options);
-            expect(mockFetch).toHaveBeenCalledWith('https://api.com', options);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://api.com',
+                expect.objectContaining({
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: 'test' }),
+                    signal: expect.any(AbortSignal),
+                })
+            );
+        });
+    });
+
+    describe('таймаут', () => {
+        // Имитация зависшего запроса: резолвится только по abort-сигналу
+        const hangingFetch = (_url: string, options?: RequestInit) =>
+            new Promise((_resolve, reject) => {
+                options?.signal?.addEventListener('abort', () =>
+                    reject(new DOMException('The operation was aborted', 'AbortError'))
+                );
+            });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        it('должен прервать зависший запрос по дефолтному таймауту и перейти к fallback', async () => {
+            jest.useFakeTimers();
+            const mockData = { key: 'value' };
+            mockFetch
+                .mockImplementationOnce(hangingFetch)
+                .mockResolvedValueOnce({
+                    ok: true,
+                    json: () => Promise.resolve(mockData),
+                } as Response);
+
+            const promise = fetchWithFallback([
+                'https://hanging.com/api',
+                'https://fallback.com/api',
+            ]);
+            await jest.advanceTimersByTimeAsync(5000);
+
+            await expect(promise).resolves.toEqual(mockData);
+            expect(mockFetch).toHaveBeenCalledTimes(2);
+        });
+
+        it('должен уважать кастомный timeoutMs и упасть если все URL зависли', async () => {
+            jest.useFakeTimers();
+            mockFetch.mockImplementation(hangingFetch);
+
+            const promise = fetchWithFallback(
+                ['https://hanging1.com/api', 'https://hanging2.com/api'],
+                { timeoutMs: 1000 }
+            );
+            const assertion = expect(promise).rejects.toThrow('The operation was aborted');
+            await jest.advanceTimersByTimeAsync(2000);
+
+            await assertion;
+            expect(mockFetch).toHaveBeenCalledTimes(2);
+        });
+
+        it('не должен абортить быстрый успешный запрос', async () => {
+            jest.useFakeTimers();
+            const mockData = { key: 'value' };
+            let capturedSignal: AbortSignal | undefined;
+            mockFetch.mockImplementationOnce((_url: string, options?: RequestInit) => {
+                capturedSignal = options?.signal ?? undefined;
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve(mockData),
+                } as Response);
+            });
+
+            const result = await fetchWithFallback(['https://api.com']);
+
+            expect(result).toEqual(mockData);
+            await jest.advanceTimersByTimeAsync(10000);
+            expect(capturedSignal?.aborted).toBe(false);
         });
     });
 

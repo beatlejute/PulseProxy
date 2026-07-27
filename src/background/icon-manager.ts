@@ -7,6 +7,8 @@ type IconPathObject = { [size: string]: string };
 // Default badge for proxied tabs without a color
 const DEFAULT_BADGE_TEXT = '✓';
 const DEFAULT_BADGE_COLOR = '#4CAF50';
+// Badge shown when the tab is proxied via "proxy all sites by default" mode
+const PROXY_ALL_BADGE_TEXT = 'ALL';
 
 class IconManagerService {
     async update(): Promise<void> {
@@ -28,11 +30,15 @@ class IconManagerService {
     /**
      * Sets per-tab badge indicating whether the tab's site is routed through a proxy.
      * Shows country flag emoji from proxy name if available, otherwise a checkmark.
+     * When the tab is routed via "proxy all sites by default" mode, shows "ALL" instead
+     * (error indicator still takes precedence).
      * Uses the proxy's color marker as badge background if set.
      */
-    setTabProxyBadge(tabId: number, proxy: ProxyServer | null, isError = false): void {
+    setTabProxyBadge(tabId: number, proxy: ProxyServer | null, isError = false, viaProxyAll = false): void {
         if (proxy) {
-            const badgeText = this.extractBadgeText(proxy, isError);
+            const badgeText = !isError && viaProxyAll
+                ? PROXY_ALL_BADGE_TEXT
+                : this.extractBadgeText(proxy, isError);
             const badgeColor = isError ? '#FF6969' : (proxy.color || DEFAULT_BADGE_COLOR);
             chrome.action.setBadgeText({ tabId, text: badgeText }).catch(() => {});
             chrome.action.setBadgeBackgroundColor({ tabId, color: badgeColor }).catch(() => {});

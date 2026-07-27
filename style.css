@@ -33,7 +33,6 @@ html, body {
    width: 280px !important;
    max-width: 280px !important;
    min-width: 280px !important;
-   height: 600px;
    background-color: var(--background-color);
 }
 
@@ -48,7 +47,10 @@ html, body {
   overflow: visible;
   display: flex;
   flex-direction: column;
-  height: 100%;
+  /* Адаптивная высота: по контенту, но не выше лимита Chrome popup (600px);
+     min-height страхует от схлопывания (DEF-016-001) */
+  min-height: 220px;
+  max-height: 600px;
   position: relative;
 }
 
@@ -1123,7 +1125,6 @@ button.support-project {
   justify-content: center;
   z-index: 1000;
   padding: 10px;
-  min-height: 500px;
 }
 
 .modal-overlay.modal-overlay--fullheight {

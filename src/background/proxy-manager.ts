@@ -5,6 +5,13 @@ import { toASCII } from '../shared/punycode';
 import { matchesDomain } from '../shared/domain-matcher';
 import { trackEvent } from '../shared/analytics';
 
+// Routing decision for a URL: which proxy serves it and whether it matched
+// only via the "proxy all sites by default" fallback (no preset rule).
+export interface ProxyRoute {
+    server: ProxyServer;
+    viaProxyAll: boolean;
+}
+
 /**
  * Validates proxy host to prevent Script Injection attacks.
  * Accepts IPv4, IPv6 (with brackets), hostname (RFC 1123), but rejects XSS payloads and malformed input.
@@ -149,8 +156,10 @@ class ProxyManagerService {
         return this.proxyByDefault ? this.defaultProxyLabel : null;
     }
 
-    // Returns ProxyServer object if URL is routed through proxy, null if DIRECT
-    getProxyServerForUrl(url: string): ProxyServer | null {
+    // Returns routing info if URL is routed through proxy, null if DIRECT.
+    // viaProxyAll=true means the URL matched no preset and is proxied only because
+    // "proxy all sites by default" mode is enabled.
+    getRouteForUrl(url: string): ProxyRoute | null {
         let host: string;
         try {
             host = new URL(url).hostname;
@@ -163,10 +172,17 @@ class ProxyManagerService {
         }
 
         for (const [domain, server] of this.domainProxyServerMap) {
-            if (matchesDomain(host, domain)) return server;
+            if (matchesDomain(host, domain)) return { server, viaProxyAll: false };
         }
 
-        return this.proxyByDefault ? this.defaultProxyServer : null;
+        return this.proxyByDefault && this.defaultProxyServer
+            ? { server: this.defaultProxyServer, viaProxyAll: true }
+            : null;
+    }
+
+    // Returns ProxyServer object if URL is routed through proxy, null if DIRECT
+    getProxyServerForUrl(url: string): ProxyServer | null {
+        return this.getRouteForUrl(url)?.server ?? null;
     }
 
     async init(): Promise<void> {

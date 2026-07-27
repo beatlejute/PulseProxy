@@ -243,6 +243,41 @@ describe('icon-manager.ts - IconManagerService', () => {
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 6, text: '✓' });
         });
+
+        it('should set badge text to "ALL" when tab is routed via proxy-all mode', () => {
+            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+
+            IconManager.setTabProxyBadge(7, proxy, false, true);
+
+            expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 7, text: 'ALL' });
+            expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 7, color: '#4CAF50' });
+        });
+
+        it('should prefer "ALL" over flag emoji in proxy-all mode', () => {
+            const proxy = { name: '🇺🇸 US Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+
+            IconManager.setTabProxyBadge(8, proxy, false, true);
+
+            expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 8, text: 'ALL' });
+        });
+
+        it('should keep error badge "!" in proxy-all mode', () => {
+            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+
+            IconManager.setTabProxyBadge(9, proxy, true, true);
+
+            expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 9, text: '!' });
+            expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 9, color: '#FF6969' });
+        });
+
+        it('should use proxy custom color for "ALL" badge background', () => {
+            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const, color: '#FF00FF' };
+
+            IconManager.setTabProxyBadge(10, proxy, false, true);
+
+            expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 10, text: 'ALL' });
+            expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 10, color: '#FF00FF' });
+        });
     });
 
     describe('Error handling', () => {

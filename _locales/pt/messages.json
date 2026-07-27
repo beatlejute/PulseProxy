@@ -260,7 +260,7 @@
     "description": "Cancel button"
   },
   "continue": {
-    "message": "Continue",
+    "message": "Continuar",
     "description": "Continue button"
   },
   "save": {
@@ -332,7 +332,7 @@
     "description": "Warning when file version is newer"
   },
   "newerVersionConfirm": {
-    "message": "This file was created with a newer version of the extension. Some data may be incompatible. Continue import?",
+    "message": "Este arquivo foi criado com uma versão mais recente da extensão. Alguns dados podem ser incompatíveis. Continuar a importação?",
     "description": "Confirmation dialog when importing file from newer version"
   },
   "missingData": {
@@ -504,29 +504,59 @@
   "proxyErrorTitle": {
     "message": "Falha na conexão",
     "description": "Error banner title when proxy connection fails"
-  }
-,
-  "checkProxy": { "message": "Verificar" },
-  "checkProxyChecking": { "message": "Verificando..." },
-  "checkProxyOk": { "message": "Conectado" },
-  "checkProxyError": { "message": "Falha" },
-  "checkProxyTimeout": { "message": "Timeout" }
-,
-  "proxyCheckFailedTitle": { "message": "O proxy parece não funcionar" },
-  "saveAnyway": { "message": "Salvar mesmo assim" },
+  },
+  "checkProxy": {
+    "message": "Verificar"
+  },
+  "checkProxyChecking": {
+    "message": "Verificando..."
+  },
+  "checkProxyOk": {
+    "message": "Conectado"
+  },
+  "checkProxyError": {
+    "message": "Falha"
+  },
+  "checkProxyTimeout": {
+    "message": "Timeout"
+  },
+  "proxyCheckFailedTitle": {
+    "message": "O proxy parece não funcionar"
+  },
+  "saveAnyway": {
+    "message": "Salvar mesmo assim"
+  },
   "labelVersion": {
     "message": "Versão",
     "description": "Label for version display in settings"
   },
-  "welcomeTitle": { "message": "Bem-vindo ao PulseProxy!" },
-  "welcomeSubtitle": { "message": "Gerenciamento de proxy simples e rápido para seu navegador" },
-  "welcomeStep1Title": { "message": "Adicionar um proxy" },
-  "welcomeStep1Desc": { "message": "Clique no ícone da extensão e adicione seu servidor proxy" },
-  "welcomeStep2Title": { "message": "Configurar presets" },
-  "welcomeStep2Desc": { "message": "Escolha quais sites devem usar o proxy" },
-  "welcomeStep3Title": { "message": "Conectar" },
-  "welcomeStep3Desc": { "message": "Clique no botão do escudo para ativar o proxy" },
-  "welcomeGetStarted": { "message": "Começar" },
+  "welcomeTitle": {
+    "message": "Bem-vindo ao PulseProxy!"
+  },
+  "welcomeSubtitle": {
+    "message": "Gerenciamento de proxy simples e rápido para seu navegador"
+  },
+  "welcomeStep1Title": {
+    "message": "Adicionar um proxy"
+  },
+  "welcomeStep1Desc": {
+    "message": "Clique no ícone da extensão e adicione seu servidor proxy"
+  },
+  "welcomeStep2Title": {
+    "message": "Configurar presets"
+  },
+  "welcomeStep2Desc": {
+    "message": "Escolha quais sites devem usar o proxy"
+  },
+  "welcomeStep3Title": {
+    "message": "Conectar"
+  },
+  "welcomeStep3Desc": {
+    "message": "Clique no botão do escudo para ativar o proxy"
+  },
+  "welcomeGetStarted": {
+    "message": "Começar"
+  },
   "labelTheme": {
     "message": "Tema escuro",
     "description": "Label for dark theme toggle checkbox"
@@ -535,8 +565,20 @@
     "message": "Selecionar proxy padrão",
     "description": "Title for select default proxy modal"
   },
-  "ariaProxyOn": { "message": "Proxy on", "description": "TODO: needs native translation" },
-  "ariaProxyOff": { "message": "Proxy off", "description": "TODO: needs native translation" },
-  "ariaProxyConnecting": { "message": "Connecting", "description": "TODO: needs native translation" },
-  "ariaProxyError": { "message": "Connection error", "description": "TODO: needs native translation" }
+  "ariaProxyOn": {
+    "message": "Proxy ativado",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyOff": {
+    "message": "Proxy desativado",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyConnecting": {
+    "message": "Conectando",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyError": {
+    "message": "Erro de conexão",
+    "description": "TODO: needs native translation"
+  }
 }

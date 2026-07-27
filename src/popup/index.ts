@@ -18,9 +18,12 @@ class PopupApp {
         // Инициализация Storage первым делом (для миграций)
         await Storage.init();
 
-        // Инициализация i18n и удалённого конфига
+        // Инициализация i18n
         await I18n.init();
-        await RemoteConfig.init();
+
+        // Удалённый конфиг грузим в фоне: сетевой запрос (raw.githubusercontent.com
+        // может висеть до таймаута) не должен блокировать отрисовку попапа
+        void RemoteConfig.init().then(() => this.updateReferralLinks());
 
         // Инициализация модулей
         UI.init();

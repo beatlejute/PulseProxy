@@ -239,12 +239,10 @@ async function updateTabBadge(tabId: number, url: string | undefined): Promise<v
         }
 
         const currentState = await Storage.getCurrentState();
-        if (currentState === ProxyState.CONNECTED) {
-            const proxyServer = ProxyManager.getProxyServerForUrl(url);
-            IconManager.setTabProxyBadge(tabId, proxyServer);
-        } else if (currentState === ProxyState.ERROR) {
-            const proxyServer = ProxyManager.getProxyServerForUrl(url);
-            IconManager.setTabProxyBadge(tabId, proxyServer, true);
+        if (currentState === ProxyState.CONNECTED || currentState === ProxyState.ERROR) {
+            const route = ProxyManager.getRouteForUrl(url);
+            const isError = currentState === ProxyState.ERROR;
+            IconManager.setTabProxyBadge(tabId, route?.server ?? null, isError, route?.viaProxyAll ?? false);
         } else {
             IconManager.setTabProxyBadge(tabId, null);
         }

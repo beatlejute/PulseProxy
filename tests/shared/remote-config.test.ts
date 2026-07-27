@@ -225,6 +225,52 @@ describe('RemoteConfigService', () => {
         });
     });
 
+    describe('кэш в chrome.storage.local', () => {
+        it('должен использовать закэшированный конфиг при недоступной сети', async () => {
+            await chrome.storage.local.set({
+                remoteConfigCache: { referralLink: 'https://cached.com/ref' },
+            });
+            mockFetchWithFallback.mockRejectedValue(new Error('Network error'));
+
+            await service.init();
+
+            expect(service.referralLink).toBe('https://cached.com/ref');
+            expect(service.isLoaded).toBe(true);
+        });
+
+        it('должен сохранить успешно загруженный конфиг в кэш', async () => {
+            const mockConfig = { referralLink: 'https://example.com/ref' };
+            mockFetchWithFallback.mockResolvedValue(mockConfig);
+
+            await service.init();
+
+            const stored = await chrome.storage.local.get('remoteConfigCache');
+            expect(stored.remoteConfigCache).toEqual(mockConfig);
+        });
+
+        it('сетевой конфиг должен иметь приоритет над кэшем', async () => {
+            await chrome.storage.local.set({
+                remoteConfigCache: { referralLink: 'https://cached.com/ref' },
+            });
+            mockFetchWithFallback.mockResolvedValue({ referralLink: 'https://fresh.com/ref' });
+
+            await service.init();
+
+            expect(service.referralLink).toBe('https://fresh.com/ref');
+        });
+
+        it('должен игнорировать битый кэш (referralLink не строка)', async () => {
+            await chrome.storage.local.set({
+                remoteConfigCache: { referralLink: 42 },
+            });
+            mockFetchWithFallback.mockRejectedValue(new Error('Network error'));
+
+            await service.init();
+
+            expect(service.referralLink).toBe('#'); // DEFAULT_CONFIG
+        });
+    });
+
     describe('edge cases', () => {
         it('должен обработать null в referralLink', async () => {
             const mockConfig = { referralLink: null as unknown as string };

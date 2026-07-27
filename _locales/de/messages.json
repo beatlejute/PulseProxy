@@ -260,7 +260,7 @@
     "description": "Cancel button"
   },
   "continue": {
-    "message": "Continue",
+    "message": "Fortfahren",
     "description": "Continue button"
   },
   "save": {
@@ -332,7 +332,7 @@
     "description": "Warning when file version is newer"
   },
   "newerVersionConfirm": {
-    "message": "This file was created with a newer version of the extension. Some data may be incompatible. Continue import?",
+    "message": "Diese Datei wurde mit einer neueren Version der Erweiterung erstellt. Einige Daten sind möglicherweise inkompatibel. Import fortsetzen?",
     "description": "Confirmation dialog when importing file from newer version"
   },
   "missingData": {
@@ -438,15 +438,15 @@
     "description": "All filter option"
   },
   "connectionTypeResidential": {
-    "message": "Residential",
+    "message": "Privat",
     "description": "Residential connection type"
   },
   "connectionTypeCorporate": {
-    "message": "Corporate",
+    "message": "Unternehmen",
     "description": "Corporate connection type"
   },
   "connectionTypeMobile": {
-    "message": "Mobile",
+    "message": "Mobil",
     "description": "Mobile connection type"
   },
   "publicProxySearchPlaceholder": {
@@ -504,29 +504,59 @@
   "proxyErrorTitle": {
     "message": "Verbindung fehlgeschlagen",
     "description": "Error banner title when proxy connection fails"
-  }
-,
-  "checkProxy": { "message": "Prüfen" },
-  "checkProxyChecking": { "message": "Prüfe..." },
-  "checkProxyOk": { "message": "Verbunden" },
-  "checkProxyError": { "message": "Fehler" },
-  "checkProxyTimeout": { "message": "Timeout" }
-,
-  "proxyCheckFailedTitle": { "message": "Proxy scheint nicht zu funktionieren" },
-  "saveAnyway": { "message": "Trotzdem speichern" },
+  },
+  "checkProxy": {
+    "message": "Prüfen"
+  },
+  "checkProxyChecking": {
+    "message": "Prüfe..."
+  },
+  "checkProxyOk": {
+    "message": "Verbunden"
+  },
+  "checkProxyError": {
+    "message": "Fehler"
+  },
+  "checkProxyTimeout": {
+    "message": "Timeout"
+  },
+  "proxyCheckFailedTitle": {
+    "message": "Proxy scheint nicht zu funktionieren"
+  },
+  "saveAnyway": {
+    "message": "Trotzdem speichern"
+  },
   "labelVersion": {
     "message": "Version",
     "description": "Label for version display in settings"
   },
-  "welcomeTitle": { "message": "Willkommen bei PulseProxy!" },
-  "welcomeSubtitle": { "message": "Einfache und schnelle Proxy-Verwaltung für Ihren Browser" },
-  "welcomeStep1Title": { "message": "Proxy hinzufügen" },
-  "welcomeStep1Desc": { "message": "Klicken Sie auf das Erweiterungssymbol und fügen Sie Ihren Proxy-Server hinzu" },
-  "welcomeStep2Title": { "message": "Presets einrichten" },
-  "welcomeStep2Desc": { "message": "Wählen Sie, welche Seiten den Proxy verwenden sollen" },
-  "welcomeStep3Title": { "message": "Verbinden" },
-  "welcomeStep3Desc": { "message": "Klicken Sie auf die Schild-Schaltfläche, um den Proxy zu aktivieren" },
-  "welcomeGetStarted": { "message": "Loslegen" },
+  "welcomeTitle": {
+    "message": "Willkommen bei PulseProxy!"
+  },
+  "welcomeSubtitle": {
+    "message": "Einfache und schnelle Proxy-Verwaltung für Ihren Browser"
+  },
+  "welcomeStep1Title": {
+    "message": "Proxy hinzufügen"
+  },
+  "welcomeStep1Desc": {
+    "message": "Klicken Sie auf das Erweiterungssymbol und fügen Sie Ihren Proxy-Server hinzu"
+  },
+  "welcomeStep2Title": {
+    "message": "Presets einrichten"
+  },
+  "welcomeStep2Desc": {
+    "message": "Wählen Sie, welche Seiten den Proxy verwenden sollen"
+  },
+  "welcomeStep3Title": {
+    "message": "Verbinden"
+  },
+  "welcomeStep3Desc": {
+    "message": "Klicken Sie auf die Schild-Schaltfläche, um den Proxy zu aktivieren"
+  },
+  "welcomeGetStarted": {
+    "message": "Loslegen"
+  },
   "labelTheme": {
     "message": "Dunkles Design",
     "description": "Label for dark theme toggle checkbox"
@@ -535,8 +565,20 @@
     "message": "Standard-Proxy auswählen",
     "description": "Title for select default proxy modal"
   },
-  "ariaProxyOn": { "message": "Proxy on", "description": "TODO: needs native translation" },
-  "ariaProxyOff": { "message": "Proxy off", "description": "TODO: needs native translation" },
-  "ariaProxyConnecting": { "message": "Connecting", "description": "TODO: needs native translation" },
-  "ariaProxyError": { "message": "Connection error", "description": "TODO: needs native translation" }
+  "ariaProxyOn": {
+    "message": "Proxy aktiviert",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyOff": {
+    "message": "Proxy deaktiviert",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyConnecting": {
+    "message": "Verbindung wird hergestellt",
+    "description": "TODO: needs native translation"
+  },
+  "ariaProxyError": {
+    "message": "Verbindungsfehler",
+    "description": "TODO: needs native translation"
+  }
 }

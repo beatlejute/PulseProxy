@@ -34,14 +34,22 @@
       "domains": [
         "discord.com",
         "*.discord.com",
+        "discord.gg",
         "*.discord.gg",
         "*.discordapp.com",
-        "*.discordapp.net"
+        "*.discordapp.net",
+        "*.discord.media"
       ]
     },
     {
       "name": "Twitch",
-      "domains": ["twitch.tv", "*.twitch.tv", "*.twitchcdn.net", "*.jtvnw.net"]
+      "domains": [
+        "twitch.tv",
+        "*.twitch.tv",
+        "*.twitchcdn.net",
+        "*.jtvnw.net",
+        "*.ttvnw.net"
+      ]
     },
     {
       "name": "Twitter/X",
@@ -105,7 +113,16 @@
     },
     {
       "name": "ChatGPT",
-      "domains": ["openai.com", "*.openai.com", "chat.openai.com"]
+      "domains": [
+        "openai.com",
+        "*.openai.com",
+        "chatgpt.com",
+        "*.chatgpt.com",
+        "*.oaistatic.com",
+        "*.oaiusercontent.com",
+        "sora.com",
+        "*.sora.com"
+      ]
     },
     {
       "name": "Claude",
@@ -113,7 +130,9 @@
         "anthropic.com",
         "*.anthropic.com",
         "claude.ai",
-        "*.claude.ai"
+        "*.claude.ai",
+        "claude.com",
+        "*.claude.com"
       ]
     },
     {
@@ -142,6 +161,7 @@
         "generativelanguage.googleapis.com",
         "cloudaicompanion.googleapis.com",
         "cloudcode-pa.googleapis.com",
+        "notebooklm.google.com",
         "accounts.google.com",
         "console.cloud.google.com"
       ]
@@ -402,7 +422,258 @@
         "cursor.com",
         "*.cursor.com",
         "cursor.sh",
-        "*.cursor.sh"
+        "*.cursor.sh",
+        "cursorapi.com",
+        "*.cursorapi.com",
+        "cursor-cdn.com",
+        "*.cursor-cdn.com"
+      ]
+    },
+    {
+      "name": "OpenRouter",
+      "domains": [
+        "openrouter.ai",
+        "*.openrouter.ai"
+      ]
+    },
+    {
+      "name": "Kilo Code",
+      "domains": [
+        "kilocode.ai",
+        "*.kilocode.ai",
+        "kilo.ai",
+        "*.kilo.ai"
+      ]
+    },
+    {
+      "name": "Poe",
+      "domains": [
+        "poe.com",
+        "*.poe.com",
+        "*.poecdn.net"
+      ]
+    },
+    {
+      "name": "Groq",
+      "domains": [
+        "groq.com",
+        "*.groq.com"
+      ]
+    },
+    {
+      "name": "Together AI",
+      "domains": [
+        "together.ai",
+        "*.together.ai",
+        "*.together.xyz"
+      ]
+    },
+    {
+      "name": "Fireworks AI",
+      "domains": [
+        "fireworks.ai",
+        "*.fireworks.ai"
+      ]
+    },
+    {
+      "name": "DeepInfra",
+      "domains": [
+        "deepinfra.com",
+        "*.deepinfra.com"
+      ]
+    },
+    {
+      "name": "Novita AI",
+      "domains": [
+        "novita.ai",
+        "*.novita.ai"
+      ]
+    },
+    {
+      "name": "NanoGPT",
+      "domains": [
+        "nano-gpt.com",
+        "*.nano-gpt.com"
+      ]
+    },
+    {
+      "name": "AI/ML API",
+      "domains": [
+        "aimlapi.com",
+        "*.aimlapi.com"
+      ]
+    },
+    {
+      "name": "Requesty",
+      "domains": [
+        "requesty.ai",
+        "*.requesty.ai"
+      ]
+    },
+    {
+      "name": "GitHub Copilot",
+      "domains": [
+        "githubcopilot.com",
+        "*.githubcopilot.com",
+        "copilot-proxy.githubusercontent.com"
+      ]
+    },
+    {
+      "name": "Windsurf",
+      "domains": [
+        "windsurf.com",
+        "*.windsurf.com",
+        "codeium.com",
+        "*.codeium.com"
+      ]
+    },
+    {
+      "name": "Cline",
+      "domains": [
+        "cline.bot",
+        "*.cline.bot"
+      ]
+    },
+    {
+      "name": "v0",
+      "domains": [
+        "v0.dev",
+        "*.v0.dev",
+        "v0.app",
+        "*.v0.app"
+      ]
+    },
+    {
+      "name": "Bolt.new",
+      "domains": [
+        "bolt.new",
+        "*.bolt.new",
+        "stackblitz.com",
+        "*.stackblitz.com"
+      ]
+    },
+    {
+      "name": "Lovable",
+      "domains": [
+        "lovable.dev",
+        "*.lovable.dev",
+        "*.lovable.app"
+      ]
+    },
+    {
+      "name": "ElevenLabs",
+      "domains": [
+        "elevenlabs.io",
+        "*.elevenlabs.io"
+      ]
+    },
+    {
+      "name": "Suno",
+      "domains": [
+        "suno.com",
+        "*.suno.com",
+        "suno.ai",
+        "*.suno.ai"
+      ]
+    },
+    {
+      "name": "Runway",
+      "domains": [
+        "runwayml.com",
+        "*.runwayml.com"
+      ]
+    },
+    {
+      "name": "Luma AI",
+      "domains": [
+        "lumalabs.ai",
+        "*.lumalabs.ai"
+      ]
+    },
+    {
+      "name": "Ideogram",
+      "domains": [
+        "ideogram.ai",
+        "*.ideogram.ai"
+      ]
+    },
+    {
+      "name": "Leonardo AI",
+      "domains": [
+        "leonardo.ai",
+        "*.leonardo.ai"
+      ]
+    },
+    {
+      "name": "Character.AI",
+      "domains": [
+        "character.ai",
+        "*.character.ai",
+        "c.ai",
+        "*.c.ai"
+      ]
+    },
+    {
+      "name": "Meta AI",
+      "domains": [
+        "meta.ai",
+        "*.meta.ai"
+      ]
+    },
+    {
+      "name": "Qwen",
+      "domains": [
+        "qwen.ai",
+        "*.qwen.ai"
+      ]
+    },
+    {
+      "name": "Kimi (Moonshot)",
+      "domains": [
+        "kimi.com",
+        "*.kimi.com",
+        "moonshot.ai",
+        "*.moonshot.ai",
+        "*.moonshot.cn"
+      ]
+    },
+    {
+      "name": "Z.ai (GLM)",
+      "domains": [
+        "z.ai",
+        "*.z.ai",
+        "bigmodel.cn",
+        "*.bigmodel.cn"
+      ]
+    },
+    {
+      "name": "Manus",
+      "domains": [
+        "manus.im",
+        "*.manus.im"
+      ]
+    },
+    {
+      "name": "Portkey",
+      "domains": [
+        "portkey.ai",
+        "*.portkey.ai"
+      ]
+    },
+    {
+      "name": "Eden AI",
+      "domains": [
+        "edenai.co",
+        "*.edenai.co",
+        "edenai.run",
+        "*.edenai.run"
+      ]
+    },
+    {
+      "name": "LiteLLM",
+      "domains": [
+        "litellm.ai",
+        "*.litellm.ai"
       ]
     },
     {
@@ -429,7 +700,9 @@
       "domains": [
         "notion.so",
         "*.notion.so",
-        "*.notion.site"
+        "*.notion.site",
+        "notion.com",
+        "*.notion.com"
       ]
     },
     {
@@ -683,14 +956,6 @@
       "domains": [
         "viber.com",
         "*.viber.com"
-      ]
-    },
-    {
-      "name": "Skype",
-      "domains": [
-        "skype.com",
-        "*.skype.com",
-        "*.skypeecs-prod-usw-0.cloudapp.net"
       ]
     },
     {
@@ -1015,13 +1280,6 @@
       ]
     },
     {
-      "name": "Omegle",
-      "domains": [
-        "omegle.com",
-        "*.omegle.com"
-      ]
-    },
-    {
       "name": "Prime Video",
       "domains": [
         "primevideo.com",
@@ -1211,13 +1469,6 @@
         "*.sublimetext.com",
         "sublimehq.com",
         "*.sublimehq.com"
-      ]
-    },
-    {
-      "name": "Atom",
-      "domains": [
-        "atom.io",
-        "*.atom.io"
       ]
     },
     {
@@ -1675,6 +1926,284 @@
       "domains": [
         "xerox.com",
         "*.xerox.com"
+      ]
+    },
+    {
+      "name": "Autodesk",
+      "domains": [
+        "autodesk.com",
+        "*.autodesk.com",
+        "autocad.com",
+        "*.autocad.com",
+        "tinkercad.com",
+        "*.tinkercad.com"
+      ]
+    },
+    {
+      "name": "MathWorks (MATLAB)",
+      "domains": [
+        "mathworks.com",
+        "*.mathworks.com"
+      ]
+    },
+    {
+      "name": "SolidWorks / Dassault",
+      "domains": [
+        "solidworks.com",
+        "*.solidworks.com",
+        "3ds.com",
+        "*.3ds.com"
+      ]
+    },
+    {
+      "name": "Altium",
+      "domains": [
+        "altium.com",
+        "*.altium.com",
+        "altium365.com",
+        "*.altium365.com"
+      ]
+    },
+    {
+      "name": "Oracle",
+      "domains": [
+        "oracle.com",
+        "*.oracle.com",
+        "*.oraclecloud.com"
+      ]
+    },
+    {
+      "name": "Cisco / Webex",
+      "domains": [
+        "cisco.com",
+        "*.cisco.com",
+        "webex.com",
+        "*.webex.com"
+      ]
+    },
+    {
+      "name": "VMware",
+      "domains": [
+        "vmware.com",
+        "*.vmware.com"
+      ]
+    },
+    {
+      "name": "Red Hat",
+      "domains": [
+        "redhat.com",
+        "*.redhat.com"
+      ]
+    },
+    {
+      "name": "IBM",
+      "domains": [
+        "ibm.com",
+        "*.ibm.com"
+      ]
+    },
+    {
+      "name": "Texas Instruments",
+      "domains": [
+        "ti.com",
+        "*.ti.com"
+      ]
+    },
+    {
+      "name": "Analog Devices",
+      "domains": [
+        "analog.com",
+        "*.analog.com"
+      ]
+    },
+    {
+      "name": "STMicroelectronics",
+      "domains": [
+        "st.com",
+        "*.st.com"
+      ]
+    },
+    {
+      "name": "Microchip",
+      "domains": [
+        "microchip.com",
+        "*.microchip.com"
+      ]
+    },
+    {
+      "name": "NXP",
+      "domains": [
+        "nxp.com",
+        "*.nxp.com"
+      ]
+    },
+    {
+      "name": "Miro",
+      "domains": [
+        "miro.com",
+        "*.miro.com"
+      ]
+    },
+    {
+      "name": "Coursera",
+      "domains": [
+        "coursera.org",
+        "*.coursera.org"
+      ]
+    },
+    {
+      "name": "Udemy",
+      "domains": [
+        "udemy.com",
+        "*.udemy.com",
+        "*.udemycdn.com"
+      ]
+    },
+    {
+      "name": "edX",
+      "domains": [
+        "edx.org",
+        "*.edx.org",
+        "*.edx-cdn.org"
+      ]
+    },
+    {
+      "name": "Pluralsight",
+      "domains": [
+        "pluralsight.com",
+        "*.pluralsight.com"
+      ]
+    },
+    {
+      "name": "DataCamp",
+      "domains": [
+        "datacamp.com",
+        "*.datacamp.com"
+      ]
+    },
+    {
+      "name": "Wise",
+      "domains": [
+        "wise.com",
+        "*.wise.com"
+      ]
+    },
+    {
+      "name": "Payoneer",
+      "domains": [
+        "payoneer.com",
+        "*.payoneer.com"
+      ]
+    },
+    {
+      "name": "Revolut",
+      "domains": [
+        "revolut.com",
+        "*.revolut.com"
+      ]
+    },
+    {
+      "name": "Ansys",
+      "domains": [
+        "ansys.com",
+        "*.ansys.com"
+      ]
+    },
+    {
+      "name": "Cadence",
+      "domains": [
+        "cadence.com",
+        "*.cadence.com"
+      ]
+    },
+    {
+      "name": "Synopsys",
+      "domains": [
+        "synopsys.com",
+        "*.synopsys.com"
+      ]
+    },
+    {
+      "name": "Keysight",
+      "domains": [
+        "keysight.com",
+        "*.keysight.com"
+      ]
+    },
+    {
+      "name": "Siemens PLM",
+      "domains": [
+        "sw.siemens.com",
+        "*.sw.siemens.com",
+        "plm.automation.siemens.com"
+      ]
+    },
+    {
+      "name": "PTC / Onshape",
+      "domains": [
+        "ptc.com",
+        "*.ptc.com",
+        "onshape.com",
+        "*.onshape.com"
+      ]
+    },
+    {
+      "name": "Internet Archive",
+      "domains": [
+        "archive.org",
+        "*.archive.org"
+      ]
+    },
+    {
+      "name": "Patreon",
+      "domains": [
+        "patreon.com",
+        "*.patreon.com",
+        "*.patreonusercontent.com"
+      ]
+    },
+    {
+      "name": "OnlyFans",
+      "domains": [
+        "onlyfans.com",
+        "*.onlyfans.com"
+      ]
+    },
+    {
+      "name": "Rumble",
+      "domains": [
+        "rumble.com",
+        "*.rumble.com",
+        "*.rmbl.ws"
+      ]
+    },
+    {
+      "name": "Peacock",
+      "domains": [
+        "peacocktv.com",
+        "*.peacocktv.com"
+      ]
+    },
+    {
+      "name": "BBC iPlayer",
+      "domains": [
+        "bbc.co.uk",
+        "*.bbc.co.uk",
+        "*.bbci.co.uk"
+      ]
+    },
+    {
+      "name": "Canal+",
+      "domains": [
+        "canalplus.com",
+        "*.canalplus.com"
+      ]
+    },
+    {
+      "name": "DAZN",
+      "domains": [
+        "dazn.com",
+        "*.dazn.com"
       ]
     }
   ]

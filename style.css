@@ -907,6 +907,15 @@ button.support-project {
    flex-direction: column;
  }
 
+/* Скролл-обёртка контента колонки: в попапе нейтральна (сохраняет flex-цепочку),
+   в page-view несёт вертикальный скролл вместо самой колонки */
+.tab-scroll {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 /* ========================================
    Proxy List Styles
    ======================================== */
@@ -1489,7 +1498,8 @@ button.support-project {
 
 .preset-templates-list {
   flex: 1;
-  min-height: 0;
+  /* Страховка от схлопывания в 0px на низких попапах (как у .public-proxies-list) */
+  min-height: 160px;
   overflow-y: auto;
 }
 
@@ -1715,6 +1725,39 @@ button.support-project {
   border-color: var(--action-color);
 }
 
+.filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  margin-bottom: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--initial-color);
+  font-size: 10px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.filters-toggle:hover {
+  color: var(--main-text-color);
+}
+
+.filters-toggle::before {
+  content: '▸';
+  color: var(--initial-color);
+}
+
+.filters-toggle[aria-expanded="true"]::before {
+  content: '▾';
+}
+
+.public-proxies-filters.collapsed,
+.public-proxy-search.collapsed {
+  display: none;
+}
+
 /* Warning */
 .public-proxies-warning {
   display: flex;
@@ -1765,6 +1808,29 @@ button.support-project {
 
 .public-proxies-warning a:hover {
   opacity: 0.85;
+}
+
+.public-proxies-warning .warning-close {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  margin-left: auto;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--error-color);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.public-proxies-warning .warning-close:hover {
+  background-color: rgba(255, 105, 105, 0.25);
 }
 
 /* Proxy Form Recommendation */
@@ -1832,7 +1898,8 @@ button.support-project {
 /* Proxies List */
 .public-proxies-list {
   flex: 1;
-  min-height: 0;
+  /* Страховка от схлопывания в 0px, когда warning + фильтры съедают всю высоту модалки */
+  min-height: 160px;
   overflow-y: auto;
 }
 
@@ -1901,6 +1968,52 @@ button.support-project {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+}
+
+/* Live-статус публичного прокси (фоновая проверка) */
+.proxy-live-status {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.proxy-live-status.alive {
+  background-color: var(--success-color);
+}
+
+.proxy-live-status.dead {
+  background-color: var(--error-color);
+}
+
+.proxy-live-status.checking {
+  background-color: var(--initial-color);
+  animation: proxy-status-pulse 1s ease-in-out infinite;
+}
+
+@keyframes proxy-status-pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Кнопка «Проверить» у непроверенных прокси */
+.proxy-check-now-btn {
+  margin-left: 8px;
+  padding: 3px 8px;
+  font-size: 10px;
+  border-radius: 4px;
+  border: 1px solid var(--initial-color);
+  background: transparent;
+  color: var(--initial-color);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.proxy-check-now-btn:hover {
+  border-color: var(--action-color);
+  color: var(--action-color);
 }
 
 .proxy-item-protocol {
@@ -2038,4 +2151,346 @@ button.support-project {
   padding: 2px 6px;
   background-color: rgba(255, 221, 45, 0.1);
   border-radius: 4px;
+}
+
+/* ========================================
+   Page View (открытие во вкладке, 3 колонки)
+   ======================================== */
+
+/* Кнопка «открыть во вкладке» в углу попапа */
+.open-in-tab-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--initial-color);
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+  z-index: 1;
+}
+
+.open-in-tab-button:hover {
+  color: var(--main-text-color);
+  background-color: var(--secondary-color);
+}
+
+.open-in-tab-button svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Заголовки колонок видны только на полной странице */
+.page-column-title {
+  display: none;
+}
+
+/* Снимаем фиксированную ширину попапа (280px !important выше по файлу) */
+html.page-view,
+html.page-view body {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 320px !important;
+  height: 100%;
+}
+
+.page-view .container {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 1080px !important;
+  margin: 0 auto;
+  /* Ровно высота окна: страница не скроллится, скролл — внутри колонок */
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  padding: 24px 32px;
+}
+
+/* На полной странице не нужны: кнопка открытия вкладки и переключатель табов */
+.page-view .open-in-tab-button,
+.page-view .segmented-control {
+  display: none;
+}
+
+/* Все секции попапа разом, в 3 колонки вместо табов.
+   flex: 1 + stretch — колонки занимают всю оставшуюся высоту окна;
+   min-height: 0 позволяет колонкам ужиматься и скроллиться, а не распирать контейнер */
+.page-view .tab-contents {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+.page-view .tab-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* Колонка не выше окна */
+  min-height: 0;
+  /* Якорь для модалок колонки: .modal-overlay (absolute, inset 0) накрывает её целиком */
+  position: relative;
+}
+
+/* Скролл — на обёртке, а не на колонке: модалка не зависит от прокрутки контента.
+   Упёрлись в высоту окна — скролл появляется только у этой колонки */
+.page-view .tab-scroll {
+  overflow-y: auto;
+}
+
+/* Модалка колонки не должна раздуваться до высоты экрана (fullHeight-режим) */
+.page-view .tab-content .modal-overlay.modal-overlay--fullheight {
+  height: auto;
+}
+
+/* Тонкий скроллбар колонок — как у списка публичных прокси */
+.page-view .tab-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.page-view .tab-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.page-view .tab-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--initial-color);
+  border-radius: 4px;
+}
+
+.page-view .tab-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--main-text-color);
+}
+
+/* Кнопка-щит и «проксировать все сайты» перенесены JS-ом в конец колонки
+   настроек (view-mode.ts): прижимаем вниз, центрируем по ширине колонки */
+.page-view #tab-settings .main-button {
+  margin: auto auto 10px;
+}
+
+.page-view #tab-settings .proxy-by-default-toggle {
+  width: auto;
+  align-self: center;
+  margin-bottom: 0;
+}
+
+.page-view .page-column-title {
+  display: block;
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--main-text-color);
+}
+
+/* На узких окнах колонки складываются в одну */
+@media (max-width: 900px) {
+  .page-view .tab-contents {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================
+   Tour (мастер настройки, обучение)
+   ======================================== */
+
+/* «Прожектор»: прозрачное окно на цели, гигантская тень затемняет остальное.
+   pointer-events: none — пользователь кликает по подсвеченной зоне напрямую */
+.tour-spotlight {
+  position: fixed;
+  z-index: 2000;
+  pointer-events: none;
+  border-radius: 12px;
+  box-shadow: 0 0 0 200vmax rgba(0, 0, 0, 0.65);
+  transition: left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease;
+}
+
+/* Шаг про иконку браузера: цели на странице нет — точка нулевого размера
+   за правым краем, тень затемняет всё окно */
+.tour-spotlight--corner {
+  top: 0;
+  left: 100vw;
+  width: 0;
+  height: 0;
+  border-radius: 0;
+}
+
+.tour-tooltip {
+  position: fixed;
+  z-index: 2001;
+  width: 300px;
+  padding: 16px;
+  background-color: var(--background-color);
+  border: 1px solid var(--action-color);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  text-align: left;
+  font-family: Arial, sans-serif;
+}
+
+.tour-step-counter {
+  font-size: 10px;
+  color: var(--initial-color);
+  margin-bottom: 6px;
+}
+
+.tour-title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--main-text-color);
+}
+
+.tour-text {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--main-text-color);
+}
+
+.tour-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.tour-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.tour-btn:hover {
+  opacity: 0.85;
+}
+
+.tour-btn-primary {
+  background-color: var(--action-color);
+  color: var(--action-text-color);
+}
+
+.tour-btn-secondary {
+  background-color: var(--secondary-color);
+  color: var(--main-text-color);
+}
+
+.tour-skip {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 11px;
+  color: var(--initial-color);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.tour-skip:hover {
+  color: var(--main-text-color);
+}
+
+/* Стрелки: треугольник на краю тултипа, указывает на цель */
+.tour-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+}
+
+/* Тултип справа от цели — стрелка на левом краю, влево */
+.tour-arrow--right {
+  left: -16px;
+  top: 50%;
+  margin-top: -8px;
+  border-right-color: var(--action-color);
+}
+
+/* Тултип над целью — стрелка снизу, вниз */
+.tour-arrow--top {
+  bottom: -16px;
+  left: 50%;
+  margin-left: -8px;
+  border-top-color: var(--action-color);
+}
+
+/* Шаг про иконку браузера — стрелка сверху, вверх (к панели браузера) */
+.tour-arrow--viewport-top-right {
+  top: -16px;
+  right: 24px;
+  border-bottom-color: var(--action-color);
+}
+
+/* Прыгающая стрелка-указатель «нажми здесь» на целевой зоне.
+   Обёртка несёт прыжок (translate по оси направления), chevron ::before —
+   поворот. pointer-events: none — не перехватывает клик по подсвеченной зоне. */
+.tour-pointer {
+  position: fixed;
+  z-index: 2002;
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+}
+
+.tour-pointer::before {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 5px;
+  border-right: 5px solid var(--action-color);
+  border-bottom: 5px solid var(--action-color);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Направление chevron: угол из right+bottom границ смотрит на юго-восток (↘),
+   поворотом наводим на нужную сторону */
+.tour-pointer--down::before  { transform: rotate(45deg); }
+.tour-pointer--up::before    { transform: rotate(-135deg); }
+.tour-pointer--left::before  { transform: rotate(135deg); }
+.tour-pointer--right::before { transform: rotate(-45deg); }
+
+/* Прыжок в сторону цели */
+.tour-pointer--down  { animation: tour-bounce-down 1s ease-in-out infinite; }
+.tour-pointer--up    { animation: tour-bounce-up 1s ease-in-out infinite; }
+.tour-pointer--left  { animation: tour-bounce-left 1s ease-in-out infinite; }
+.tour-pointer--right { animation: tour-bounce-right 1s ease-in-out infinite; }
+
+@keyframes tour-bounce-down {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
+}
+
+@keyframes tour-bounce-up {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes tour-bounce-left {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-8px); }
+}
+
+@keyframes tour-bounce-right {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(8px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-pointer--down,
+  .tour-pointer--up,
+  .tour-pointer--left,
+  .tour-pointer--right {
+    animation: none;
+  }
 }

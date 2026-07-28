@@ -29,6 +29,30 @@ describe('MigrationService', () => {
         return new MigrationService(StorageBackend, presetRepository);
     };
 
+    const makeProxy = (overrides: Partial<ProxyServer> = {}): ProxyServer => ({
+        id: 'proxy-1',
+        type: 'http',
+        host: '1.2.3.4',
+        port: 8080,
+        isDefault: false,
+        createdAt: 1000,
+        updatedAt: 1000,
+        ...overrides,
+    });
+
+    const makePreset = (overrides: Partial<Preset> = {}): Preset => ({
+        id: 'preset-1',
+        name: 'Preset',
+        domains: [],
+        enabled: true,
+        isDefault: false,
+        order: 0,
+        proxyId: null,
+        createdAt: 1000,
+        updatedAt: 1000,
+        ...overrides,
+    });
+
     describe('migrateFromLegacyDomains()', () => {
         it('should migrate legacy domains from sync storage to presets', async () => {
             mockHelpers.setSyncStorageData({
@@ -43,6 +67,27 @@ describe('MigrationService', () => {
             expect(storedPresets[0].name).toBe('Ignore List');
             expect(storedPresets[0].domains).toEqual(['example.com', 'test.com']);
             expect(storedPresets[0].isDefault).toBe(true);
+        });
+
+        it('should NOT overwrite existing presets (fresh install with cloud-synced presets)', async () => {
+            // Регрессия на потерю данных: флаг migrationCompleted живёт только в local,
+            // поэтому на втором устройстве миграция запускается заново — уже поверх
+            // пресетов, синхронизированных из облака. setAll затирал их пустым дефолтом.
+            const cloudPresets: Preset[] = [
+                makePreset({ id: 'default-custom-preset', name: 'Ignore List', isDefault: true, domains: ['keep-me.com'] }),
+                makePreset({ id: 'work', name: 'Work', domains: ['intranet.corp'], order: 1 }),
+            ];
+            mockHelpers.setLocalStorageData({ presets: cloudPresets });
+
+            const migrationService = createMigrationService();
+            await migrationService.migrateFromLegacyDomains();
+
+            const storedPresets = mockHelpers.getLocalStorageData().presets as Preset[];
+            expect(storedPresets).toHaveLength(2);
+            expect(storedPresets.find(p => p.id === 'work')).toBeDefined();
+            expect(storedPresets.find(p => p.id === 'default-custom-preset')?.domains).toEqual(['keep-me.com']);
+            // Флаг миграции всё равно проставлен — повторно не запустится
+            expect(mockHelpers.getLocalStorageData().migrationCompleted).toBe(true);
         });
 
         it('should migrate legacy domains from local storage if sync is empty', async () => {
@@ -228,60 +273,166 @@ describe('MigrationService', () => {
     });
 
     describe('migrateToSync()', () => {
-        it('should migrate all keys from local to sync storage', async () => {
-            const localData = {
-                presets: [{ id: 'preset-1', name: 'Test' }],
-                proxies: [{ id: 'proxy-1', type: 'http', host: 'test.com', port: 8080, isDefault: true }],
-                theme: 'dark',
-                language: 'ru',
-                proxyByDefault: false,
-            };
-            mockHelpers.setLocalStorageData(localData);
+        it('should merge local and cloud data without losing cloud entities', async () => {
+            mockHelpers.setSyncStorageData({
+                presets: [
+                    makePreset({ id: 'c1', name: 'Cloud-A' }),
+                    makePreset({ id: 'c2', name: 'Cloud-B' }),
+                ],
+                proxies: [makeProxy({ id: 'cp1', host: 'cloud.com' })],
+            });
+            mockHelpers.setLocalStorageData({
+                presets: [makePreset({ id: 'l1', name: 'Local-C' })],
+                proxies: [makeProxy({ id: 'lp1', host: 'local.com' })],
+            });
+
+            const migrationService = createMigrationService();
+            const stats = await migrationService.migrateToSync();
+
+            const syncPresets = mockHelpers.getSyncStorageData().presets as Preset[];
+            const syncProxies = mockHelpers.getSyncStorageData().proxies as ProxyServer[];
+            expect(syncPresets.map(p => p.name)).toEqual(['Cloud-A', 'Cloud-B', 'Local-C']);
+            expect(syncPresets.map(p => p.order)).toEqual([0, 1, 2]);
+            expect(syncProxies.map(p => p.host)).toEqual(['cloud.com', 'local.com']);
+            // 2 облачных пресета + 1 облачный прокси получены; 1 пресет + 1 прокси добавлены
+            expect(stats).toEqual({ received: 3, added: 2 });
+        });
+
+        it('should write merged lists to local storage as well', async () => {
+            mockHelpers.setSyncStorageData({
+                presets: [makePreset({ id: 'c1', name: 'Cloud-only' })],
+            });
+            mockHelpers.setLocalStorageData({
+                presets: [makePreset({ id: 'l1', name: 'Local-only' })],
+            });
 
             const migrationService = createMigrationService();
             await migrationService.migrateToSync();
 
-            const syncData = mockHelpers.getSyncStorageData();
-            expect(syncData.presets).toEqual(localData.presets);
-            expect(syncData.proxies).toEqual(localData.proxies);
-            expect(syncData.theme).toBe('dark');
-            expect(syncData.language).toBe('ru');
-            expect(syncData.proxyByDefault).toBe(false);
+            const localPresets = mockHelpers.getLocalStorageData().presets as Preset[];
+            expect(localPresets.map(p => p.name)).toEqual(['Cloud-only', 'Local-only']);
         });
 
-        it('should skip undefined values during migration', async () => {
+        it('should deduplicate the same proxy server present on both sides and remap preset references', async () => {
+            mockHelpers.setSyncStorageData({
+                proxies: [makeProxy({ id: 'cloud-id' })],
+            });
             mockHelpers.setLocalStorageData({
-                presets: [{ id: 'preset-1', name: 'Test' }],
-                theme: undefined,
+                proxies: [makeProxy({ id: 'local-id' })],
+                presets: [makePreset({ id: 'l1', proxyId: 'local-id' })],
+            });
+
+            const migrationService = createMigrationService();
+            const stats = await migrationService.migrateToSync();
+
+            const syncProxies = mockHelpers.getSyncStorageData().proxies as ProxyServer[];
+            const syncPresets = mockHelpers.getSyncStorageData().presets as Preset[];
+            expect(syncProxies).toHaveLength(1);
+            expect(syncProxies[0].id).toBe('cloud-id');
+            expect(syncPresets[0].proxyId).toBe('cloud-id');
+            // прокси-дубль не считается ни полученным, ни добавленным; пресет добавлен
+            expect(stats).toEqual({ received: 0, added: 1 });
+        });
+
+        it('should prefer local scalar values and keep cloud value when local is undefined', async () => {
+            mockHelpers.setSyncStorageData({
+                theme: 'light',
+                language: 'ru',
+            });
+            mockHelpers.setLocalStorageData({
+                theme: 'dark',
             });
 
             const migrationService = createMigrationService();
             await migrationService.migrateToSync();
 
             const syncData = mockHelpers.getSyncStorageData();
-            expect(syncData.presets).toBeDefined();
-            expect(syncData.theme).toBeUndefined();
+            expect(syncData.theme).toBe('dark');
+            expect(syncData.language).toBe('ru');
         });
 
-        it('should do nothing if local storage is empty', async () => {
-            mockHelpers.setLocalStorageData({});
+        it('should migrate proxyCheckEnabled', async () => {
+            mockHelpers.setLocalStorageData({ proxyCheckEnabled: false });
+
+            const migrationService = createMigrationService();
+            await migrationService.migrateToSync();
+
+            expect(mockHelpers.getSyncStorageData().proxyCheckEnabled).toBe(false);
+        });
+
+        it('should not migrate targetState/currentState and purge them from sync', async () => {
+            mockHelpers.setSyncStorageData({
+                targetState: 'connected',
+                currentState: 'connected',
+            });
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                currentState: 'disconnected',
+                theme: 'dark',
+            });
 
             const migrationService = createMigrationService();
             await migrationService.migrateToSync();
 
             const syncData = mockHelpers.getSyncStorageData();
-            expect(Object.keys(syncData)).toHaveLength(0);
+            expect(syncData.targetState).toBeUndefined();
+            expect(syncData.currentState).toBeUndefined();
+            expect(syncData.theme).toBe('dark');
+        });
+
+        it('should throw and leave sync untouched when an item exceeds quota', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [makeProxy({ id: 'big', name: 'x'.repeat(9000) })],
+                theme: 'dark',
+            });
+
+            const migrationService = createMigrationService();
+            await expect(migrationService.migrateToSync()).rejects.toThrow(/too large/);
+
+            const syncData = mockHelpers.getSyncStorageData();
+            expect(syncData.proxies).toBeUndefined();
+            expect(syncData.theme).toBeUndefined();
+        });
+
+        it('should reject when chrome.runtime.lastError is set during sync write', async () => {
+            mockHelpers.setLocalStorageData({ theme: 'dark' });
+            // lastError скоупим строго на sync.set: глобальный setLastError теперь
+            // спотыкается уже на чтении из local (backend бросает на lastError),
+            // а этот кейс проверяет именно путь ошибки записи в sync.
+            (chrome.storage.sync.set as jest.Mock).mockImplementationOnce(
+                (_items: Record<string, unknown>, cb?: () => void) => {
+                    (chrome.runtime as unknown as { lastError?: { message: string } }).lastError = {
+                        message: 'MAX_WRITE_OPERATIONS_PER_MINUTE quota exceeded',
+                    };
+                    cb?.();
+                    (chrome.runtime as unknown as { lastError?: { message: string } }).lastError = undefined;
+                }
+            );
+
+            const migrationService = createMigrationService();
+            await expect(migrationService.migrateToSync()).rejects.toThrow(/Sync write failed/);
+        });
+
+        it('should do nothing if both storages are empty', async () => {
+            mockHelpers.setLocalStorageData({});
+            mockHelpers.setSyncStorageData({});
+
+            const migrationService = createMigrationService();
+            await migrationService.migrateToSync();
+
+            expect(Object.keys(mockHelpers.getSyncStorageData())).toHaveLength(0);
         });
     });
 
     describe('migrateToLocal()', () => {
-        it('should migrate all keys from sync to local storage', async () => {
+        it('should migrate all sync keys from sync to local storage', async () => {
             const syncData = {
-                presets: [{ id: 'preset-1', name: 'Test' }],
-                proxies: [{ id: 'proxy-1', type: 'http', host: 'test.com', port: 8080, isDefault: true }],
+                presets: [makePreset({ id: 'preset-1', name: 'Test' })],
+                proxies: [makeProxy({ id: 'proxy-1', host: 'test.com', isDefault: true })],
                 theme: 'light',
                 language: 'en',
                 proxyByDefault: true,
+                proxyCheckEnabled: false,
             };
             mockHelpers.setSyncStorageData(syncData);
 
@@ -294,11 +445,28 @@ describe('MigrationService', () => {
             expect(localData.theme).toBe('light');
             expect(localData.language).toBe('en');
             expect(localData.proxyByDefault).toBe(true);
+            expect(localData.proxyCheckEnabled).toBe(false);
+        });
+
+        it('should not copy targetState/currentState from sync to local', async () => {
+            mockHelpers.setSyncStorageData({
+                targetState: 'connected',
+                currentState: 'connected',
+                theme: 'light',
+            });
+
+            const migrationService = createMigrationService();
+            await migrationService.migrateToLocal();
+
+            const localData = mockHelpers.getLocalStorageData();
+            expect(localData.targetState).toBeUndefined();
+            expect(localData.currentState).toBeUndefined();
+            expect(localData.theme).toBe('light');
         });
 
         it('should skip undefined values during migration', async () => {
             mockHelpers.setSyncStorageData({
-                presets: [{ id: 'preset-1', name: 'Test' }],
+                presets: [makePreset({ id: 'preset-1', name: 'Test' })],
                 theme: undefined,
             });
 

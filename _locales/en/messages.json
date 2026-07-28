@@ -63,9 +63,25 @@
     "message": "Check proxy before adding",
     "description": "Label for proxy check toggle"
   },
+  "publicProxyStatusAlive": {
+    "message": "Working",
+    "description": "Tooltip for working public proxy status icon"
+  },
+  "publicProxyStatusDead": {
+    "message": "Not working",
+    "description": "Tooltip for dead public proxy status icon"
+  },
+  "publicProxyCheckNow": {
+    "message": "Check",
+    "description": "Button to check a single public proxy"
+  },
   "syncEnableConfirm": {
-    "message": "Enable sync? Your settings will be available on all devices with this account.",
+    "message": "Enable sync? Your local settings will be merged with cloud data (without duplicates) and become available on all devices with this account.",
     "description": "Confirmation message when enabling sync"
+  },
+  "syncEnabledStats": {
+    "message": "Sync enabled. Received from cloud: $1, added to cloud: $2.",
+    "description": "Info message after enabling sync: how many entries were received from cloud and added to cloud"
   },
   "syncDisableConfirm": {
     "message": "Disable sync? Settings will be stored only on this device.",
@@ -114,6 +130,10 @@
   "tabSettings": {
     "message": "Settings",
     "description": "Tab label for settings"
+  },
+  "buttonOpenInTab": {
+    "message": "Open in tab",
+    "description": "Tooltip and aria-label for the open-in-tab button"
   },
   "buttonAddProxy": {
     "message": "Add Proxy",
@@ -437,6 +457,14 @@
     "message": "All",
     "description": "All filter option"
   },
+  "publicProxiesShowFilters": {
+    "message": "Show filters",
+    "description": "Toggle button label to show public proxy filters"
+  },
+  "publicProxiesHideFilters": {
+    "message": "Hide filters",
+    "description": "Toggle button label to hide public proxy filters"
+  },
   "connectionTypeResidential": {
     "message": "Residential",
     "description": "Residential connection type"
@@ -541,12 +569,33 @@
   "welcomeStep3Title": { "message": "Connect" },
   "welcomeStep3Desc": { "message": "Click the shield button to enable the proxy" },
   "welcomeGetStarted": { "message": "Get Started" },
+  "welcomeChooseTitle": { "message": "How would you like to start?" },
+  "welcomeOptionWizard": { "message": "Setup wizard" },
+  "welcomeOptionWizardDesc": { "message": "Step-by-step guided setup" },
+  "welcomeOptionSync": { "message": "Sync settings" },
+  "welcomeOptionSyncDesc": { "message": "Enable sync and get your saved settings" },
+  "welcomeOptionImport": { "message": "Import settings" },
+  "welcomeOptionImportDesc": { "message": "Load settings from a file" },
+  "welcomeOptionSkip": { "message": "Skip" },
+  "welcomeSyncError": { "message": "Couldn't enable sync" },
+  "tourStepCounter": { "message": "Step $1 of $2" },
+  "tourStepAddProxyTitle": { "message": "Add a proxy" },
+  "tourStepAddProxyText": { "message": "Click “Add Proxy” in this column and enter your proxy server details." },
+  "tourStepModeTitle": { "message": "What should be proxied?" },
+  "tourStepModeText": { "message": "All sites — every request goes through the proxy. Selected sites — only domains from your presets." },
+  "tourChoiceAllSites": { "message": "All sites" },
+  "tourChoiceSelectedSites": { "message": "Selected sites" },
+  "tourStepPresetsTitle": { "message": "Add a preset" },
+  "tourStepPresetsText": { "message": "Create a preset with the domains that should go through the proxy." },
+  "tourStepConnectTitle": { "message": "Enable the proxy" },
+  "tourStepConnectText": { "message": "Click the shield button to connect." },
+  "tourStepPinTitle": { "message": "Pin the extension" },
+  "tourStepPinText": { "message": "The extension icon is in the toolbar at the top right. Pin it for one-click access." },
+  "tourNext": { "message": "Next" },
+  "tourDone": { "message": "Done" },
+  "tourSkip": { "message": "Skip tutorial" },
   "labelTheme": {
     "message": "Dark theme",
     "description": "Label for dark theme toggle checkbox"
-  },
-  "selectDefaultProxyTitle": {
-    "message": "Select default proxy",
-    "description": "Title for select default proxy modal"
   }
 }

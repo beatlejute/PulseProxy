@@ -1,7 +1,15 @@
-import { IMigrationService } from '../types/storage';
+import { IMigrationService, SyncMergeStats } from '../types/storage';
 import { IStorageBackend } from '../types/storage';
 import { IPresetRepository } from '../types/storage';
-import { ProxyServer } from '../types';
+import { Preset, ProxyServer } from '../types';
+import { SYNC_STORAGE_KEYS } from '../shared/constants';
+import { mergePresets, mergeProxies } from './merge-utils';
+
+// Sync-ключи, участвующие в миграции; сам флаг syncEnabled живёт только в local
+const KEYS_TO_MIGRATE = SYNC_STORAGE_KEYS.filter((key) => key !== 'syncEnabled');
+
+// Ключи состояния устройства, ошибочно попадавшие в облако в старых версиях
+const LEGACY_SYNC_KEYS = ['targetState', 'currentState'];
 
 /**
  * MigrationService отвечает за миграцию данных между форматами storage
@@ -20,19 +28,25 @@ export class MigrationService implements IMigrationService {
      * Выполнить миграцию из старой структуры domains в пресеты
      */
     async migrateFromLegacyDomains(): Promise<void> {
-        // Получаем старые данные из обоих storage
-        const [localDomains, syncDomains] = await Promise.all([
+        // Получаем старые данные из обоих storage + уже существующие пресеты
+        const [existingPresets, localDomains, syncDomains] = await Promise.all([
+            this.storageBackend.get('presets') as Promise<Preset[] | undefined>,
             this.storageBackend.get('domains') as Promise<string[] | undefined>,
             this.getSyncValue('domains') as Promise<string[] | undefined>
         ]);
 
         const legacyDomains: string[] = syncDomains || localDomains || [];
 
-        // Создаём дефолтный пресет
-        const customPreset = this.presetRepository.createDefaultPreset(legacyDomains);
-
-        // Сохраняем пресеты
-        await this.presetRepository.setAll([customPreset]);
+        // Флаг migrationCompleted живёт только в local, поэтому на втором устройстве
+        // (или после переустановки) миграция запускается заново — уже ПОВЕРХ пресетов,
+        // синхронизированных из облака. Безусловный setAll затирал их пустым дефолтом,
+        // а background затем пушил потерю обратно в облако. Не трогаем пресеты, если
+        // они уже есть — создаём дефолтный только на действительно чистом старте.
+        const hasModernPresets = Array.isArray(existingPresets) && existingPresets.length > 0;
+        if (!hasModernPresets) {
+            const customPreset = this.presetRepository.createDefaultPreset(legacyDomains);
+            await this.presetRepository.setAll([customPreset]);
+        }
 
         // Удаляем старые поля domains
         await Promise.all([
@@ -86,29 +100,71 @@ export class MigrationService implements IMigrationService {
     }
 
     /**
-     * Мигрировать данные из local storage в sync
+     * Мигрировать данные из local storage в sync при включении синхронизации.
+     *
+     * Облако не перезаписывается: списки presets/proxies сливаются с облачными
+     * без дублей (merge-utils), скаляры берутся локальные (undefined не затирает
+     * облачное значение). Квота проверяется до первой записи — при превышении
+     * облако остаётся нетронутым, ошибка всплывает в UI (settings.ts).
      */
-    async migrateToSync(): Promise<void> {
-        const keysToMigrate = ['presets', 'proxies', 'theme', 'language', 'proxyByDefault', 'targetState', 'currentState'];
-        
-        const localData = await this.storageBackend.getMultiple(keysToMigrate);
-        
-        if (Object.keys(localData).length > 0) {
-            for (const [key, value] of Object.entries(localData)) {
-                if (value !== undefined) {
-                    await this.setSyncValue(key, value);
-                }
+    async migrateToSync(): Promise<SyncMergeStats> {
+        const [localData, cloudData] = await Promise.all([
+            this.storageBackend.getMultiple([...KEYS_TO_MIGRATE]),
+            this.getSyncValues([...KEYS_TO_MIGRATE]),
+        ]);
+
+        const proxyMerge = mergeProxies(
+            (cloudData.proxies as ProxyServer[] | undefined) ?? [],
+            (localData.proxies as ProxyServer[] | undefined) ?? [],
+        );
+        const presetMerge = mergePresets(
+            (cloudData.presets as Preset[] | undefined) ?? [],
+            (localData.presets as Preset[] | undefined) ?? [],
+            proxyMerge,
+        );
+        const mergedPresets = presetMerge.merged;
+
+        const toSync: Record<string, unknown> = {};
+        if (proxyMerge.merged.length > 0) toSync.proxies = proxyMerge.merged;
+        if (mergedPresets.length > 0) toSync.presets = mergedPresets;
+        for (const key of KEYS_TO_MIGRATE) {
+            if (key === 'presets' || key === 'proxies') continue;
+            const localValue = localData[key];
+            if (localValue !== undefined) {
+                toSync[key] = localValue;
             }
         }
+
+        for (const [key, value] of Object.entries(toSync)) {
+            await this.storageBackend.checkSyncQuota(key, value);
+        }
+
+        for (const [key, value] of Object.entries(toSync)) {
+            await this.setSyncValue(key, value);
+        }
+
+        await this.removeSyncValue(LEGACY_SYNC_KEYS);
+
+        // Слитые списки видны устройству сразу, не дожидаясь syncFromCloud;
+        // echo guard в SyncService не даст повторно записать их в облако
+        if (toSync.proxies !== undefined) {
+            await this.storageBackend.set('proxies', proxyMerge.merged);
+        }
+        if (toSync.presets !== undefined) {
+            await this.storageBackend.set('presets', mergedPresets);
+        }
+
+        return {
+            received: proxyMerge.received + presetMerge.received,
+            added: proxyMerge.added + presetMerge.added,
+        };
     }
 
     /**
      * Мигрировать данные из sync в local storage
      */
     async migrateToLocal(): Promise<void> {
-        const keysToMigrate = ['presets', 'proxies', 'theme', 'language', 'proxyByDefault', 'targetState', 'currentState'];
-        
-        for (const key of keysToMigrate) {
+        for (const key of KEYS_TO_MIGRATE) {
             const value = await this.getSyncValue(key);
             if (value !== undefined) {
                 await this.storageBackend.set(key, value);
@@ -128,20 +184,43 @@ export class MigrationService implements IMigrationService {
     }
 
     /**
-     * Вспомогательный метод для установки значения в sync storage
+     * Вспомогательный метод для получения нескольких значений из sync storage
      */
-    private async setSyncValue(key: string, value: unknown): Promise<void> {
+    private async getSyncValues(keys: string[]): Promise<Record<string, unknown>> {
         return new Promise((resolve) => {
-            chrome.storage.sync.set({ [key]: value }, resolve);
+            chrome.storage.sync.get(keys, (result) => {
+                resolve(result);
+            });
         });
     }
 
     /**
-     * Вспомогательный метод для удаления значения из sync storage
+     * Вспомогательный метод для установки значения в sync storage
      */
-    private async removeSyncValue(key: string): Promise<void> {
-        return new Promise((resolve) => {
-            chrome.storage.sync.remove(key, resolve);
+    private async setSyncValue(key: string, value: unknown): Promise<void> {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.set({ [key]: value }, () => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(`Sync write failed for "${key}": ${chrome.runtime.lastError.message}`));
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    /**
+     * Вспомогательный метод для удаления значений из sync storage
+     */
+    private async removeSyncValue(keys: string | string[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            chrome.storage.sync.remove(keys, () => {
+                if (chrome.runtime.lastError) {
+                    reject(new Error(`Sync remove failed: ${chrome.runtime.lastError.message}`));
+                } else {
+                    resolve();
+                }
+            });
         });
     }
 

@@ -100,11 +100,9 @@ describe('select-default-proxy-modal.ts', () => {
             expect(secondName?.textContent).toBe('Proxy 2');
             expect(secondAddress?.textContent).toBe('192.168.1.2:1080');
 
-            // Clean up the promise
-            const modalEl = document.querySelector('.select-default-proxy-modal');
-            if (modalEl) {
-                (modalEl as HTMLElement).dispatchEvent(new Event('modal-close'));
-            }
+            // Clean up the promise — закрываем крестиком (резолвит null через onClose)
+            const closeBtn = document.querySelector('.modal-close') as HTMLElement;
+            closeBtn.click();
             await promise;
         });
 
@@ -127,11 +125,9 @@ describe('select-default-proxy-modal.ts', () => {
             const nameSpan = document.querySelector('.proxy-item-name');
             expect(nameSpan?.textContent).toBe('10.0.0.1:3128');
 
-            // Clean up
-            const modalEl = document.querySelector('.select-default-proxy-modal');
-            if (modalEl) {
-                (modalEl as HTMLElement).dispatchEvent(new Event('modal-close'));
-            }
+            // Clean up — закрываем крестиком (резолвит null через onClose)
+            const closeBtn = document.querySelector('.modal-close') as HTMLElement;
+            closeBtn.click();
             await promise;
         });
     });
@@ -280,6 +276,56 @@ describe('select-default-proxy-modal.ts', () => {
 
             const result = await promise;
             expect(result).toBeNull();
+        });
+
+        it('should resolve with null when overlay is clicked (regression: dead promise)', async () => {
+            // Раньше клик по overlay звал оригинальный closeModal без dispatch
+            // события modal-close → промис висел вечно, главный тумблер молча умирал.
+            const proxies: ProxyServer[] = [
+                {
+                    id: 'p1', name: 'Proxy 1', type: 'http', host: '192.168.1.1', port: 8080,
+                    isDefault: false, createdAt: Date.now(), updatedAt: Date.now(),
+                },
+            ];
+
+            const promise = showSelectDefaultProxyModal(proxies);
+
+            const overlay = document.querySelector('.modal-overlay') as HTMLElement;
+            expect(overlay).not.toBeNull();
+            // Клик именно по overlay (не по модалке внутри)
+            overlay.click();
+
+            const result = await promise;
+            expect(result).toBeNull();
+        });
+
+        it('should remove the Escape listener after closing (regression: listener leak)', async () => {
+            // Раньше Escape-листенер снимался только при закрытии Escape'ом;
+            // закрытие крестиком оставляло его на document навсегда.
+            const addSpy = jest.spyOn(document, 'addEventListener');
+            const removeSpy = jest.spyOn(document, 'removeEventListener');
+
+            const proxies: ProxyServer[] = [
+                {
+                    id: 'p1', name: 'Proxy 1', type: 'http', host: '192.168.1.1', port: 8080,
+                    isDefault: false, createdAt: Date.now(), updatedAt: Date.now(),
+                },
+            ];
+
+            const promise = showSelectDefaultProxyModal(proxies);
+            const keydownHandler = addSpy.mock.calls.find(c => c[0] === 'keydown')?.[1];
+            expect(keydownHandler).toBeDefined();
+
+            // Закрываем крестиком — НЕ Escape'ом
+            const closeBtn = document.querySelector('.modal-close') as HTMLElement;
+            closeBtn.click();
+            await promise;
+
+            // Тот же самый keydown-хендлер должен быть снят
+            expect(removeSpy).toHaveBeenCalledWith('keydown', keydownHandler);
+
+            addSpy.mockRestore();
+            removeSpy.mockRestore();
         });
 
         it('should resolve with null when Escape key is pressed', async () => {

@@ -63,9 +63,25 @@
     "message": "追加前にプロキシを確認",
     "description": "Label for proxy check toggle"
   },
+  "publicProxyStatusAlive": {
+    "message": "動作中",
+    "description": "Tooltip for working public proxy status icon"
+  },
+  "publicProxyStatusDead": {
+    "message": "動作していません",
+    "description": "Tooltip for dead public proxy status icon"
+  },
+  "publicProxyCheckNow": {
+    "message": "確認",
+    "description": "Button to check a single public proxy"
+  },
   "syncEnableConfirm": {
-    "message": "同期を有効にしますか？このアカウントを使用するすべてのデバイスで設定が利用可能になります。",
+    "message": "同期を有効にしますか？ローカル設定はクラウドデータと統合され（重複なし）、このアカウントを使用するすべてのデバイスで利用可能になります。",
     "description": "Confirmation message when enabling sync"
+  },
+  "syncEnabledStats": {
+    "message": "同期が有効になりました。クラウドから受信：$1、クラウドに追加：$2。",
+    "description": "Info message after enabling sync: how many entries were received from cloud and added to cloud"
   },
   "syncDisableConfirm": {
     "message": "同期を無効にしますか？設定はこのデバイスにのみ保存されます。",
@@ -114,6 +130,10 @@
   "tabSettings": {
     "message": "設定",
     "description": "Tab label for settings"
+  },
+  "buttonOpenInTab": {
+    "message": "タブで開く",
+    "description": "Tooltip and aria-label for the open-in-tab button"
   },
   "buttonAddProxy": {
     "message": "プロキシを追加",
@@ -437,6 +457,14 @@
     "message": "すべて",
     "description": "All filter option"
   },
+  "publicProxiesShowFilters": {
+    "message": "フィルターを表示",
+    "description": "Toggle button label to show public proxy filters"
+  },
+  "publicProxiesHideFilters": {
+    "message": "フィルターを非表示",
+    "description": "Toggle button label to hide public proxy filters"
+  },
   "connectionTypeResidential": {
     "message": "住宅",
     "description": "Residential connection type"
@@ -557,13 +585,34 @@
   "welcomeGetStarted": {
     "message": "始める"
   },
+  "welcomeChooseTitle": { "message": "どのように始めますか？" },
+  "welcomeOptionWizard": { "message": "セットアップウィザード" },
+  "welcomeOptionWizardDesc": { "message": "ステップごとのガイド付きセットアップ" },
+  "welcomeOptionSync": { "message": "設定を同期" },
+  "welcomeOptionSyncDesc": { "message": "同期を有効にして保存済みの設定を取得します" },
+  "welcomeOptionImport": { "message": "設定をインポート" },
+  "welcomeOptionImportDesc": { "message": "ファイルから設定を読み込みます" },
+  "welcomeOptionSkip": { "message": "スキップ" },
+  "welcomeSyncError": { "message": "同期を有効にできませんでした" },
+  "tourStepCounter": { "message": "ステップ $1 / $2" },
+  "tourStepAddProxyTitle": { "message": "プロキシを追加" },
+  "tourStepAddProxyText": { "message": "この列の「プロキシを追加」をクリックして、プロキシサーバーの情報を入力します。" },
+  "tourStepModeTitle": { "message": "何をプロキシ経由にしますか？" },
+  "tourStepModeText": { "message": "すべてのサイト — すべてのリクエストがプロキシを経由します。選択したサイト — プリセットのドメインのみが対象です。" },
+  "tourChoiceAllSites": { "message": "すべてのサイト" },
+  "tourChoiceSelectedSites": { "message": "選択したサイト" },
+  "tourStepPresetsTitle": { "message": "プリセットを追加" },
+  "tourStepPresetsText": { "message": "プロキシを経由させるドメインを含むプリセットを作成します。" },
+  "tourStepConnectTitle": { "message": "プロキシを有効にする" },
+  "tourStepConnectText": { "message": "シールドボタンをクリックして接続します。" },
+  "tourStepPinTitle": { "message": "拡張機能をピン留め" },
+  "tourStepPinText": { "message": "拡張機能アイコンは右上のツールバーにあります。ピン留めするとワンクリックでアクセスできます。" },
+  "tourNext": { "message": "次へ" },
+  "tourDone": { "message": "完了" },
+  "tourSkip": { "message": "チュートリアルをスキップ" },
   "labelTheme": {
     "message": "ダークテーマ",
     "description": "Label for dark theme toggle checkbox"
-  },
-  "selectDefaultProxyTitle": {
-    "message": "デフォルトのプロキシを選択",
-    "description": "Title for select default proxy modal"
   },
   "ariaProxyOn": {
     "message": "プロキシ有効",

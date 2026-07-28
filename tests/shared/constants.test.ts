@@ -96,10 +96,13 @@ describe('constants.ts', () => {
             expect(LOCAL_STORAGE_KEYS).toContain('targetState');
             expect(LOCAL_STORAGE_KEYS).toContain('migrationCompleted');
             expect(LOCAL_STORAGE_KEYS).toContain('errorProxy');
+            expect(LOCAL_STORAGE_KEYS).toContain('publicProxiesWarningDismissed');
+            expect(LOCAL_STORAGE_KEYS).toContain('publicProxiesFiltersCollapsed');
+            expect(LOCAL_STORAGE_KEYS).toContain('publicProxyCheckResults');
         });
 
-        it('should have 4 keys', () => {
-            expect(LOCAL_STORAGE_KEYS).toHaveLength(4);
+        it('should have 7 keys', () => {
+            expect(LOCAL_STORAGE_KEYS).toHaveLength(7);
         });
     });
 
@@ -116,10 +119,13 @@ describe('constants.ts', () => {
             expect(StorageKeys.PROXY_BY_DEFAULT).toBe('proxyByDefault');
             expect(StorageKeys.ERROR_PROXY).toBe('errorProxy');
             expect(StorageKeys.PROXY_CHECK_ENABLED).toBe('proxyCheckEnabled');
+            expect(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED).toBe('publicProxiesWarningDismissed');
+            expect(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED).toBe('publicProxiesFiltersCollapsed');
+            expect(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS).toBe('publicProxyCheckResults');
         });
 
-        it('should have 11 keys', () => {
-            expect(Object.keys(StorageKeys)).toHaveLength(11);
+        it('should have 14 keys', () => {
+            expect(Object.keys(StorageKeys)).toHaveLength(14);
         });
     });
 
@@ -164,10 +170,11 @@ describe('constants.ts', () => {
             expect(DOMIds.TAB_PROXY).toBe('tab-proxy');
             expect(DOMIds.TAB_PRESETS).toBe('tab-presets');
             expect(DOMIds.TAB_SETTINGS).toBe('tab-settings');
+            expect(DOMIds.OPEN_IN_TAB_BUTTON).toBe('open-in-tab-button');
         });
 
-        it('should have 8 DOM IDs', () => {
-            expect(Object.keys(DOMIds)).toHaveLength(8);
+        it('should have 9 DOM IDs', () => {
+            expect(Object.keys(DOMIds)).toHaveLength(9);
         });
 
         it('should have valid ID format (lowercase with hyphens)', () => {

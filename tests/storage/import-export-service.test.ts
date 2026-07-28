@@ -26,6 +26,8 @@ let MockSettingsRepository: {
     setProxyByDefault: jest.Mock;
     getProxyCheckEnabled: jest.Mock;
     setProxyCheckEnabled: jest.Mock;
+    getPublicProxyAutoCheckEnabled: jest.Mock;
+    setPublicProxyAutoCheckEnabled: jest.Mock;
 };
 let MockStorageBackend: {
     get: jest.Mock;
@@ -63,6 +65,8 @@ describe('ImportExportService', () => {
             setProxyByDefault: jest.fn().mockResolvedValue(undefined),
             getProxyCheckEnabled: jest.fn().mockResolvedValue(true),
             setProxyCheckEnabled: jest.fn().mockResolvedValue(undefined),
+            getPublicProxyAutoCheckEnabled: jest.fn().mockResolvedValue(true),
+            setPublicProxyAutoCheckEnabled: jest.fn().mockResolvedValue(undefined),
         };
 
         MockStorageBackend = {
@@ -649,6 +653,104 @@ describe('ImportExportService', () => {
 
             expect(result.valid).toBe(false);
             expect(result.errors).toContain('invalidProxyStructure');
+        });
+
+        // --- adversarial / битые пейлоады (глубокая валидация) ---
+
+        const makeService = () => new ImportExportServiceConstructor(
+            MockStorageBackend as any,
+            MockPresetRepository as any,
+            MockProxyRepository as any,
+            MockSettingsRepository as any
+        );
+
+        it('should reject a preset whose domains contain a non-string element', () => {
+            const data = createValidExportData();
+            (data.data.presets[0] as any).domains = [{ evil: 1 }];
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidPresetStructure');
+        });
+
+        it.each([
+            ['out of range high', 99999],
+            ['negative', -1],
+            ['non-integer', 1.5],
+        ])('should reject a proxy with an invalid port (%s)', (_label, port) => {
+            const data = createValidExportData();
+            (data.data.proxies[0] as any).port = port;
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidProxyStructure');
+        });
+
+        it('should reject a proxy with an empty host', () => {
+            const data = createValidExportData();
+            data.data.proxies[0].host = '   ';
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidProxyStructure');
+        });
+
+        it('should reject a non-object theme', () => {
+            const data = createValidExportData();
+            (data.data as any).theme = { malicious: true };
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidTheme');
+        });
+
+        it('should reject an unsupported language value', () => {
+            const data = createValidExportData();
+            (data.data as any).language = 'xx';
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidLanguage');
+        });
+
+        it('should accept a file that omits optional settings', () => {
+            const data = createValidExportData();
+            delete (data.data as any).theme;
+            delete (data.data as any).proxyByDefault;
+            delete (data.data as any).proxyCheckEnabled;
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(true);
+        });
+    });
+
+    describe('importAll() — defensive settings handling', () => {
+        it('does not write theme/language when the imported file omits them', async () => {
+            const exportData = createValidExportData();
+            delete (exportData.data as any).theme;
+            delete (exportData.data as any).language;
+
+            const service = new ImportExportServiceConstructor(
+                MockStorageBackend as any,
+                MockPresetRepository as any,
+                MockProxyRepository as any,
+                MockSettingsRepository as any
+            );
+
+            await service.importAll(exportData, 'replace');
+
+            // Отсутствующие настройки не перезаписываются undefined'ом
+            expect(MockSettingsRepository.setTheme).not.toHaveBeenCalled();
+            expect(MockSettingsRepository.setLanguage).not.toHaveBeenCalled();
+            // Данные всё равно применены
+            expect(MockPresetRepository.setAll).toHaveBeenCalled();
+            expect(MockProxyRepository.setAll).toHaveBeenCalled();
         });
     });
 });

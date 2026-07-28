@@ -102,6 +102,14 @@ class I18nService {
             const key = el.getAttribute('data-i18n-placeholder') as I18nKey;
             (el as HTMLInputElement).placeholder = this.getMessage(key);
         });
+
+        // Обработка data-i18n-title атрибутов: title + aria-label (кнопки-иконки без текста)
+        document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+            const key = el.getAttribute('data-i18n-title') as I18nKey;
+            const message = this.getMessage(key);
+            el.setAttribute('title', message);
+            el.setAttribute('aria-label', message);
+        });
     }
 
     getCurrentLanguage(): SupportedLanguage {

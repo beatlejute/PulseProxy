@@ -1,14 +1,21 @@
 import { ProxyManager } from './proxy-manager';
 import { IconManager } from './icon-manager';
 import { Storage } from '../shared/storage';
+import { SyncService } from '../storage/sync-service';
 import { StorageKeys, SYNC_STORAGE_KEYS, ProxyState } from '../shared/constants';
-import { ExtensionMessage, StorageChanges, CheckProxyResult, ProxyServer } from '../types';
+import { ExtensionMessage, StorageChanges, CheckProxyResult, CheckProxyBatchItemResult, CheckProxyBatchResponse, ProxyServer } from '../types';
 import { trackEvent, sendGA4Event } from '../shared/analytics';
 
 const HEARTBEAT_ALARM = 'ga4_heartbeat';
 const HEARTBEAT_INTERVAL_MIN = 10080;
 
 console.log('Background: Starting...');
+
+// Push локальных изменений sync-ключей в облако — только из background:
+// debounce-таймер в попапе умирает при его закрытии, и запись терялась
+// (состояние откатывалось при следующем открытии попапа).
+// Регистрация на верхнем уровне — синхронно, чтобы событие будило service worker.
+SyncService.registerLocalToCloudSync();
 
 chrome.runtime.onInstalled.addListener(async (details) => {
     if (details.reason === 'install') {
@@ -72,7 +79,17 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
 
     switch (message.action) {
         case 'toggleProxy':
-            ProxyManager.toggle();
+            // После toggle обновляем бейджи всех вкладок: смена proxyByDefault при
+            // уже подключённом прокси не меняет currentState, и слушатель смены
+            // состояния бейджи не обновит. Ждём завершения toggle — до этого
+            // routing-кэш ещё старый.
+            // Активный батч публичных прокси отменяем до toggle: его finally
+            // восстановил бы состояние прокси, снятое ДО батча, поверх нового.
+            void (async () => {
+                await abortActiveCheckBatch();
+                await ProxyManager.toggle();
+                await refreshAllTabBadges();
+            })();
             break;
         case 'resetProxyCache':
             ProxyManager.resetCache();
@@ -89,6 +106,17 @@ chrome.runtime.onMessage.addListener((message: any, sender, sendResponse) => {
                 return true;
             }
             break;
+        case 'checkProxyBatch':
+            if (message.proxies?.length) {
+                checkProxyBatch(message.proxies)
+                    .then(sendResponse)
+                    .catch(() => sendResponse({ results: message.proxies.map(() => 'error') }));
+                return true;
+            }
+            break;
+        case 'abortCheckBatch':
+            abortActiveCheckBatch().then(() => sendResponse({ success: true }));
+            return true;
         case 'deleteProxy':
             if (message.proxyId) {
                 console.log('Background: Deleting proxy via Storage API:', message.proxyId);
@@ -172,6 +200,9 @@ export function resetIsChecking(): void {
 }
 
 async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promise<CheckProxyResult> {
+    // Одиночная проверка (пользователь добавляет прокси) приоритетнее фонового
+    // батча публичных прокси — снимаем батч и дожидаемся восстановления настроек.
+    await abortActiveCheckBatch();
     if (isChecking) {
         return 'error';
     }
@@ -230,6 +261,100 @@ async function checkProxy(proxy: NonNullable<ExtensionMessage['proxy']>): Promis
     }
 }
 
+// === Батч-проверка публичных прокси ===
+// Один PAC-скрипт с N test-rule (у каждого прокси свой testId) + N параллельных
+// fetch под единственной установкой/восстановлением chrome.proxy.settings —
+// настройки прокси глобальны, менять их на каждый прокси нельзя.
+
+let activeBatchAbort: AbortController | null = null;
+let activeBatchDone: Promise<unknown> | null = null;
+
+export async function abortActiveCheckBatch(): Promise<void> {
+    activeBatchAbort?.abort();
+    if (activeBatchDone) {
+        try {
+            await activeBatchDone;
+        } catch {
+            // Результат отменённого батча не нужен
+        }
+    }
+}
+
+// AbortSignal.any недоступен в старых окружениях — комбинируем вручную
+function combineAbortSignals(...signals: AbortSignal[]): AbortSignal {
+    const controller = new AbortController();
+    for (const signal of signals) {
+        if (signal.aborted) {
+            controller.abort();
+            break;
+        }
+        signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+    return controller.signal;
+}
+
+async function checkProxyBatch(
+    proxies: NonNullable<ExtensionMessage['proxies']>
+): Promise<CheckProxyBatchResponse> {
+    if (isChecking) {
+        return { busy: true };
+    }
+    isChecking = true;
+    const abortController = new AbortController();
+    activeBatchAbort = abortController;
+
+    const run = (async (): Promise<CheckProxyBatchResponse> => {
+        const wasConnected = (await Storage.getCurrentState()) === ProxyState.CONNECTED;
+        try {
+            const entries = proxies.map(({ type, host, port }) => ({
+                proxy: { type, host, port } as Partial<ProxyServer>,
+                testId: crypto.randomUUID(),
+            }));
+            const pacScript = await ProxyManager.generateBatchCheckPacScript(entries);
+
+            await new Promise<void>(resolve => {
+                chrome.proxy.settings.set(
+                    { value: { mode: 'pac_script', pacScript: { data: pacScript } }, scope: 'regular' },
+                    resolve
+                );
+            });
+
+            const results = await Promise.all(entries.map(async ({ testId }): Promise<CheckProxyBatchItemResult> => {
+                try {
+                    const response = await fetch(`${CHECK_PROXY_URL}?_pulse_check=${testId}`, {
+                        signal: combineAbortSignals(AbortSignal.timeout(CHECK_PROXY_TIMEOUT_MS), abortController.signal),
+                        cache: 'no-store',
+                        headers: {
+                            'Cache-Control': 'no-cache',
+                            'Pragma': 'no-cache',
+                        },
+                    });
+                    return response.ok ? 'ok' : 'error';
+                } catch (e) {
+                    if (abortController.signal.aborted) {
+                        return 'aborted';
+                    }
+                    if (e instanceof DOMException && (e.name === 'AbortError' || e.name === 'TimeoutError')) {
+                        return 'timeout';
+                    }
+                    return 'error';
+                }
+            }));
+
+            return { results };
+        } catch {
+            return { results: proxies.map((): CheckProxyBatchItemResult => 'error') };
+        } finally {
+            isChecking = false;
+            activeBatchAbort = null;
+            await ProxyManager.restoreAfterCheck(wasConnected);
+        }
+    })();
+
+    activeBatchDone = run;
+    return run;
+}
+
 // Per-tab proxy badge: update badge when navigating to a new page
 async function updateTabBadge(tabId: number, url: string | undefined): Promise<void> {
     try {
@@ -248,6 +373,20 @@ async function updateTabBadge(tabId: number, url: string | undefined): Promise<v
         }
     } catch {
         // Tab may have been closed between navigation event and badge update
+    }
+}
+
+// Refresh badges of all open tabs (state or routing config changed)
+async function refreshAllTabBadges(): Promise<void> {
+    try {
+        const tabs = await chrome.tabs.query({});
+        for (const tab of tabs) {
+            if (tab.id != null) {
+                updateTabBadge(tab.id, tab.url);
+            }
+        }
+    } catch {
+        // Ignore errors during tab enumeration
     }
 }
 
@@ -270,16 +409,7 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
 // Refresh all tabs' badges when proxy state changes
 Storage.onChange(async (changes: StorageChanges, area: string) => {
     if (area === 'local' && StorageKeys.CURRENT_STATE in changes) {
-        try {
-            const tabs = await chrome.tabs.query({});
-            for (const tab of tabs) {
-                if (tab.id != null) {
-                    updateTabBadge(tab.id, tab.url);
-                }
-            }
-        } catch {
-            // Ignore errors during tab enumeration
-        }
+        await refreshAllTabBadges();
     }
 });
 

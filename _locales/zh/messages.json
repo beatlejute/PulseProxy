@@ -63,9 +63,25 @@
     "message": "添加前检查代理",
     "description": "Label for proxy check toggle"
   },
+  "publicProxyStatusAlive": {
+    "message": "可用",
+    "description": "Tooltip for working public proxy status icon"
+  },
+  "publicProxyStatusDead": {
+    "message": "不可用",
+    "description": "Tooltip for dead public proxy status icon"
+  },
+  "publicProxyCheckNow": {
+    "message": "检查",
+    "description": "Button to check a single public proxy"
+  },
   "syncEnableConfirm": {
-    "message": "启用同步？您的设置将在所有使用此账户的设备上可用。",
+    "message": "启用同步？您的本地设置将与云端数据合并（无重复项），并在所有使用此账户的设备上可用。",
     "description": "Confirmation message when enabling sync"
+  },
+  "syncEnabledStats": {
+    "message": "同步已启用。从云端接收：$1，添加到云端：$2。",
+    "description": "Info message after enabling sync: how many entries were received from cloud and added to cloud"
   },
   "syncDisableConfirm": {
     "message": "禁用同步？设置将仅存储在此设备上。",
@@ -114,6 +130,10 @@
   "tabSettings": {
     "message": "设置",
     "description": "Tab label for settings"
+  },
+  "buttonOpenInTab": {
+    "message": "在标签页中打开",
+    "description": "Tooltip and aria-label for the open-in-tab button"
   },
   "buttonAddProxy": {
     "message": "添加代理",
@@ -437,6 +457,14 @@
     "message": "全部",
     "description": "All filter option"
   },
+  "publicProxiesShowFilters": {
+    "message": "显示筛选",
+    "description": "Toggle button label to show public proxy filters"
+  },
+  "publicProxiesHideFilters": {
+    "message": "隐藏筛选",
+    "description": "Toggle button label to hide public proxy filters"
+  },
   "connectionTypeResidential": {
     "message": "住宅",
     "description": "Residential connection type"
@@ -557,13 +585,34 @@
   "welcomeGetStarted": {
     "message": "开始使用"
   },
+  "welcomeChooseTitle": { "message": "您想如何开始？" },
+  "welcomeOptionWizard": { "message": "设置向导" },
+  "welcomeOptionWizardDesc": { "message": "分步引导设置" },
+  "welcomeOptionSync": { "message": "同步设置" },
+  "welcomeOptionSyncDesc": { "message": "启用同步并获取您已保存的设置" },
+  "welcomeOptionImport": { "message": "导入设置" },
+  "welcomeOptionImportDesc": { "message": "从文件加载设置" },
+  "welcomeOptionSkip": { "message": "跳过" },
+  "welcomeSyncError": { "message": "无法启用同步" },
+  "tourStepCounter": { "message": "第 $1 步，共 $2 步" },
+  "tourStepAddProxyTitle": { "message": "添加代理" },
+  "tourStepAddProxyText": { "message": "点击此栏中的“添加代理”，然后输入您的代理服务器信息。" },
+  "tourStepModeTitle": { "message": "哪些网站应使用代理？" },
+  "tourStepModeText": { "message": "所有网站——所有请求都通过代理。选定网站——仅代理预设中的域名。" },
+  "tourChoiceAllSites": { "message": "所有网站" },
+  "tourChoiceSelectedSites": { "message": "选定网站" },
+  "tourStepPresetsTitle": { "message": "添加预设" },
+  "tourStepPresetsText": { "message": "创建一个预设，包含需要通过代理访问的域名。" },
+  "tourStepConnectTitle": { "message": "启用代理" },
+  "tourStepConnectText": { "message": "点击盾牌按钮进行连接。" },
+  "tourStepPinTitle": { "message": "固定扩展" },
+  "tourStepPinText": { "message": "扩展图标位于右上角的工具栏中。固定它即可一键访问。" },
+  "tourNext": { "message": "下一步" },
+  "tourDone": { "message": "完成" },
+  "tourSkip": { "message": "跳过教程" },
   "labelTheme": {
     "message": "深色主题",
     "description": "Label for dark theme toggle checkbox"
-  },
-  "selectDefaultProxyTitle": {
-    "message": "选择默认代理",
-    "description": "Title for select default proxy modal"
   },
   "ariaProxyOn": {
     "message": "代理已开启",

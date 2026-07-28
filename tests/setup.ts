@@ -16,6 +16,9 @@ global.fetch = jest.fn();
 global.confirm = jest.fn(() => true);
 global.alert = jest.fn();
 
+// Мок для scrollIntoView (jsdom не реализует его)
+Element.prototype.scrollIntoView = jest.fn();
+
 // Мок для Blob (используется в storage.ts для проверки размера)
 class MockBlob {
     private content: string;

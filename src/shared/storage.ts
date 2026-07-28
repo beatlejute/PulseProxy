@@ -1,5 +1,6 @@
-import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, SyncStorageKey, Preset, ProxyServer, ExportData, ImportValidationResult } from '../types';
-import { IStorageBackend, ISettingsRepository } from '../types/storage';
+import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, Preset, ProxyServer, ExportData, ImportValidationResult, PublicProxyCheckResults } from '../types';
+import { pruneCheckResults, mergeCheckResults } from '../storage/public-proxy-check-cache';
+import { IStorageBackend, ISettingsRepository, SyncMergeStats } from '../types/storage';
 import { StorageKeys, ProxyState, SYNC_STORAGE_KEYS, DEFAULT_PRESET_ID } from './constants';
 import { PresetRepository, ChromeStorageBackend, StorageBackend } from '../storage/preset-repository';
 import { MigrationService } from '../storage/migration-service';
@@ -8,9 +9,6 @@ import { SyncService } from '../storage/sync-service';
 import { ImportExportService } from '../storage/import-export-service';
 
 type StorageChangeCallback = (changes: StorageChanges, area: string) => void;
-
-// Debounce delay для sync storage (мс)
-const SYNC_DEBOUNCE_DELAY = 1000;
 
 class StorageService implements IStorageBackend, ISettingsRepository {
     private subscribers: StorageChangeCallback[] = [];
@@ -105,13 +103,10 @@ class StorageService implements IStorageBackend, ISettingsRepository {
     }
 
     // Установить значение (типизированная версия для StorageService)
+    // Всегда пишем только в local: debounce-push sync-ключей в облако выполняет
+    // background (SyncService.registerLocalToCloudSync) — таймер, заведённый в
+    // контексте попапа, умирает вместе с ним, и отложенная запись терялась
     async setTyped<K extends StorageKey>(key: K, value: StorageData[K]): Promise<void> {
-        // Используем debounce для sync storage через SyncService
-        if (await SyncService.isEnabled() && SyncService.isSyncKey(key)) {
-            return SyncService.setWithDebounce(key as SyncStorageKey, value as StorageData[SyncStorageKey]);
-        }
-
-        // Для local storage - записываем сразу
         return new Promise((resolve) => {
             chrome.storage.local.set({ [key]: value }, resolve);
         });
@@ -134,20 +129,22 @@ class StorageService implements IStorageBackend, ISettingsRepository {
         return SyncService.isEnabled();
     }
 
-    async setSyncEnabled(enabled: boolean): Promise<void> {
-        const currentEnabled = await SyncService.wasInitialized() 
+    async setSyncEnabled(enabled: boolean): Promise<SyncMergeStats | null> {
+        const currentEnabled = await SyncService.wasInitialized()
             ? await SyncService.isEnabled()
             : false;
-        
+
+        let stats: SyncMergeStats | null = null;
         if (enabled && !currentEnabled) {
-            // Включаем синхронизацию - мигрируем данные в sync
-            await this.migrationService.migrateToSync();
+            // Включаем синхронизацию - сливаем данные с облаком без дублей
+            stats = (await this.migrationService.migrateToSync()) ?? null;
         } else if (!enabled && currentEnabled) {
             // Отключаем синхронизацию - мигрируем данные в local
             await this.migrationService.migrateToLocal();
         }
 
         await SyncService.setEnabled(enabled);
+        return stats;
     }
 
     // Уведомление подписчиков об изменениях
@@ -270,6 +267,15 @@ class StorageService implements IStorageBackend, ISettingsRepository {
         return theme || 'light';
     }
 
+    /**
+     * Возвращает тему ровно так, как она сохранена: 'light' | 'dark' | undefined.
+     * undefined означает «тема не задана вручную» — вызывающий код должен
+     * унаследовать её от системных настроек ОС (см. resolveEffectiveTheme).
+     */
+    async getStoredTheme(): Promise<ThemeType | undefined> {
+        return this.getTyped(StorageKeys.THEME as StorageKey) as Promise<ThemeType | undefined>;
+    }
+
     async setTheme(theme: ThemeType): Promise<void> {
         return this.setTyped(StorageKeys.THEME as StorageKey, theme);
     }
@@ -302,6 +308,42 @@ class StorageService implements IStorageBackend, ISettingsRepository {
 
     async setProxyCheckEnabled(enabled: boolean): Promise<void> {
         return this.setTyped(StorageKeys.PROXY_CHECK_ENABLED as StorageKey, enabled);
+    }
+
+    // === Предупреждение о публичных прокси (закрывается крестиком навсегда) ===
+
+    async getPublicProxiesWarningDismissed(): Promise<boolean> {
+        const value = await this.getTyped(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED as StorageKey) as boolean | undefined;
+        return value ?? false; // По умолчанию false - предупреждение показывается
+    }
+
+    async setPublicProxiesWarningDismissed(dismissed: boolean): Promise<void> {
+        return this.setTyped(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED as StorageKey, dismissed);
+    }
+
+    // === Кеш результатов фоновой проверки публичных прокси ===
+    // Только local: результаты машинно-специфичны, TTL сутки.
+    // Сама проверка управляется настройкой proxyCheckEnabled.
+
+    async getPublicProxyCheckResults(): Promise<PublicProxyCheckResults> {
+        const raw = await this.getTyped(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS as StorageKey) as PublicProxyCheckResults | undefined;
+        return pruneCheckResults(raw ?? {}, Date.now());
+    }
+
+    async mergePublicProxyCheckResults(updates: PublicProxyCheckResults): Promise<void> {
+        const current = await this.getPublicProxyCheckResults();
+        return this.setTyped(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS as StorageKey, mergeCheckResults(current, updates));
+    }
+
+    // === Свёрнутость блока фильтров публичных прокси ===
+
+    async getPublicProxiesFiltersCollapsed(): Promise<boolean> {
+        const value = await this.getTyped(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED as StorageKey) as boolean | undefined;
+        return value ?? false; // По умолчанию false - фильтры развёрнуты
+    }
+
+    async setPublicProxiesFiltersCollapsed(collapsed: boolean): Promise<void> {
+        return this.setTyped(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED as StorageKey, collapsed);
     }
 
     // === Подписки на изменения ===

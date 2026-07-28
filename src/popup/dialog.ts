@@ -1,12 +1,15 @@
 import { I18n } from '../shared/i18n';
 import { adjustContainerHeight } from './dom-utils';
 import { setSafeHTML } from './safe-dom';
+import { getModalHost } from './view-mode';
+import { TabId } from '../types';
 
 /**
  * Диалоговое окно с сообщением и кнопкой OK (аналог alert).
  * Возвращает Promise, который разрешается при закрытии диалога.
+ * column — колонка, к которой относится диалог (в page-режиме накрывает её).
  */
-export function showAlert(message: string): Promise<void> {
+export function showAlert(message: string, column?: TabId): Promise<void> {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
         overlay.className = 'modal-overlay';
@@ -52,7 +55,7 @@ export function showAlert(message: string): Promise<void> {
         modal.appendChild(body);
         modal.appendChild(footer);
         overlay.appendChild(modal);
-        document.body.appendChild(overlay);
+        getModalHost(column).appendChild(overlay);
         adjustContainerHeight();
 
         // Закрытие по клику на оверлей
@@ -75,6 +78,8 @@ export function showConfirm(message: string, options?: {
     okText?: string;
     cancelText?: string;
     htmlMessage?: string;
+    /** Колонка, к которой относится диалог (в page-режиме накрывает её) */
+    column?: TabId;
 }): Promise<boolean> {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
@@ -134,7 +139,7 @@ export function showConfirm(message: string, options?: {
         modal.appendChild(body);
         modal.appendChild(footer);
         overlay.appendChild(modal);
-        document.body.appendChild(overlay);
+        getModalHost(options?.column).appendChild(overlay);
         adjustContainerHeight();
 
         // Закрытие по клику на оверлей

@@ -63,9 +63,25 @@
     "message": "Проверять прокси перед добавлением",
     "description": "Label for proxy check toggle"
   },
+  "publicProxyStatusAlive": {
+    "message": "Работает",
+    "description": "Tooltip for working public proxy status icon"
+  },
+  "publicProxyStatusDead": {
+    "message": "Не работает",
+    "description": "Tooltip for dead public proxy status icon"
+  },
+  "publicProxyCheckNow": {
+    "message": "Проверить",
+    "description": "Button to check a single public proxy"
+  },
   "syncEnableConfirm": {
-    "message": "Включить синхронизацию? Ваши настройки будут доступны на всех устройствах с этим аккаунтом.",
+    "message": "Включить синхронизацию? Локальные настройки будут объединены с облачными (без дублей) и станут доступны на всех устройствах с этим аккаунтом.",
     "description": "Confirmation message when enabling sync"
+  },
+  "syncEnabledStats": {
+    "message": "Синхронизация включена. Получено из облака: $1, добавлено в облако: $2.",
+    "description": "Info message after enabling sync: how many entries were received from cloud and added to cloud"
   },
   "syncDisableConfirm": {
     "message": "Отключить синхронизацию? Настройки будут храниться только на этом устройстве.",
@@ -114,6 +130,10 @@
   "tabSettings": {
     "message": "Настройки",
     "description": "Tab label for settings"
+  },
+  "buttonOpenInTab": {
+    "message": "Открыть во вкладке",
+    "description": "Tooltip and aria-label for the open-in-tab button"
   },
   "buttonAddProxy": {
     "message": "Добавить прокси",
@@ -437,6 +457,14 @@
     "message": "Все",
     "description": "All filter option"
   },
+  "publicProxiesShowFilters": {
+    "message": "Показать фильтры",
+    "description": "Toggle button label to show public proxy filters"
+  },
+  "publicProxiesHideFilters": {
+    "message": "Скрыть фильтры",
+    "description": "Toggle button label to hide public proxy filters"
+  },
   "connectionTypeResidential": {
     "message": "Резидентный",
     "description": "Residential connection type"
@@ -573,12 +601,33 @@
   "welcomeGetStarted": {
     "message": "Начать"
   },
+  "welcomeChooseTitle": { "message": "С чего начнём?" },
+  "welcomeOptionWizard": { "message": "Мастер настройки" },
+  "welcomeOptionWizardDesc": { "message": "Пошаговое обучение с подсказками" },
+  "welcomeOptionSync": { "message": "Синхронизация настроек" },
+  "welcomeOptionSyncDesc": { "message": "Включить синхронизацию и получить сохранённые настройки" },
+  "welcomeOptionImport": { "message": "Импорт настроек" },
+  "welcomeOptionImportDesc": { "message": "Загрузить настройки из файла" },
+  "welcomeOptionSkip": { "message": "Пропустить" },
+  "welcomeSyncError": { "message": "Не удалось включить синхронизацию" },
+  "tourStepCounter": { "message": "Шаг $1 из $2" },
+  "tourStepAddProxyTitle": { "message": "Добавьте прокси" },
+  "tourStepAddProxyText": { "message": "Нажмите «Добавить прокси» в этой колонке и укажите данные вашего прокси-сервера." },
+  "tourStepModeTitle": { "message": "Что проксировать?" },
+  "tourStepModeText": { "message": "Все сайты — весь трафик пойдёт через прокси. Отдельные сайты — только домены из ваших пресетов." },
+  "tourChoiceAllSites": { "message": "Все сайты" },
+  "tourChoiceSelectedSites": { "message": "Отдельные сайты" },
+  "tourStepPresetsTitle": { "message": "Добавьте пресет" },
+  "tourStepPresetsText": { "message": "Создайте пресет с доменами, которые пойдут через прокси." },
+  "tourStepConnectTitle": { "message": "Включите прокси" },
+  "tourStepConnectText": { "message": "Нажмите на кнопку-щит, чтобы подключиться." },
+  "tourStepPinTitle": { "message": "Закрепите расширение" },
+  "tourStepPinText": { "message": "Иконка расширения — на панели браузера справа сверху. Закрепите её, чтобы управлять прокси в один клик." },
+  "tourNext": { "message": "Далее" },
+  "tourDone": { "message": "Готово" },
+  "tourSkip": { "message": "Пропустить обучение" },
   "labelTheme": {
     "message": "Тёмная тема",
     "description": "Label for dark theme toggle checkbox"
-  },
-  "selectDefaultProxyTitle": {
-    "message": "Выбрать прокси по умолчанию",
-    "description": "Title for select default proxy modal"
   }
 }

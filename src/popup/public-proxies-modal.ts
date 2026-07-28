@@ -1,12 +1,14 @@
 import { I18n } from '../shared/i18n';
 import { RemoteConfig } from '../shared/remote-config';
 import { Storage } from '../shared/storage';
-import { ProxyType, NormalizedPublicProxy, PublicProxiesResponse, PublicProxyFilters } from '../types';
+import { ProxyType, ProxyServer, NormalizedPublicProxy, PublicProxiesResponse, PublicProxyFilters, PublicProxyLiveStatus } from '../types';
 import { createElementFromTemplate, setAttr } from './safe-dom';
 import { ModalHelper } from './modal-helper';
 import { checkProxyBeforeAdd } from './proxy-form-modal';
 import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
 import { fetchWithFallback } from '../shared/fetch-with-fallback';
+import { parseProxyString } from '../shared/proxy-parser';
+import { PublicProxyCheckSession, publicProxyCacheKey, sortByLiveStatus } from './public-proxy-check';
 
 const PUBLIC_PROXIES_PRIMARY_URL = 'https://raw.githubusercontent.com/beatlejute/PulseProxy/refs/heads/main/sources/proxys.json';
 const PUBLIC_PROXIES_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/proxys.json';
@@ -16,10 +18,24 @@ export function validateIpPortFormat(input: string): boolean {
     return ipPortRegex.test(input);
 }
 
+export function normalizeProxySearchQuery(input: string): string {
+    const parsed = parseProxyString(input);
+    if (!parsed) return input.trim();
+    return parsed.port !== undefined ? `${parsed.host}:${parsed.port}` : parsed.host;
+}
+
 let cachedProxies: NormalizedPublicProxy[] | null = null;
 
 export function clearPublicProxiesCache(): void {
     cachedProxies = null;
+}
+
+// UI-хуки фоновой проверки для элемента списка (undefined — функционал выключен)
+export interface PublicProxyItemCheckOptions {
+    getStatus: (proxy: NormalizedPublicProxy) => PublicProxyLiveStatus;
+    onCheckRequested: (proxy: NormalizedPublicProxy) => void;
+    suspendChecks: () => Promise<void>;
+    resumeChecks: () => void;
 }
 
 export async function showPublicProxiesModal(
@@ -28,43 +44,14 @@ export async function showPublicProxiesModal(
     const { body, closeModal, build } = ModalHelper.create({
         title: I18n.getMessage('publicProxiesTitle'),
         modalClass: 'public-proxies-modal',
-        fullHeight: true
+        fullHeight: true,
+        column: 'proxy'
     });
 
-    // Warning block
-    const warningDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'public-proxies-warning' });
-    const warningIcon = createElementFromTemplate<HTMLSpanElement>('span', { className: 'warning-icon', textContent: '⚠️' });
-    warningDiv.appendChild(warningIcon);
-
-    const warningContent = createElementFromTemplate<HTMLDivElement>('div', { className: 'warning-content' });
-    const warningText = createElementFromTemplate<HTMLSpanElement>('span', { textContent: I18n.getMessage('publicProxiesWarning') || 'Public proxies may be slow, unstable, and insecure. Use at your own risk.' });
-    setAttr(warningText, 'data-i18n', 'publicProxiesWarning');
-    warningContent.appendChild(warningText);
-
-    const recommendationSpan = createElementFromTemplate<HTMLSpanElement>('span', { className: 'warning-recommendation' });
-    const referralLink = createElementFromTemplate<HTMLAnchorElement>('a', { textContent: I18n.getMessage('publicProxiesRecommendation') || 'We recommend buying reliable and affordable proxies:' });
-    setAttr(referralLink, 'href', RemoteConfig.referralLink);
-    setAttr(referralLink, 'target', '_blank');
-    setAttr(referralLink, 'rel', 'noopener noreferrer');
-    setAttr(referralLink, 'class', 'referral-link');
-    setAttr(referralLink, 'data-i18n', 'publicProxiesRecommendation');
-    referralLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        const url = RemoteConfig.referralLink;
-        if (url && url !== '#') {
-            const fullUrl = buildAffiliateUrl(url, 'public_proxies');
-            trackEvent('affiliate_link_clicked', {
-                provider: new URL(url).hostname.replace('www.', '').split('.')[0],
-                placement: 'public_proxies',
-                link_url: fullUrl
-            });
-            chrome.tabs.create({ url: fullUrl });
-        }
-    });
-    recommendationSpan.appendChild(referralLink);
-    warningContent.appendChild(recommendationSpan);
-    warningDiv.appendChild(warningContent);
-    body.appendChild(warningDiv);
+    // Warning block (скрыт навсегда после закрытия крестиком)
+    if (!(await Storage.getPublicProxiesWarningDismissed())) {
+        body.appendChild(createPublicProxiesWarning());
+    }
 
     // Filters
     const filtersDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'public-proxies-filters' });
@@ -125,8 +112,6 @@ export async function showPublicProxiesModal(
     scoreGroup.appendChild(scoreSelect);
     filtersDiv.appendChild(scoreGroup);
 
-    body.appendChild(filtersDiv);
-
     const searchDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'public-proxy-search' });
     const searchInput = createElementFromTemplate<HTMLInputElement>('input', { className: 'public-proxy-search-input', type: 'text' });
     setAttr(searchInput, 'data-i18n-placeholder', 'publicProxySearchPlaceholder');
@@ -138,6 +123,29 @@ export async function showPublicProxiesModal(
     setAttr(validationHint, 'data-i18n', 'publicProxySearchHint');
     searchDiv.appendChild(validationHint);
 
+    // Кнопка-тогл сворачивания фильтров и поиска (состояние сохраняется в chrome.storage.local)
+    const filtersToggle = createElementFromTemplate<HTMLButtonElement>('button', { className: 'filters-toggle' });
+    setAttr(filtersToggle, 'type', 'button');
+
+    const applyFiltersCollapsedState = (collapsed: boolean) => {
+        filtersDiv.classList.toggle('collapsed', collapsed);
+        searchDiv.classList.toggle('collapsed', collapsed);
+        const labelKey = collapsed ? 'publicProxiesShowFilters' : 'publicProxiesHideFilters';
+        setAttr(filtersToggle, 'aria-expanded', String(!collapsed));
+        setAttr(filtersToggle, 'data-i18n', labelKey);
+        filtersToggle.textContent = I18n.getMessage(labelKey) || (collapsed ? 'Show filters' : 'Hide filters');
+    };
+
+    let filtersCollapsed = await Storage.getPublicProxiesFiltersCollapsed();
+    applyFiltersCollapsedState(filtersCollapsed);
+    filtersToggle.addEventListener('click', () => {
+        filtersCollapsed = !filtersCollapsed;
+        applyFiltersCollapsedState(filtersCollapsed);
+        void Storage.setPublicProxiesFiltersCollapsed(filtersCollapsed);
+    });
+
+    body.appendChild(filtersToggle);
+    body.appendChild(filtersDiv);
     body.appendChild(searchDiv);
 
     const listDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'public-proxies-list' });
@@ -154,6 +162,51 @@ export async function showPublicProxiesModal(
 
     const listContainer = body.querySelector('.public-proxies-list') as HTMLElement;
     await loadAndRenderPublicProxies(body, listContainer, closeModal, onProxyAdded);
+}
+
+export function createPublicProxiesWarning(): HTMLDivElement {
+    const warningDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'public-proxies-warning' });
+    const warningIcon = createElementFromTemplate<HTMLSpanElement>('span', { className: 'warning-icon', textContent: '⚠️' });
+    warningDiv.appendChild(warningIcon);
+
+    const warningContent = createElementFromTemplate<HTMLDivElement>('div', { className: 'warning-content' });
+    const warningText = createElementFromTemplate<HTMLSpanElement>('span', { textContent: I18n.getMessage('publicProxiesWarning') || 'Public proxies may be slow, unstable, and insecure. Use at your own risk.' });
+    setAttr(warningText, 'data-i18n', 'publicProxiesWarning');
+    warningContent.appendChild(warningText);
+
+    const recommendationSpan = createElementFromTemplate<HTMLSpanElement>('span', { className: 'warning-recommendation' });
+    const referralLink = createElementFromTemplate<HTMLAnchorElement>('a', { textContent: I18n.getMessage('publicProxiesRecommendation') || 'We recommend buying reliable and affordable proxies:' });
+    setAttr(referralLink, 'href', RemoteConfig.referralLink);
+    setAttr(referralLink, 'target', '_blank');
+    setAttr(referralLink, 'rel', 'noopener noreferrer');
+    setAttr(referralLink, 'class', 'referral-link');
+    setAttr(referralLink, 'data-i18n', 'publicProxiesRecommendation');
+    referralLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = RemoteConfig.referralLink;
+        if (url && url !== '#') {
+            const fullUrl = buildAffiliateUrl(url, 'public_proxies');
+            trackEvent('affiliate_link_clicked', {
+                provider: new URL(url).hostname.replace('www.', '').split('.')[0],
+                placement: 'public_proxies',
+                link_url: fullUrl
+            });
+            chrome.tabs.create({ url: fullUrl });
+        }
+    });
+    recommendationSpan.appendChild(referralLink);
+    warningContent.appendChild(recommendationSpan);
+    warningDiv.appendChild(warningContent);
+
+    const closeBtn = createElementFromTemplate<HTMLButtonElement>('button', { className: 'warning-close', textContent: '×' });
+    setAttr(closeBtn, 'type', 'button');
+    closeBtn.addEventListener('click', () => {
+        warningDiv.remove();
+        void Storage.setPublicProxiesWarningDismissed(true);
+    });
+    warningDiv.appendChild(closeBtn);
+
+    return warningDiv;
 }
 
 async function loadAndRenderPublicProxies(
@@ -173,7 +226,9 @@ async function loadAndRenderPublicProxies(
             cachedProxies = normalizeProxies(rawData);
         }
 
-        const proxies = cachedProxies || [];
+        // Уже добавленные пользователем прокси в списке не показываем
+        const savedProxies = await Storage.getProxies();
+        const proxies = excludeAddedProxies(cachedProxies || [], savedProxies);
 
         const countries = [...new Set(proxies.map(p => p.country))].sort();
         const countrySelect = body.querySelector('#filter-country') as HTMLSelectElement;
@@ -184,11 +239,46 @@ async function loadAndRenderPublicProxies(
             countrySelect.appendChild(option);
         });
 
+        // Фоновая проверка живости: статусы из кеша (TTL сутки) + live-сессия.
+        // Управляется той же настройкой, что и проверка перед добавлением.
+        const autoCheckEnabled = await Storage.getProxyCheckEnabled();
+        const liveStatuses = new Map<string, PublicProxyLiveStatus>();
+        if (autoCheckEnabled) {
+            const cachedResults = await Storage.getPublicProxyCheckResults();
+            for (const [key, entry] of Object.entries(cachedResults)) {
+                liveStatuses.set(key, entry.status);
+            }
+        }
+        let checkSession: PublicProxyCheckSession | null = null;
+        const getStatus = (proxy: NormalizedPublicProxy): PublicProxyLiveStatus =>
+            liveStatuses.get(publicProxyCacheKey(proxy)) ?? 'unchecked';
+        const checkOptions: PublicProxyItemCheckOptions | undefined = autoCheckEnabled ? {
+            getStatus,
+            onCheckRequested: proxy => checkSession?.requestPriorityCheck(proxy),
+            suspendChecks: async () => { await checkSession?.suspendForUserCheck(); },
+            resumeChecks: () => checkSession?.resume(),
+        } : undefined;
+
+        const getSearchQuery = (): string => {
+            const searchInput = body.querySelector('.public-proxy-search-input') as HTMLInputElement | null;
+            return normalizeProxySearchQuery(searchInput?.value || '').toLowerCase();
+        };
+
         const renderList = () => {
             const filters = getFiltersFromBody(body);
-            const searchQuery = (body.querySelector('.public-proxy-search-input') as HTMLInputElement)?.value.toLowerCase() || '';
+            const searchInput = body.querySelector('.public-proxy-search-input') as HTMLInputElement | null;
+            const rawSearch = searchInput?.value || '';
+            const normalizedSearch = normalizeProxySearchQuery(rawSearch);
+            if (searchInput && normalizedSearch !== rawSearch.trim()) {
+                searchInput.value = normalizedSearch;
+            }
+            const searchQuery = normalizedSearch.toLowerCase();
             const filteredProxies = filterPublicProxies(proxies, filters, searchQuery);
-            renderPublicProxiesList(listContainer, filteredProxies, closeModal, onProxyAdded);
+            // Рабочие — вверх, нерабочие — вниз; внутри групп прежний порядок по score
+            const orderedProxies = autoCheckEnabled
+                ? sortByLiveStatus(filteredProxies, getStatus)
+                : filteredProxies;
+            renderPublicProxiesList(listContainer, orderedProxies, closeModal, onProxyAdded, checkOptions);
 
             const validationHint = body.querySelector('.validation-hint') as HTMLElement;
             if (validationHint) {
@@ -206,6 +296,23 @@ async function loadAndRenderPublicProxies(
         searchInputEl?.addEventListener('input', renderList);
 
         renderList();
+
+        if (autoCheckEnabled) {
+            checkSession = new PublicProxyCheckSession({
+                proxies,
+                statuses: liveStatuses,
+                // Матчер читает актуальные фильтры перед каждым батчем —
+                // смена фильтра автоматически перестраивает остаток очереди
+                getFilterMatcher: () => {
+                    const filters = getFiltersFromBody(body);
+                    const searchQuery = getSearchQuery();
+                    return proxy => filterPublicProxies([proxy], filters, searchQuery).length > 0;
+                },
+                isAlive: () => listContainer.isConnected,
+                onUpdate: renderList,
+            });
+            void checkSession.start();
+        }
 
     } catch (error) {
         console.error('Failed to load public proxies:', error);
@@ -265,6 +372,14 @@ export function normalizeProxies(response: PublicProxiesResponse): NormalizedPub
     return result.sort((a, b) => b.score - a.score);
 }
 
+export function excludeAddedProxies(
+    proxies: NormalizedPublicProxy[],
+    savedProxies: ProxyServer[]
+): NormalizedPublicProxy[] {
+    const savedKeys = new Set(savedProxies.map(p => `${p.type}://${p.host}:${p.port}`));
+    return proxies.filter(proxy => !savedKeys.has(publicProxyCacheKey(proxy)));
+}
+
 export function countryCodeToFlag(countryCode: string): string {
     const codePoints = countryCode
         .toUpperCase()
@@ -301,7 +416,8 @@ export function renderPublicProxiesList(
     container: HTMLElement,
     proxies: NormalizedPublicProxy[],
     closeModal: () => void,
-    onProxyAdded?: (proxy: NormalizedPublicProxy) => Promise<void>
+    onProxyAdded?: (proxy: NormalizedPublicProxy) => Promise<void>,
+    checkOptions?: PublicProxyItemCheckOptions
 ): void {
     if (proxies.length === 0) {
         container.innerHTML = '';
@@ -317,15 +433,46 @@ export function renderPublicProxiesList(
     container.appendChild(content);
 
     proxies.forEach(proxy => {
-        const item = createPublicProxyItem(proxy, closeModal, onProxyAdded);
+        const item = createPublicProxyItem(proxy, closeModal, onProxyAdded, checkOptions);
         content.appendChild(item);
     });
+}
+
+// Индикатор живости: точка-статус или кнопка «Проверить» для непроверенных
+export function createLiveStatusElement(
+    proxy: NormalizedPublicProxy,
+    checkOptions: PublicProxyItemCheckOptions
+): HTMLElement {
+    const status = checkOptions.getStatus(proxy);
+
+    if (status === 'unchecked') {
+        const checkBtn = createElementFromTemplate<HTMLButtonElement>('button', {
+            className: 'proxy-check-now-btn',
+            textContent: I18n.getMessage('publicProxyCheckNow') || 'Check',
+        });
+        setAttr(checkBtn, 'type', 'button');
+        checkBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            checkOptions.onCheckRequested(proxy);
+        });
+        return checkBtn;
+    }
+
+    const titles: Record<Exclude<PublicProxyLiveStatus, 'unchecked'>, string> = {
+        alive: I18n.getMessage('publicProxyStatusAlive') || 'Working',
+        dead: I18n.getMessage('publicProxyStatusDead') || 'Not working',
+        checking: I18n.getMessage('checkProxyChecking') || 'Checking...',
+    };
+    const dot = createElementFromTemplate<HTMLSpanElement>('span', { className: `proxy-live-status ${status}` });
+    setAttr(dot, 'title', titles[status]);
+    return dot;
 }
 
 export function createPublicProxyItem(
     proxy: NormalizedPublicProxy,
     closeModal: () => void,
-    onProxyAdded?: (proxy: NormalizedPublicProxy) => Promise<void>
+    onProxyAdded?: (proxy: NormalizedPublicProxy) => Promise<void>,
+    checkOptions?: PublicProxyItemCheckOptions
 ): HTMLElement {
     const item = document.createElement('div');
     item.className = 'public-proxy-item';
@@ -346,26 +493,57 @@ export function createPublicProxyItem(
     mainDiv.appendChild(infoDiv);
     item.appendChild(mainDiv);
 
+    if (checkOptions) {
+        item.appendChild(createLiveStatusElement(proxy, checkOptions));
+    }
+
     if (onProxyAdded) {
+        // Guard от гонки двойного клика: блокирующий оверлей появляется только после
+        // await getProxyCheckEnabled(), поэтому без флага два быстрых клика прогоняли
+        // проверку дважды (второй упирался в mutex background и давал ложный "error").
+        let isProcessing = false;
+
         item.addEventListener('click', async () => {
-            const proxyCheckEnabled = await Storage.getProxyCheckEnabled();
-            let allowed = true;
+            if (isProcessing) return;
+            isProcessing = true;
 
-            if (proxyCheckEnabled) {
-                const checkingOverlay = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-checking-overlay' });
-                const spinnerEl = createElementFromTemplate<HTMLDivElement>('div', { className: 'spinner' });
-                checkingOverlay.appendChild(spinnerEl);
-                const statusSpan = createElementFromTemplate<HTMLSpanElement>('span', { textContent: I18n.getMessage('checkProxyChecking') || 'Checking...' });
-                checkingOverlay.appendChild(statusSpan);
-                document.querySelector('.public-proxies-modal')?.appendChild(checkingOverlay);
+            let checkingOverlay: HTMLDivElement | null = null;
+            let suspended = false;
 
-                allowed = await checkProxyBeforeAdd(proxy.protocol, proxy.ip, proxy.port);
-                checkingOverlay.remove();
-            }
+            try {
+                const proxyCheckEnabled = await Storage.getProxyCheckEnabled();
+                let allowed = true;
 
-            if (allowed) {
-                await onProxyAdded(proxy);
-                closeModal();
+                if (proxyCheckEnabled) {
+                    checkingOverlay = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-checking-overlay' });
+                    const spinnerEl = createElementFromTemplate<HTMLDivElement>('div', { className: 'spinner' });
+                    checkingOverlay.appendChild(spinnerEl);
+                    const statusSpan = createElementFromTemplate<HTMLSpanElement>('span', { textContent: I18n.getMessage('checkProxyChecking') || 'Checking...' });
+                    checkingOverlay.appendChild(statusSpan);
+                    document.querySelector('.public-proxies-modal')?.appendChild(checkingOverlay);
+
+                    // Одиночная проверка и фоновый батч делят глобальные proxy.settings —
+                    // приостанавливаем сессию и снимаем активный батч
+                    await checkOptions?.suspendChecks();
+                    suspended = true;
+                    allowed = await checkProxyBeforeAdd(proxy.protocol, proxy.ip, proxy.port);
+                }
+
+                if (allowed) {
+                    await onProxyAdded(proxy);
+                    closeModal();
+                    // Модалка закрыта — фоновую сессию не возобновляем
+                    suspended = false;
+                }
+            } catch (error) {
+                // Reject проверки/добавления (например, выгруженный SW) больше не
+                // оставляет вечный блокирующий оверлей и подвешенную сессию.
+                console.error('PublicProxies: proxy add failed:', error);
+            } finally {
+                checkingOverlay?.remove();
+                // Возобновляем сессию во всех исходах, кроме успешного добавления
+                if (suspended) checkOptions?.resumeChecks();
+                isProcessing = false;
             }
         });
     }

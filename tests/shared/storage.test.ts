@@ -22,13 +22,13 @@ describe('storage.ts - StorageService', () => {
             expect(chrome.storage.local.get).toHaveBeenCalledWith('syncEnabled');
         });
 
-        it('should default to syncEnabled = true if not set', async () => {
+        it('should default to syncEnabled = false if not set (opt-in)', async () => {
             mockHelpers.setLocalStorageData({});
-            
+
             await Storage.init();
-            
+
             const syncEnabled = await Storage.getSyncEnabled();
-            expect(syncEnabled).toBe(true);
+            expect(syncEnabled).toBe(false);
         });
 
         it('should subscribe to storage changes', async () => {
@@ -262,9 +262,23 @@ describe('storage.ts - StorageService', () => {
 
             it('should set theme', async () => {
                 await Storage.setTheme('light');
-                
+
                 const data = mockHelpers.getLocalStorageData();
                 expect(data.theme).toBe('light');
+            });
+        });
+
+        describe('getStoredTheme()', () => {
+            it('should return the stored theme', async () => {
+                mockHelpers.setLocalStorageData({ theme: 'dark' });
+
+                expect(await Storage.getStoredTheme()).toBe('dark');
+            });
+
+            it('should return undefined when theme is not set (inherit from system)', async () => {
+                mockHelpers.setLocalStorageData({});
+
+                expect(await Storage.getStoredTheme()).toBeUndefined();
             });
         });
 
@@ -304,12 +318,12 @@ describe('storage.ts - StorageService', () => {
                 expect(enabled).toBe(true);
             });
 
-            it('should return true by default', async () => {
+            it('should return false by default (opt-in)', async () => {
                 mockHelpers.setLocalStorageData({});
-                
+
                 const enabled = await Storage.getSyncEnabled();
-                
-                expect(enabled).toBe(true);
+
+                expect(enabled).toBe(false);
             });
         });
 
@@ -408,32 +422,28 @@ describe('storage.ts - StorageService', () => {
         });
 
         describe('set() with sync enabled', () => {
-            it('should write to local immediately and to sync with debounce', async () => {
+            // Push в облако выполняет background (SyncService.registerLocalToCloudSync),
+            // а не Storage.set: debounce-таймер, заведённый в попапе, умирал вместе
+            // с ним при закрытии, и запись в облако терялась
+            it('should write sync key to local immediately without direct cloud write', async () => {
                 jest.useFakeTimers();
-                
+
                 const newPresets = [{ ...testPreset, domains: ['new.com'] }];
-                
+
                 // Await the set call to ensure the Promise completes
                 await Storage.set('presets', newPresets);
-                
+
                 // Local storage должен быть вызван сразу
                 expect(chrome.storage.local.set).toHaveBeenCalledWith(
                     { presets: newPresets },
                     expect.any(Function)
                 );
-                
-                // Sync ещё не вызван (debounce)
-                const syncCallsBefore = (chrome.storage.sync.set as jest.Mock).mock.calls.length;
-                
-                // Прокручиваем таймеры
+
+                // Прокручиваем таймеры — прямой записи в sync быть не должно
                 await jest.runAllTimersAsync();
-                
-                // Теперь sync должен быть вызван
-                expect(chrome.storage.sync.set).toHaveBeenCalledWith(
-                    { presets: newPresets },
-                    expect.any(Function)
-                );
-                
+
+                expect(chrome.storage.sync.set).not.toHaveBeenCalled();
+
                 jest.useRealTimers();
             });
 
@@ -446,26 +456,19 @@ describe('storage.ts - StorageService', () => {
                 );
             });
 
-            it('should debounce multiple rapid writes and use last value', async () => {
-                jest.useFakeTimers();
-                
+            it('should apply rapid writes to local with last value winning', async () => {
                 // Несколько быстрых записей
-                const promises = [
+                await Promise.all([
                     Storage.set('presets', [{ ...testPreset, domains: ['first.com'] }]),
                     Storage.set('presets', [{ ...testPreset, domains: ['second.com'] }]),
                     Storage.set('presets', [{ ...testPreset, domains: ['third.com'] }]),
-                ];
-                
-                // Прокручиваем таймеры
-                await jest.runAllTimersAsync();
-                await Promise.all(promises);
-                
-                // Должно записаться только последнее значение в sync
-                const syncSetCalls = (chrome.storage.sync.set as jest.Mock).mock.calls;
-                const lastCall = syncSetCalls[syncSetCalls.length - 1];
-                expect(lastCall[0]).toEqual({ presets: [{ ...testPreset, domains: ['third.com'] }] });
-                
-                jest.useRealTimers();
+                ]);
+
+                // В local остаётся последнее значение; облако Storage.set не трогает
+                expect(mockHelpers.getLocalStorageData().presets).toEqual(
+                    [{ ...testPreset, domains: ['third.com'] }]
+                );
+                expect(chrome.storage.sync.set).not.toHaveBeenCalled();
             });
         });
 
@@ -518,19 +521,19 @@ describe('storage.ts - StorageService', () => {
     });
 
     describe('Storage area selection', () => {
-        it('should identify sync keys correctly', async () => {
-            // presets, selfProxy, theme, language, syncEnabled - это sync ключи
+        it('should write sync keys to local (cloud push is done by background)', async () => {
+            // presets, proxies, theme, language - это sync ключи; их push в облако
+            // выполняет background через SyncService.registerLocalToCloudSync
             mockHelpers.setLocalStorageData({ syncEnabled: true, migrationCompleted: true });
             await Storage.init();
-            
-            // Записываем sync ключ
-            jest.useFakeTimers();
-            const setPromise = Storage.set('theme', 'light');
-            await jest.runAllTimersAsync();
-            await setPromise;
-            
-            expect(chrome.storage.sync.set).toHaveBeenCalled();
-            jest.useRealTimers();
+
+            await Storage.set('theme', 'light');
+
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                { theme: 'light' },
+                expect.any(Function)
+            );
+            expect(chrome.storage.sync.set).not.toHaveBeenCalled();
         });
 
         it('should identify local keys correctly', async () => {
@@ -1273,6 +1276,96 @@ describe('storage.ts - StorageService', () => {
             await Storage.setProxyCheckEnabled(false);
             expect(chrome.storage.local.set).toHaveBeenCalledWith(
                 expect.objectContaining({ proxyCheckEnabled: false }),
+                expect.any(Function)
+            );
+        });
+    });
+
+    describe('PublicProxiesWarningDismissed', () => {
+        it('should get dismissed state', async () => {
+            mockHelpers.setLocalStorageData({ publicProxiesWarningDismissed: true });
+            const result = await Storage.getPublicProxiesWarningDismissed();
+            expect(result).toBe(true);
+        });
+
+        it('should default to false when not set', async () => {
+            mockHelpers.setLocalStorageData({});
+            const result = await Storage.getPublicProxiesWarningDismissed();
+            expect(result).toBe(false);
+        });
+
+        it('should set dismissed state', async () => {
+            await Storage.setPublicProxiesWarningDismissed(true);
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                expect.objectContaining({ publicProxiesWarningDismissed: true }),
+                expect.any(Function)
+            );
+        });
+    });
+
+    describe('PublicProxiesFiltersCollapsed', () => {
+        it('should get collapsed state', async () => {
+            mockHelpers.setLocalStorageData({ publicProxiesFiltersCollapsed: true });
+            const result = await Storage.getPublicProxiesFiltersCollapsed();
+            expect(result).toBe(true);
+        });
+
+        it('should default to false when not set', async () => {
+            mockHelpers.setLocalStorageData({});
+            const result = await Storage.getPublicProxiesFiltersCollapsed();
+            expect(result).toBe(false);
+        });
+
+        it('should set collapsed state', async () => {
+            await Storage.setPublicProxiesFiltersCollapsed(true);
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                expect.objectContaining({ publicProxiesFiltersCollapsed: true }),
+                expect.any(Function)
+            );
+        });
+    });
+
+    describe('PublicProxyCheckResults', () => {
+        it('should return empty object when cache not set', async () => {
+            mockHelpers.setLocalStorageData({});
+            const result = await Storage.getPublicProxyCheckResults();
+            expect(result).toEqual({});
+        });
+
+        it('should return fresh entries and prune expired ones (24h TTL)', async () => {
+            const now = Date.now();
+            mockHelpers.setLocalStorageData({
+                publicProxyCheckResults: {
+                    'http://1.1.1.1:80': { status: 'alive', checkedAt: now - 1000 },
+                    'http://2.2.2.2:80': { status: 'dead', checkedAt: now - 25 * 60 * 60 * 1000 },
+                },
+            });
+
+            const result = await Storage.getPublicProxyCheckResults();
+
+            expect(result['http://1.1.1.1:80']).toEqual({ status: 'alive', checkedAt: now - 1000 });
+            expect(result['http://2.2.2.2:80']).toBeUndefined();
+        });
+
+        it('should merge new results over existing cache', async () => {
+            const now = Date.now();
+            mockHelpers.setLocalStorageData({
+                publicProxyCheckResults: {
+                    'http://1.1.1.1:80': { status: 'alive', checkedAt: now - 1000 },
+                },
+            });
+
+            await Storage.mergePublicProxyCheckResults({
+                'http://2.2.2.2:80': { status: 'dead', checkedAt: now },
+            });
+
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    publicProxyCheckResults: expect.objectContaining({
+                        'http://1.1.1.1:80': expect.objectContaining({ status: 'alive' }),
+                        'http://2.2.2.2:80': expect.objectContaining({ status: 'dead' }),
+                    }),
+                }),
                 expect.any(Function)
             );
         });

@@ -172,6 +172,16 @@ export interface IProxyRepository {
 // ============================================================================
 
 /**
+ * Статистика слияния при включении синхронизации
+ */
+export interface SyncMergeStats {
+    /** Сколько сущностей (пресеты + прокси) получено из облака */
+    received: number;
+    /** Сколько сущностей (пресеты + прокси) добавлено в облако */
+    added: number;
+}
+
+/**
  * Интерфейс сервиса для миграции данных между форматами storage
  */
 export interface IMigrationService {
@@ -186,9 +196,10 @@ export interface IMigrationService {
     migrateFromLegacyProxy(): Promise<void>;
 
     /**
-     * Мигрировать данные из local storage в sync
+     * Мигрировать данные из local storage в sync (слияние без дублей).
+     * Возвращает статистику: сколько получено из облака и добавлено в облако.
      */
-    migrateToSync(): Promise<void>;
+    migrateToSync(): Promise<SyncMergeStats>;
 
     /**
      * Мигрировать данные из sync в local storage

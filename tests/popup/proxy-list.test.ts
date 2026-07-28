@@ -13,6 +13,11 @@ jest.mock('../../src/shared/storage', () => ({
         deleteProxy: jest.fn(),
         setDefaultProxy: jest.fn(),
         getProxyCheckEnabled: jest.fn().mockResolvedValue(false),
+        getPublicProxiesWarningDismissed: jest.fn().mockResolvedValue(false),
+        setPublicProxiesWarningDismissed: jest.fn().mockResolvedValue(undefined),
+        getPublicProxiesFiltersCollapsed: jest.fn().mockResolvedValue(false),
+        setPublicProxiesFiltersCollapsed: jest.fn().mockResolvedValue(undefined),
+        getPublicProxyCheckResults: jest.fn().mockResolvedValue({}),
     },
 }));
 
@@ -1421,8 +1426,11 @@ describe('proxy-list.ts - ProxyListService', () => {
         });
 
         it('should retry loading on retry button click', async () => {
+            // Первая загрузка: оба URL (primary + fallback) падают → error state;
+            // после клика retry — успех
             (global.fetch as jest.Mock)
-                .mockResolvedValueOnce({ ok: false })
+                .mockResolvedValueOnce({ ok: false, status: 500 })
+                .mockResolvedValueOnce({ ok: false, status: 500 })
                 .mockResolvedValueOnce({
                     ok: true,
                     json: () => Promise.resolve(mockPublicProxiesResponse),
@@ -1444,7 +1452,8 @@ describe('proxy-list.ts - ProxyListService', () => {
 
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            expect(global.fetch).toHaveBeenCalledTimes(2);
+            // 2 вызова первой загрузки (primary + fallback) + 1 успешный после retry
+            expect(global.fetch).toHaveBeenCalledTimes(3);
         });
 
         it('should use cached proxies on second open', async () => {

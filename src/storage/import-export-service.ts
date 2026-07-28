@@ -4,7 +4,17 @@ import { IPresetRepository } from '../types/storage';
 import { IProxyRepository } from '../types/storage';
 import { ISettingsRepository } from '../types/storage';
 import { ExportData, ImportValidationResult, Preset, ProxyServer, ThemeType, SupportedLanguage } from '../types';
-import { EXPORT_FORMAT_VERSION } from '../shared/constants';
+import { EXPORT_FORMAT_VERSION, SUPPORTED_LANGUAGES } from '../shared/constants';
+
+const VALID_PROXY_TYPES = ['http', 'https', 'socks4', 'socks5'];
+
+function isValidLanguage(value: unknown): value is SupportedLanguage {
+    return typeof value === 'string' && (SUPPORTED_LANGUAGES as readonly string[]).includes(value);
+}
+
+function isValidTheme(value: unknown): value is ThemeType {
+    return value === 'light' || value === 'dark';
+}
 
 export class ImportExportService implements IImportExportService {
     private storageBackend: IStorageBackend;
@@ -100,6 +110,22 @@ export class ImportExportService implements IImportExportService {
             }
         }
 
+        // Настройки: раньше не проверялись вовсе и писались как есть — объект вместо
+        // theme/language ломал i18n и рендер настроек. Проверяем тип, если поле есть
+        // (поля опциональны — отсутствие допустимо, importAll подставит дефолты).
+        if (innerData.theme !== undefined && !isValidTheme(innerData.theme)) {
+            errors.push('invalidTheme');
+        }
+        if (innerData.language !== undefined && !isValidLanguage(innerData.language)) {
+            errors.push('invalidLanguage');
+        }
+        if (innerData.proxyByDefault !== undefined && typeof innerData.proxyByDefault !== 'boolean') {
+            errors.push('invalidProxyByDefault');
+        }
+        if (innerData.proxyCheckEnabled !== undefined && typeof innerData.proxyCheckEnabled !== 'boolean') {
+            errors.push('invalidProxyCheckEnabled');
+        }
+
         if (errors.length > 0) {
             return { valid: false, errors, warnings };
         }
@@ -116,14 +142,26 @@ export class ImportExportService implements IImportExportService {
         const { presets, proxies, theme, language, proxyByDefault, proxyCheckEnabled } = exportData.data;
 
         if (mode === 'replace') {
-            await Promise.all([
+            // Настройки применяем только если они валидны (validateImportData уже
+            // отсеял неверные типы; здесь дополнительно не пишем undefined при
+            // отсутствии поля — сохраняем текущее значение пользователя).
+            const tasks: Promise<void>[] = [
                 this.presetRepository.setAll(presets),
                 this.proxyRepository.setAll(proxies),
-                this.settingsRepository.setTheme(theme),
-                this.settingsRepository.setLanguage(language),
-                this.settingsRepository.setProxyByDefault(proxyByDefault),
-                this.settingsRepository.setProxyCheckEnabled(proxyCheckEnabled ?? true)
-            ]);
+                this.settingsRepository.setProxyCheckEnabled(
+                    typeof proxyCheckEnabled === 'boolean' ? proxyCheckEnabled : true
+                ),
+            ];
+            if (isValidTheme(theme)) {
+                tasks.push(this.settingsRepository.setTheme(theme));
+            }
+            if (isValidLanguage(language)) {
+                tasks.push(this.settingsRepository.setLanguage(language));
+            }
+            if (typeof proxyByDefault === 'boolean') {
+                tasks.push(this.settingsRepository.setProxyByDefault(proxyByDefault));
+            }
+            await Promise.all(tasks);
         } else {
             const existingPresets = await this.presetRepository.getAll();
             const existingProxies = await this.proxyRepository.getAll();
@@ -148,9 +186,14 @@ export class ImportExportService implements IImportExportService {
             typeof p.id === 'string' &&
             typeof p.name === 'string' &&
             Array.isArray(p.domains) &&
+            // Каждый домен обязан быть строкой: не-строка (объект/число) доходила бы
+            // до matchesDomain/toASCII в background и роняла роутинг на каждом запросе.
+            p.domains.every((d) => typeof d === 'string') &&
             typeof p.enabled === 'boolean' &&
             typeof p.isDefault === 'boolean' &&
-            typeof p.order === 'number'
+            typeof p.order === 'number' &&
+            // proxyId опционален, но если задан — строка или null
+            (p.proxyId === undefined || p.proxyId === null || typeof p.proxyId === 'string')
         );
     }
 
@@ -160,10 +203,19 @@ export class ImportExportService implements IImportExportService {
         return (
             typeof p.id === 'string' &&
             typeof p.type === 'string' &&
-            ['http', 'https', 'socks4', 'socks5'].includes(p.type as string) &&
+            VALID_PROXY_TYPES.includes(p.type as string) &&
+            // Непустой host и порт-целое в допустимом диапазоне: раньше проходили
+            // пустой host, порт 99999/-1/1.5/NaN — из них генерировался нерабочий PAC.
             typeof p.host === 'string' &&
+            p.host.trim().length > 0 &&
             typeof p.port === 'number' &&
-            typeof p.isDefault === 'boolean'
+            Number.isInteger(p.port) &&
+            p.port >= 1 &&
+            p.port <= 65535 &&
+            typeof p.isDefault === 'boolean' &&
+            // Креды опциональны, но если заданы — строки
+            (p.username === undefined || typeof p.username === 'string') &&
+            (p.password === undefined || typeof p.password === 'string')
         );
     }
 }

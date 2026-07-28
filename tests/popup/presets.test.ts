@@ -623,6 +623,48 @@ describe('presets.ts - PresetsService', () => {
             const toggle = document.getElementById('proxy-by-default-toggle');
             expect(toggle?.classList.contains('active')).toBe(false);
         });
+
+        // data-i18n must follow the toggle state: I18n.applyTranslations() rewrites
+        // textContent from this attribute, so a stale key would revert the label
+        // on every popup open / language change
+        it('should set data-i18n to active label key when proxyByDefault is true', async () => {
+            mockHelpers.setLocalStorageData({
+                presets: [],
+                proxyByDefault: true,
+            });
+
+            await Presets.init();
+
+            const toggle = document.getElementById('proxy-by-default-toggle');
+            expect(toggle?.getAttribute('data-i18n')).toBe('labelProxyByDefaultActive');
+        });
+
+        it('should set data-i18n to default label key when proxyByDefault is false', async () => {
+            mockHelpers.setLocalStorageData({
+                presets: [],
+                proxyByDefault: false,
+            });
+
+            await Presets.init();
+
+            const toggle = document.getElementById('proxy-by-default-toggle');
+            expect(toggle?.getAttribute('data-i18n')).toBe('labelProxyByDefault');
+        });
+
+        it('should switch data-i18n key when toggle is clicked', async () => {
+            mockHelpers.setLocalStorageData({
+                presets: [],
+                proxyByDefault: false,
+            });
+
+            await Presets.init();
+
+            const toggle = document.getElementById('proxy-by-default-toggle') as HTMLButtonElement;
+            toggle.click();
+            await new Promise(process.nextTick);
+
+            expect(toggle.getAttribute('data-i18n')).toBe('labelProxyByDefaultActive');
+        });
     });
 
     describe('Drag & Drop functionality', () => {
@@ -1034,6 +1076,41 @@ describe('presets.ts - PresetsService', () => {
                 const newPreset = presets[presets.length - 1];
                 expect(newPreset.name).toBe('Preset 2');
             }
+        });
+
+        it('should scroll new preset into view so its edit form is visible', async () => {
+            const scrollSpy = jest.fn();
+            Element.prototype.scrollIntoView = function (
+                this: Element,
+                ...args: unknown[]
+            ) {
+                scrollSpy(this, ...args);
+            };
+
+            mockHelpers.setLocalStorageData({
+                presets: [
+                    createPreset('preset-1', 'Preset 1', []),
+                    createPreset('preset-2', 'Preset 2', []),
+                ],
+                proxyByDefault: false,
+            });
+
+            await Presets.init();
+
+            const addBtn = document.getElementById('add-preset-button') as HTMLButtonElement;
+            addBtn.click();
+
+            const customOption = document.querySelector('.preset-type-option') as HTMLButtonElement;
+            customOption.click();
+
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            expect(scrollSpy).toHaveBeenCalled();
+            const scrolledEl = scrollSpy.mock.calls[scrollSpy.mock.calls.length - 1][0] as Element;
+            expect(scrolledEl.closest('[data-preset-id]')).not.toBeNull();
+            const presetItems = document.querySelectorAll('#presets-list [data-preset-id]');
+            const lastPreset = presetItems[presetItems.length - 1];
+            expect(lastPreset.contains(scrolledEl) || lastPreset === scrolledEl).toBe(true);
         });
     });
 

@@ -1,5 +1,6 @@
-import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, SyncStorageKey, Preset, ProxyServer, ExportData, ImportValidationResult } from '../types';
-import { IStorageBackend, ISettingsRepository, IPresetRepository, IProxyRepository, IMigrationService, IImportExportService } from '../types/storage';
+import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, Preset, ProxyServer, ExportData, ImportValidationResult, PublicProxyCheckResults } from '../types';
+import { pruneCheckResults, mergeCheckResults } from './public-proxy-check-cache';
+import { IStorageBackend, ISettingsRepository, IPresetRepository, IProxyRepository, IMigrationService, IImportExportService, SyncMergeStats } from '../types/storage';
 import { StorageKeys, ProxyState } from '../shared/constants';
 import { StorageBackend, PresetRepository } from './preset-repository';
 import { ProxyRepository } from './proxy-repository';
@@ -39,21 +40,23 @@ export class StorageService implements IStorageBackend, ISettingsRepository {
 
     async getTyped<K extends StorageKey>(key: K): Promise<StorageData[K] | undefined> { return this.storageBackend.get(key) as Promise<StorageData[K] | undefined>; }
 
+    // Всегда пишем только в local: debounce-push sync-ключей в облако выполняет
+    // background (SyncService.registerLocalToCloudSync) — таймер, заведённый в
+    // контексте попапа, умирает вместе с ним, и отложенная запись терялась
     async setTyped<K extends StorageKey>(key: K, value: StorageData[K]): Promise<void> {
-        if (await (SyncService as any).isEnabled() && (SyncService as any).isSyncKey(key)) {
-            return (SyncService as any).setWithDebounce(key as SyncStorageKey, value as StorageData[SyncStorageKey]);
-        }
         return this.storageBackend.set(key, value);
     }
 
     async getMultipleTyped<K extends StorageKey>(keys: K[]): Promise<Partial<StorageData>> { return this.storageBackend.getMultiple(keys) as Promise<Partial<StorageData>>; }
     async getSyncEnabled(): Promise<boolean> { return (SyncService as any).isEnabled(); }
 
-    async setSyncEnabled(enabled: boolean): Promise<void> {
+    async setSyncEnabled(enabled: boolean): Promise<SyncMergeStats | null> {
         const currentEnabled = (SyncService as any).wasInitialized() ? await (SyncService as any).isEnabled() : false;
-        if (enabled && !currentEnabled) { await this.migrationService.migrateToSync(); }
+        let stats: SyncMergeStats | null = null;
+        if (enabled && !currentEnabled) { stats = (await this.migrationService.migrateToSync()) ?? null; }
         else if (!enabled && currentEnabled) { await this.migrationService.migrateToLocal(); }
         await (SyncService as any).setEnabled(enabled);
+        return stats;
     }
 
     subscribe(callback: StorageChangeCallback): () => void {
@@ -101,6 +104,12 @@ export class StorageService implements IStorageBackend, ISettingsRepository {
     async setProxyByDefault(enabled: boolean): Promise<void> { return this.setTyped(StorageKeys.PROXY_BY_DEFAULT as StorageKey, enabled); }
     async getProxyCheckEnabled(): Promise<boolean> { const value = await this.getTyped(StorageKeys.PROXY_CHECK_ENABLED as StorageKey) as boolean | undefined; return value ?? true; }
     async setProxyCheckEnabled(enabled: boolean): Promise<void> { return this.setTyped(StorageKeys.PROXY_CHECK_ENABLED as StorageKey, enabled); }
+    async getPublicProxiesWarningDismissed(): Promise<boolean> { const value = await this.getTyped(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED as StorageKey) as boolean | undefined; return value ?? false; }
+    async setPublicProxiesWarningDismissed(dismissed: boolean): Promise<void> { return this.setTyped(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED as StorageKey, dismissed); }
+    async getPublicProxyCheckResults(): Promise<PublicProxyCheckResults> { const raw = await this.getTyped(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS as StorageKey) as PublicProxyCheckResults | undefined; return pruneCheckResults(raw ?? {}, Date.now()); }
+    async mergePublicProxyCheckResults(updates: PublicProxyCheckResults): Promise<void> { const current = await this.getPublicProxyCheckResults(); return this.setTyped(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS as StorageKey, mergeCheckResults(current, updates)); }
+    async getPublicProxiesFiltersCollapsed(): Promise<boolean> { const value = await this.getTyped(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED as StorageKey) as boolean | undefined; return value ?? false; }
+    async setPublicProxiesFiltersCollapsed(collapsed: boolean): Promise<void> { return this.setTyped(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED as StorageKey, collapsed); }
 
     async exportAllData(): Promise<ExportData> { return this.importExportService.exportAll(); }
     validateImportData(jsonString: string): ImportValidationResult { return this.importExportService.validateImportData(jsonString); }

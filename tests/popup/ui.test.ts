@@ -315,6 +315,7 @@ describe('ui.ts - UIService', () => {
             document.body.innerHTML += `
                 <div id="error-banner" style="display: none">
                     <span id="error-proxy-label"></span>
+                    <button id="error-banner-close" class="warning-close">×</button>
                 </div>
             `;
         });
@@ -378,6 +379,40 @@ describe('ui.ts - UIService', () => {
 
             UILocal.updateState('disconnected');
             expect(banner?.style.display).toBe('none');
+        });
+
+        it('клик по крестику скрывает баннер, и он не показывается снова, пока ошибка не повторится', async () => {
+            jest.resetModules();
+            const uiModule = await import('../../src/popup/ui');
+            const UILocal = uiModule.UI;
+            UILocal.init();
+
+            UILocal.updateState('error');
+            const banner = document.getElementById('error-banner');
+            expect(banner?.style.display).toBe('flex');
+
+            (document.getElementById('error-banner-close') as HTMLButtonElement).click();
+            expect(banner?.style.display).toBe('none');
+
+            // Пока состояние ERROR не сменилось, баннер остаётся скрытым
+            UILocal.updateState('error');
+            expect(banner?.style.display).toBe('none');
+        });
+
+        it('после выхода из ERROR новая ошибка снова показывает баннер', async () => {
+            jest.resetModules();
+            const uiModule = await import('../../src/popup/ui');
+            const UILocal = uiModule.UI;
+            UILocal.init();
+
+            UILocal.updateState('error');
+            (document.getElementById('error-banner-close') as HTMLButtonElement).click();
+
+            UILocal.updateState('connected');
+            UILocal.updateState('error');
+
+            const banner = document.getElementById('error-banner');
+            expect(banner?.style.display).toBe('flex');
         });
     });
 });

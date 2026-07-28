@@ -56,13 +56,13 @@ class PresetsService {
     private updateToggleState(): void {
         if (!this.proxyByDefaultToggle) return;
 
-        if (this.proxyByDefault) {
-            this.proxyByDefaultToggle.classList.add('active');
-            this.proxyByDefaultToggle.textContent = I18n.getMessage('labelProxyByDefaultActive');
-        } else {
-            this.proxyByDefaultToggle.classList.remove('active');
-            this.proxyByDefaultToggle.textContent = I18n.getMessage('labelProxyByDefault');
-        }
+        // data-i18n must match the state-specific key: I18n.applyTranslations()
+        // rewrites textContent from this attribute (on popup init and language
+        // change), so a stale key would revert the label
+        const labelKey = this.proxyByDefault ? 'labelProxyByDefaultActive' : 'labelProxyByDefault';
+        this.proxyByDefaultToggle.classList.toggle('active', this.proxyByDefault);
+        this.proxyByDefaultToggle.setAttribute('data-i18n', labelKey);
+        this.proxyByDefaultToggle.textContent = I18n.getMessage(labelKey);
     }
 
     async render(): Promise<void> {
@@ -291,6 +291,7 @@ class PresetsService {
                 selection?.removeAllRanges();
                 selection?.addRange(range);
             }
+            newEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
     }
 
@@ -319,7 +320,7 @@ class PresetsService {
 
     private async deletePreset(id: string): Promise<void> {
         const confirmMessage = I18n.getMessage('confirmDeletePreset');
-        const confirmed = await showConfirm(confirmMessage);
+        const confirmed = await showConfirm(confirmMessage, { column: 'presets' });
         if (!confirmed) return;
 
         try {
@@ -328,7 +329,7 @@ class PresetsService {
             await this.render();
         } catch (error) {
             console.error('Presets: Failed to delete preset:', error);
-            await showAlert(error instanceof Error ? error.message : 'Failed to delete preset');
+            await showAlert(error instanceof Error ? error.message : 'Failed to delete preset', 'presets');
         }
     }
 }

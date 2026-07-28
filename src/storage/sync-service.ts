@@ -12,8 +12,11 @@ class SyncServiceImpl implements ISyncService {
     async init(): Promise<void> {
         const result = await chrome.storage.local.get('syncEnabled') as { syncEnabled?: boolean };
         if (result.syncEnabled === undefined) {
-            this.syncEnabled = true;
-            await chrome.storage.local.set({ syncEnabled: true });
+            // Sync — opt-in: по умолчанию ВЫКЛЮЧЕН. Раньше был включён по умолчанию,
+            // из-за чего данные пользователя (включая plaintext-пароли прокси)
+            // автоматически уходили в облако Google-аккаунта без явного согласия.
+            this.syncEnabled = false;
+            await chrome.storage.local.set({ syncEnabled: false });
         } else {
             this.syncEnabled = result.syncEnabled;
         }
@@ -32,7 +35,8 @@ class SyncServiceImpl implements ISyncService {
 
     async isEnabled(): Promise<boolean> {
         const result = await chrome.storage.local.get('syncEnabled') as { syncEnabled?: boolean };
-        return result.syncEnabled ?? true;
+        // Опущенный флаг = sync выключен (opt-in), консистентно с init()
+        return result.syncEnabled ?? false;
     }
 
     async setEnabled(enabled: boolean): Promise<void> {
@@ -98,6 +102,34 @@ class SyncServiceImpl implements ISyncService {
             chrome.storage.local.set({ [key]: value }, resolve);
         });
 
+        this.scheduleCloudWrite(key, value);
+    }
+
+    /**
+     * Регистрирует push локальных изменений sync-ключей в облако (с debounce).
+     * Вызывать ТОЛЬКО из background service worker: debounce-таймер, заведённый
+     * в попапе, умирает при его закрытии — запись в облако теряется, и при
+     * следующем открытии syncFromCloud() перетирает local устаревшим значением.
+     */
+    registerLocalToCloudSync(): void {
+        chrome.storage.onChanged.addListener((changes, areaName) => {
+            if (areaName !== 'local') return;
+            void this.pushLocalChanges(changes);
+        });
+    }
+
+    private async pushLocalChanges(changes: StorageChanges): Promise<void> {
+        if (!(await this.isEnabled())) return;
+
+        for (const [key, change] of Object.entries(changes)) {
+            if (key === 'syncEnabled') continue;
+            if (!this.isSyncKey(key as StorageKey)) continue;
+            if (change.newValue === undefined) continue;
+            this.scheduleCloudWrite(key as SyncStorageKey, change.newValue);
+        }
+    }
+
+    private scheduleCloudWrite(key: SyncStorageKey, value: unknown): void {
         const existingTimer = this.syncDebounceTimers.get(key);
         if (existingTimer) {
             clearTimeout(existingTimer);
@@ -107,6 +139,11 @@ class SyncServiceImpl implements ISyncService {
             this.syncDebounceTimers.delete(key);
 
             try {
+                // Echo guard: локальное изменение могло прийти ИЗ облака
+                // (syncFromCloud/handleSyncChanges) — не пишем то же значение обратно
+                const current = await chrome.storage.sync.get([key]) as Record<string, unknown>;
+                if (JSON.stringify(current[key]) === JSON.stringify(value)) return;
+
                 await this.checkSyncQuota(key, value);
 
                 await new Promise<void>((res) => {

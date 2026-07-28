@@ -258,7 +258,13 @@ class ProxyManagerService {
         details: any
     ): any {
         const challenger = details.challenger;
-        if (challenger) {
+
+        // Обслуживаем сохранёнными кредами ТОЛЬКО прокси-challenge (407, isProxy=true).
+        // Серверный challenge (401, isProxy=false) отдаём Chrome как есть ({}), иначе
+        // расширение ломает Basic/NTLM-авторизацию на обычных сайтах во всём браузере.
+        // Незнакомому прокси-challenge тоже возвращаем {} (штатный диалог логина),
+        // а не { cancel: true } — cancel рвал бы запрос без шанса ввести пароль.
+        if (details.isProxy && challenger) {
             const key = `${challenger.host}:${challenger.port}`;
             console.log('ProxyManager: Auth required for', key, 'isProxy:', details.isProxy, 'available keys:', Array.from(this.credentials.keys()));
             const tempCreds = this.temporaryCredentials.get(key);
@@ -273,7 +279,8 @@ class ProxyManagerService {
             }
         }
 
-        return { cancel: true };
+        // Незнакомый прокси-challenge либо серверный challenge — штатная обработка Chrome
+        return {};
     }
 
     addTemporaryCredentials(host: string, port: number, username: string, password: string): void {
@@ -672,9 +679,29 @@ class ProxyManagerService {
      *          In `checkProxy`, this rejection is caught and converted to return value `'error'`.
      */
     async generateCheckPacScript(testProxy: Partial<ProxyServer>, testId: string): Promise<string> {
-        const proxyString = this.formatProxyForPac(testProxy);
-        const safeTestId = testId.replace(/[^a-zA-Z0-9-]/g, '');
-        const testRule = `if (host === "example.com" && url.indexOf("_pulse_check=${safeTestId}") !== -1) return ${JSON.stringify(proxyString)};`;
+        return this.generateBatchCheckPacScript([{ proxy: testProxy, testId }]);
+    }
+
+    /**
+     * Generates a one-off PAC script for batch connectivity testing.
+     *
+     * One test rule per proxy: each proxy gets a unique testId, so N parallel
+     * fetches can run under a single chrome.proxy.settings.set (proxy settings
+     * are global browser state — swapping PAC per proxy would race).
+     *
+     * @param entries - Proxies to test, each with a unique test identifier
+     * @returns PAC script as string
+     *
+     * @async
+     * @contract When `isConnected === true` and `generatePacScript` throws, the promise rejects.
+     *          Callers catch the rejection and convert it to an error result.
+     */
+    async generateBatchCheckPacScript(entries: Array<{ proxy: Partial<ProxyServer>; testId: string }>): Promise<string> {
+        const testRule = entries.map(({ proxy, testId }) => {
+            const proxyString = this.formatProxyForPac(proxy);
+            const safeTestId = testId.replace(/[^a-zA-Z0-9-]/g, '');
+            return `if (host === "example.com" && url.indexOf("_pulse_check=${safeTestId}") !== -1) return ${JSON.stringify(proxyString)};`;
+        }).join('\n                ');
 
         if (this.isConnected) {
             return this.generatePacScript({ testRule });
@@ -689,14 +716,23 @@ class ProxyManagerService {
     }
 
     async restoreAfterCheck(wasConnected: boolean): Promise<void> {
-        if (wasConnected) {
-            if (this.cachedPacScript) {
-                const gen = ++this.enableGeneration;
-                await this.applyPacScript(this.cachedPacScript, this.defaultProxyServer ?? undefined, gen);
-            }
-        } else {
+        if (!wasConnected) {
             await this.disable();
+            return;
         }
+
+        if (this.cachedPacScript) {
+            const gen = ++this.enableGeneration;
+            await this.applyPacScript(this.cachedPacScript, this.defaultProxyServer ?? undefined, gen);
+            return;
+        }
+
+        // Кеш PAC был инвалидирован во время проверки (правка presets/proxies
+        // обнуляет cachedPacScript). Если просто выйти, в браузере навсегда
+        // останется тестовый check-PAC ("return DIRECT" для всего) при статусе
+        // CONNECTED — весь трафик пойдёт напрямую в обход прокси (утечка реального
+        // IP). Пересобираем реальный PAC из текущего конфига через enable().
+        await this.enable();
     }
 
     get isConnected(): boolean {

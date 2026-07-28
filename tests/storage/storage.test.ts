@@ -192,15 +192,18 @@ describe('storage.ts - StorageService', () => {
     });
 
     // ── setTyped ───────────────────────────────────────────────────────
+    // setTyped всегда пишет только в local: debounce-push в облако выполняет
+    // background через SyncService.registerLocalToCloudSync — таймер, заведённый
+    // в контексте попапа, умирает вместе с ним и запись терялась
     describe('setTyped()', () => {
-        it('should use SyncService.setWithDebounce when sync enabled and key is sync key', async () => {
+        it('should write sync key to local backend even when sync enabled', async () => {
             mockSyncService.isEnabled.mockResolvedValue(true);
             mockSyncService.isSyncKey.mockReturnValue(true);
 
             await service.setTyped('theme' as any, 'dark' as any);
 
-            expect(mockSyncService.setWithDebounce).toHaveBeenCalledWith('theme', 'dark');
-            expect(mockBackend.set).not.toHaveBeenCalled();
+            expect(mockBackend.set).toHaveBeenCalledWith('theme', 'dark');
+            expect(mockSyncService.setWithDebounce).not.toHaveBeenCalled();
         });
 
         it('should use storageBackend.set when sync enabled but key is NOT sync key', async () => {
@@ -505,6 +508,36 @@ describe('storage.ts - StorageService', () => {
         it('setProxyCheckEnabled delegates to setTyped', async () => {
             await service.setProxyCheckEnabled(false);
             expect(mockBackend.set).toHaveBeenCalledWith(StorageKeys.PROXY_CHECK_ENABLED, false);
+        });
+
+        it('getPublicProxiesWarningDismissed returns stored value', async () => {
+            mockBackend.get.mockResolvedValue(true);
+            expect(await service.getPublicProxiesWarningDismissed()).toBe(true);
+        });
+
+        it('getPublicProxiesWarningDismissed returns false as default', async () => {
+            mockBackend.get.mockResolvedValue(undefined);
+            expect(await service.getPublicProxiesWarningDismissed()).toBe(false);
+        });
+
+        it('setPublicProxiesWarningDismissed delegates to setTyped', async () => {
+            await service.setPublicProxiesWarningDismissed(true);
+            expect(mockBackend.set).toHaveBeenCalledWith(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED, true);
+        });
+
+        it('getPublicProxiesFiltersCollapsed returns stored value', async () => {
+            mockBackend.get.mockResolvedValue(true);
+            expect(await service.getPublicProxiesFiltersCollapsed()).toBe(true);
+        });
+
+        it('getPublicProxiesFiltersCollapsed returns false as default', async () => {
+            mockBackend.get.mockResolvedValue(undefined);
+            expect(await service.getPublicProxiesFiltersCollapsed()).toBe(false);
+        });
+
+        it('setPublicProxiesFiltersCollapsed delegates to setTyped', async () => {
+            await service.setPublicProxiesFiltersCollapsed(true);
+            expect(mockBackend.set).toHaveBeenCalledWith(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED, true);
         });
     });
 

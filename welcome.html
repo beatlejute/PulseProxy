@@ -119,6 +119,93 @@
         .welcome-button:active {
             opacity: 0.7;
         }
+
+        /* Экран выбора сценария после «Начать» */
+        .welcome-options {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .welcome-options.visible {
+            display: flex;
+        }
+
+        .welcome-choose-title {
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        .welcome-option {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 14px 18px;
+            border: 1px solid var(--secondary-color);
+            border-radius: 10px;
+            background-color: var(--secondary-color);
+            color: var(--main-text-color);
+            font-family: inherit;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 0.2s, opacity 0.2s;
+        }
+
+        .welcome-option:hover {
+            border-color: var(--action-color);
+        }
+
+        .welcome-option:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .welcome-option .option-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .welcome-option .option-desc {
+            font-size: 13px;
+            color: #999;
+        }
+
+        .welcome-option--ghost {
+            background: transparent;
+            border-color: transparent;
+            text-align: center;
+            color: #999;
+        }
+
+        .welcome-option--ghost:hover {
+            border-color: transparent;
+            color: var(--main-text-color);
+        }
+
+        .welcome-status {
+            display: none;
+            white-space: pre-line;
+            font-size: 13px;
+            line-height: 1.4;
+            text-align: center;
+        }
+
+        .welcome-status--progress,
+        .welcome-status--success,
+        .welcome-status--error {
+            display: block;
+        }
+
+        .welcome-status--success {
+            color: var(--success-color);
+        }
+
+        .welcome-status--error {
+            color: #FF6969;
+        }
     </style>
 </head>
 <body>
@@ -152,8 +239,30 @@
         </div>
 
         <button class="welcome-button" data-i18n="welcomeGetStarted">Get Started</button>
+
+        <!-- Выбор сценария, показывается после «Начать» -->
+        <div class="welcome-options">
+            <h2 class="welcome-choose-title" data-i18n="welcomeChooseTitle">How would you like to start?</h2>
+            <button id="welcome-option-wizard" class="welcome-option" type="button">
+                <span class="option-title" data-i18n="welcomeOptionWizard">Setup wizard</span>
+                <span class="option-desc" data-i18n="welcomeOptionWizardDesc">Step-by-step guided setup</span>
+            </button>
+            <button id="welcome-option-sync" class="welcome-option" type="button">
+                <span class="option-title" data-i18n="welcomeOptionSync">Sync settings</span>
+                <span class="option-desc" data-i18n="welcomeOptionSyncDesc">Enable sync and get your saved settings</span>
+            </button>
+            <button id="welcome-option-import" class="welcome-option" type="button">
+                <span class="option-title" data-i18n="welcomeOptionImport">Import settings</span>
+                <span class="option-desc" data-i18n="welcomeOptionImportDesc">Load settings from a file</span>
+            </button>
+            <button id="welcome-option-skip" class="welcome-option welcome-option--ghost" type="button">
+                <span class="option-title" data-i18n="welcomeOptionSkip">Skip</span>
+            </button>
+            <div id="welcome-status" class="welcome-status"></div>
+            <input type="file" id="welcome-import-input" accept=".json" style="display: none;">
+        </div>
     </div>
 
-    <script src="welcome.js"></script>
+    <script src="dist/welcome.js"></script>
 </body>
 </html>

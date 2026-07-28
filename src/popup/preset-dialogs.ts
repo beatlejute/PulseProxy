@@ -12,7 +12,8 @@ export function showPresetTypeDialog(
 ): void {
     const { body, closeModal, build } = ModalHelper.createSimple(
         I18n.getMessage('presetTypeDialogTitle'),
-        'preset-type-modal'
+        'preset-type-modal',
+        'presets'
     );
 
     const options = document.createElement('div');
@@ -61,7 +62,8 @@ export async function showPresetTemplatesModal(
     const { body, closeModal, build } = ModalHelper.create({
         title: I18n.getMessage('presetListTitle'),
         modalClass: 'preset-templates-modal',
-        fullHeight: true
+        fullHeight: true,
+        column: 'presets'
     });
 
     const searchContainer = document.createElement('div');

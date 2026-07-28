@@ -81,6 +81,49 @@ describe('PresetRepository', () => {
             expect(result[0].isDefault).toBe(true);
             expect(result[0].name).toBe('Ignore List');
         });
+
+        it('should NOT persist the default on empty read (regression: data loss)', async () => {
+            // Раньше getAll при пустом чтении делал setAll([default]); транзиентный
+            // сбой чтения → перезапись реальных пресетов дефолтом. Чтение не пишет.
+            mockHelpers.setLocalStorageData({});
+            (chrome.storage.local.set as jest.Mock).mockClear();
+
+            const repository = new PresetRepository(storageBackend);
+            const result = await repository.getAll();
+
+            expect(result).toHaveLength(1);
+            expect(chrome.storage.local.set).not.toHaveBeenCalled();
+        });
+
+        it('get() rejects on chrome.runtime.lastError instead of returning undefined', async () => {
+            (chrome.storage.local.get as jest.Mock).mockImplementationOnce((_keys: unknown, cb: (r: Record<string, unknown>) => void) => {
+                (chrome.runtime as unknown as { lastError?: { message: string } }).lastError = { message: 'storage failure' };
+                cb({});
+                (chrome.runtime as unknown as { lastError?: { message: string } }).lastError = undefined;
+            });
+
+            await expect(storageBackend.get('presets')).rejects.toThrow(/storage failure/);
+        });
+    });
+
+    describe('concurrent writes (RMW serialization)', () => {
+        it('serializes concurrent updates on the same key (no lost update)', async () => {
+            mockHelpers.setLocalStorageData({
+                presets: [createMockPreset({ id: 'p1', name: 'orig', order: 0 })],
+            });
+
+            const repository = new PresetRepository(storageBackend);
+
+            // Без лока обе правки читают один снапшот и вторая setAll затирает первую
+            await Promise.all([
+                repository.update('p1', { name: 'first' }),
+                repository.update('p1', { order: 5 }),
+            ]);
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].name).toBe('first');
+            expect(stored.presets[0].order).toBe(5);
+        });
     });
 
     describe('setAll()', () => {

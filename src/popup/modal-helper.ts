@@ -28,6 +28,8 @@
  */
 
 import { adjustContainerHeight } from './dom-utils';
+import { getModalHost } from './view-mode';
+import { TabId } from '../types';
 
 /**
  * Конфигурация модального окна
@@ -45,6 +47,8 @@ export interface ModalConfig {
     closeOnEscape?: boolean;
     /** Сделать overlay на полную высоту экрана */
     fullHeight?: boolean;
+    /** Колонка, к которой относится модалка (в page-режиме overlay накрывает её) */
+    column?: TabId;
 }
 
 /**
@@ -63,6 +67,13 @@ export interface ModalResult {
     footer: HTMLDivElement;
     /** Функция закрытия модального окна */
     closeModal: () => void;
+    /**
+     * Регистрирует колбэк, который вызывается при ЛЮБОМ закрытии модалки
+     * (крестик, клик по overlay, Escape, программный closeModal). Вызывается
+     * ровно один раз. Нужен потребителям, оборачивающим модалку в Promise,
+     * чтобы не оставить его висящим при закрытии без выбора.
+     */
+    onClose: (callback: () => void) => void;
     /** Построитель — добавляет модалку в DOM и возвращает overlay */
     build: () => HTMLDivElement;
 }
@@ -117,10 +128,35 @@ export class ModalHelper {
         const modal = document.createElement('div');
         modal.className = `modal${modalClass ? ` ${modalClass}` : ''}`;
 
+        // Колбэки, вызываемые при закрытии (любым путём), и защита от повторного
+        // закрытия. Escape-хендлер держим в переменной, чтобы снимать его на ВСЕХ
+        // путях закрытия, а не только когда закрыли именно Escape'ом (иначе он
+        // копился на document при каждом открытии модалки — утечка).
+        const closeCallbacks: Array<() => void> = [];
+        let closed = false;
+        let escapeHandler: ((e: KeyboardEvent) => void) | null = null;
+
         // Функция закрытия (должна быть определена до использования)
         const closeModal = (): void => {
+            if (closed) return;
+            closed = true;
+            if (escapeHandler) {
+                document.removeEventListener('keydown', escapeHandler);
+                escapeHandler = null;
+            }
             overlay.remove();
             adjustContainerHeight();
+            for (const cb of closeCallbacks) {
+                try {
+                    cb();
+                } catch (error) {
+                    console.error('ModalHelper: onClose callback failed:', error);
+                }
+            }
+        };
+
+        const onClose = (callback: () => void): void => {
+            closeCallbacks.push(callback);
         };
 
         // Header
@@ -163,20 +199,20 @@ export class ModalHelper {
             });
         }
 
-        // Закрытие по Escape
+        // Закрытие по Escape. Хендлер снимается внутри closeModal на любом пути
+        // закрытия — здесь только регистрируем его.
         if (closeOnEscape) {
-            const handleEscape = (e: KeyboardEvent): void => {
+            escapeHandler = (e: KeyboardEvent): void => {
                 if (e.key === 'Escape') {
                     closeModal();
-                    document.removeEventListener('keydown', handleEscape);
                 }
             };
-            document.addEventListener('keydown', handleEscape);
+            document.addEventListener('keydown', escapeHandler);
         }
 
         // Построитель
         const build = (): HTMLDivElement => {
-            document.body.appendChild(overlay);
+            getModalHost(config.column).appendChild(overlay);
             adjustContainerHeight();
 
             // Применяем локализацию если доступна
@@ -188,7 +224,7 @@ export class ModalHelper {
             return overlay;
         };
 
-        return { overlay, modal, header, body, footer, closeModal, build };
+        return { overlay, modal, header, body, footer, closeModal, onClose, build };
     }
 
     /**
@@ -211,11 +247,11 @@ export class ModalHelper {
      * build();
      * ```
      */
-    static createSimple(title: string, modalClass?: string): Omit<ModalResult, 'footer'> {
-        const result = ModalHelper.create({ title, modalClass });
-        const { overlay, modal, header, body, closeModal, build } = result;
+    static createSimple(title: string, modalClass?: string, column?: TabId): Omit<ModalResult, 'footer'> {
+        const result = ModalHelper.create({ title, modalClass, column });
+        const { overlay, modal, header, body, closeModal, onClose, build } = result;
 
-        return { overlay, modal, header, body, closeModal, build };
+        return { overlay, modal, header, body, closeModal, onClose, build };
     }
 
     /**

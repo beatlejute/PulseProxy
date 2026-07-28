@@ -1,5 +1,5 @@
 import { ProxyServer } from '../types';
-import { createElementFromTemplate, setAttr } from './safe-dom';
+import { createElementFromTemplate } from './safe-dom';
 import { ModalHelper } from './modal-helper';
 
 export async function showSelectDefaultProxyModal(proxies: ProxyServer[]): Promise<string | null> {
@@ -8,60 +8,37 @@ export async function showSelectDefaultProxyModal(proxies: ProxyServer[]): Promi
     }
 
     return new Promise((resolve) => {
-        const { body, closeModal: originalCloseModal, build, header } = ModalHelper.create({
+        // settle резолвит промис ровно один раз. Выбор прокси резолвит id ДО
+        // закрытия, поэтому последующий onClose→settle(null) уже игнорируется.
+        let settled = false;
+        const settle = (value: string | null): void => {
+            if (settled) return;
+            settled = true;
+            resolve(value);
+        };
+
+        const { body, closeModal, build, onClose } = ModalHelper.create({
             title: 'Select Default Proxy',
-            modalClass: 'select-default-proxy-modal'
+            modalClass: 'select-default-proxy-modal',
+            column: 'proxy'
         });
 
-        // Create a dispatching wrapper for closeModal
-        const dispatchCloseAndClose = (): void => {
-            const modalEl = document.querySelector('.select-default-proxy-modal');
-            if (modalEl) {
-                modalEl.dispatchEvent(new Event('modal-close'));
-            }
-            originalCloseModal();
-        };
+        // Любой путь закрытия без выбора (крестик, клик по overlay, Escape,
+        // программный closeModal) резолвит null — промис не зависает.
+        onClose(() => settle(null));
 
         const listDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'select-default-proxy-list' });
 
         proxies.forEach(proxy => {
             const item = createProxyItem(proxy, () => {
-                resolve(proxy.id);
-                dispatchCloseAndClose();
+                settle(proxy.id);
+                closeModal();
             });
             listDiv.appendChild(item);
         });
 
         body.appendChild(listDiv);
         build();
-
-        // Re-wire the close button to use our dispatch wrapper
-        const closeBtn = header.querySelector('.modal-close') as HTMLButtonElement;
-        if (closeBtn) {
-            // Remove the original click listener by replacing the element
-            const newCloseBtn = closeBtn.cloneNode(true) as HTMLButtonElement;
-            closeBtn.parentNode?.replaceChild(newCloseBtn, closeBtn);
-
-            // Add new listener that dispatches the event
-            newCloseBtn.addEventListener('click', dispatchCloseAndClose);
-        }
-
-        const modalEl = document.querySelector('.select-default-proxy-modal');
-        if (modalEl) {
-            const closeHandler = () => {
-                resolve(null);
-            };
-            modalEl.addEventListener('modal-close', closeHandler, { once: true });
-
-            // Also handle Escape key by dispatching the modal-close event
-            // (ModalHelper's Escape listener uses the original closeModal)
-            const escapeHandler = (e: KeyboardEvent): void => {
-                if (e.key === 'Escape') {
-                    modalEl.dispatchEvent(new Event('modal-close'));
-                }
-            };
-            document.addEventListener('keydown', escapeHandler, { once: true });
-        }
     });
 }
 

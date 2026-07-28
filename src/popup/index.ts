@@ -1,6 +1,8 @@
 import { UI } from './ui';
 import { Settings } from './settings';
 import { Tabs } from './tabs';
+import { ViewMode } from './view-mode';
+import { Tour } from './tour';
 import { ProxyList } from './proxy-list';
 import { Presets } from './presets';
 import { Storage } from '../shared/storage';
@@ -29,6 +31,7 @@ class PopupApp {
         UI.init();
         Settings.init();
         Tabs.init();
+        ViewMode.init();
         await ProxyList.init();
         await Presets.init();
 
@@ -44,6 +47,9 @@ class PopupApp {
 
         // Подписка на изменения
         this.subscribeToChanges();
+
+        // Мастер настройки (page-режим с ?tour=1)
+        Tour.maybeStart();
     }
 
     private bindMainButton(): void {
@@ -62,7 +68,7 @@ class PopupApp {
             const proxies = await Storage.getProxies();
             // REGRESSION-GUARD (TC-D3f, PLAN-014): proxies.length === 0 → показать диалог "добавить прокси"
             if (proxies.length === 0) {
-                const shouldAdd = await showConfirm(I18n.getMessage('noProxiesConfigured'));
+                const shouldAdd = await showConfirm(I18n.getMessage('noProxiesConfigured'), { column: 'proxy' });
                 if (shouldAdd) {
                     ProxyList.openAddProxyForm();
                 }

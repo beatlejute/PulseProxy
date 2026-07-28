@@ -11,8 +11,9 @@ const zipName = `pulseproxy-${version}.zip`;
 
 const filesToInclude = [
     'manifest.json',
-    'persona.ini',
     'popup.html',
+    'welcome.html',
+    'options.html',
     'style.css',
     'PRIVACY_POLICY.md'
 ];

@@ -171,7 +171,9 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             );
         });
 
-        it('should set state to error if no proxy configured', async () => {
+        // SYNC (8d23446): при отсутствии прокси enable() ставит DISCONNECTED, не ERROR —
+        // попап сам не даёт включиться без прокси (TC-D3f), ошибка тут не нужна
+        it('should set state to disconnected if no proxy configured', async () => {
             mockHelpers.setLocalStorageData({
                 proxies: [],
                 migrationCompleted: true,
@@ -181,12 +183,12 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             await ProxyManager.enable();
 
             expect(chrome.storage.local.set).toHaveBeenCalledWith(
-                { currentState: 'error' },
+                { currentState: 'disconnected' },
                 expect.any(Function)
             );
         });
 
-        it('should set state to error when all proxies have isDefault=false (FIX-001)', async () => {
+        it('should set state to disconnected when all proxies have isDefault=false (FIX-001)', async () => {
             mockHelpers.setLocalStorageData({
                 proxies: [
                     createProxy('10.0.0.1', 8080, 'http', false), // isDefault = false
@@ -199,7 +201,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             await ProxyManager.enable();
 
             expect(chrome.storage.local.set).toHaveBeenCalledWith(
-                { currentState: 'error' },
+                { currentState: 'disconnected' },
                 expect.any(Function)
             );
         });
@@ -473,6 +475,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy.example.com', port: 8080 },
             });
 
@@ -481,7 +484,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             });
         });
 
-        it('should return undefined for unknown proxy', async () => {
+        it('should return {} (default handling) for unknown proxy challenge', async () => {
             mockHelpers.setLocalStorageData({
                 targetState: 'disconnected',
                 migrationCompleted: true,
@@ -500,13 +503,45 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'unknown.proxy.com', port: 9999 },
             });
 
-            expect(result).toEqual({ cancel: true });
+            // Раньше здесь был { cancel: true } — он рвал запрос без шанса ввести
+            // пароль. Теперь отдаём {} → Chrome показывает штатный диалог логина.
+            expect(result).toEqual({});
         });
 
-        it('should return cancel when no challenger provided', async () => {
+        it('should NOT leak proxy credentials to a server (non-proxy) auth challenge', async () => {
+            // Регрессия: onAuthRequired срабатывает и на серверный 401. Раньше при
+            // совпадении host:port расширение отдавало креды прокси серверу и,
+            // хуже, cancel'ило любой серверный challenge, ломая Basic/NTLM в браузере.
+            mockHelpers.setLocalStorageData({
+                targetState: 'disconnected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [createProxy('proxy.example.com', 8080, 'http', true, 'user1', 'pass1')],
+            });
+
+            await ProxyManager.init();
+
+            const result = await mockHelpers.triggerAuthRequired({
+                requestId: '1',
+                url: 'https://proxy.example.com:8080/',
+                method: 'GET',
+                frameId: 0,
+                parentFrameId: -1,
+                tabId: 1,
+                type: 'main_frame' as chrome.webRequest.ResourceType,
+                timeStamp: Date.now(),
+                isProxy: false,
+                challenger: { host: 'proxy.example.com', port: 8080 },
+            });
+
+            expect(result).toEqual({});
+        });
+
+        it('should return {} (default handling) when no challenger provided', async () => {
             mockHelpers.setLocalStorageData({
                 targetState: 'disconnected',
                 migrationCompleted: true,
@@ -525,9 +560,10 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
             });
 
-            expect(result).toEqual({ cancel: true });
+            expect(result).toEqual({});
         });
 
         it('TC 1: credentials берутся из temporaryCredentials когда основной map пуст', async () => {
@@ -551,6 +587,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'temp.host', port: 8080 },
             });
 
@@ -578,6 +615,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'working.host', port: 3128 },
             });
 
@@ -607,6 +645,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'shared.host', port: 3128 },
             });
 
@@ -638,6 +677,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy1.com', port: 8080 },
             });
 
@@ -667,10 +707,11 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy1.com', port: 8080 },
             });
 
-            expect(result).toEqual({ cancel: true });
+            expect(result).toEqual({});
         });
 
         it('should reload credentials on enable()', async () => {
@@ -693,6 +734,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy.test.com', port: 3128 },
             });
 
@@ -836,6 +878,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy.com', port: 8080 },
             });
 
@@ -848,6 +891,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy.com', port: 3128 },
             });
 
@@ -880,10 +924,11 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy.com', port: 8080 },
             });
 
-            expect(result).toEqual({ cancel: true });
+            expect(result).toEqual({});
         });
 
         it('should handle proxy with only password (no username)', async () => {
@@ -907,10 +952,11 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy.com', port: 8080 },
             });
 
-            expect(result).toEqual({ cancel: true });
+            expect(result).toEqual({});
         });
 
         it('should allow retry auth after credentials are reloaded', async () => {
@@ -932,6 +978,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy.test.com', port: 3128 },
             });
 
@@ -950,6 +997,7 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 tabId: 1,
                 type: 'main_frame' as chrome.webRequest.ResourceType,
                 timeStamp: Date.now(),
+                isProxy: true,
                 challenger: { host: 'proxy.test.com', port: 3128 },
             });
 
@@ -1050,28 +1098,42 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             (ProxyManager as any).cachedPacScript = null;
         });
 
-        it('TC 1: proxy connected — test rule precedes cachedPacScript routing rules', async () => {
-            const CACHE_MARKER = '__CACHED_PAC_MARKER__';
-            (ProxyManager as any).cachedPacScript =
-                `function FindProxyForURL(url, host) { /* ${CACHE_MARKER} */ return "DIRECT"; }`;
+        // SYNC: generateCheckPacScript при isConnected больше не встраивает текст
+        // cachedPacScript, а перегенерирует полный PAC через generatePacScript({testRule});
+        // testRule внедряется первой инструкцией FindProxyForURL
+        it('TC 1: proxy connected — test rule precedes routing rules in regenerated PAC', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('9.9.9.9', 3128)],
+                migrationCompleted: true,
+                presets: [createPreset(['routed.com'])],
+            });
+            (ProxyManager as any).cachedPacScript = 'non-null → isConnected=true';
 
             const result = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
 
+            const fnPos = result.indexOf('function FindProxyForURL');
             const checkPos = result.indexOf(`_pulse_check=${TEST_ID}`);
-            const cachePos = result.indexOf(CACHE_MARKER);
-            expect(checkPos).toBeGreaterThanOrEqual(0);
-            expect(cachePos).toBeGreaterThan(0);
-            expect(checkPos).toBeLessThan(cachePos);
+            const ignoreCheckPos = result.indexOf('ignoreList.length');
+            expect(fnPos).toBeGreaterThanOrEqual(0);
+            expect(checkPos).toBeGreaterThan(fnPos);
+            expect(checkPos).toBeLessThan(ignoreCheckPos);
         });
 
-        it('TC 2: proxy connected — cachedPacScript block is embedded without modification', async () => {
-            const fakeCachedScript =
-                `function FindProxyForURL(url, host) { return "PROXY 9.9.9.9:3128"; }`;
-            (ProxyManager as any).cachedPacScript = fakeCachedScript;
+        it('TC 2: proxy connected — full routing PAC is regenerated from current config', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('9.9.9.9', 3128)],
+                migrationCompleted: true,
+                presets: [createPreset(['routed.com'])],
+            });
+            (ProxyManager as any).cachedPacScript = 'non-null → isConnected=true';
 
             const result = await (ProxyManager as any).generateCheckPacScript(TEST_PROXY, TEST_ID);
 
-            expect(result).toContain(fakeCachedScript);
+            // Маршрутизация из актуального конфига + внедрённое тестовое правило
+            expect(result).toContain('PROXY 9.9.9.9:3128');
+            expect(result).toContain('routed.com');
+            expect(result).toMatch(/domainProxyMap\s*=/);
+            expect(result).toContain(`_pulse_check=${TEST_ID}`);
         });
 
         it('TC 3: proxy disconnected — PAC contains test route and DIRECT fallback, no other routes', async () => {
@@ -1217,6 +1279,65 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
 
             // cachedPacScript не затронут
             expect((ProxyManager as any).cachedPacScript).toBe(cachedPacBefore);
+        });
+    });
+
+    describe('generateBatchCheckPacScript()', () => {
+        beforeEach(() => {
+            (ProxyManager as any).cachedPacScript = null;
+        });
+
+        const BATCH = [
+            { proxy: createProxy('1.2.3.4', 8080, 'http'), testId: 'uuid-aaa' },
+            { proxy: createProxy('5.6.7.8', 1080, 'socks5'), testId: 'uuid-bbb' },
+            { proxy: createProxy('9.9.9.9', 3128, 'http'), testId: 'uuid-ccc' },
+        ];
+
+        it('TC 1: содержит по test rule на каждый прокси с его testId', async () => {
+            const pac = await (ProxyManager as any).generateBatchCheckPacScript(BATCH);
+
+            expect(pac).toContain('url.indexOf("_pulse_check=uuid-aaa") !== -1');
+            expect(pac).toContain('url.indexOf("_pulse_check=uuid-bbb") !== -1');
+            expect(pac).toContain('url.indexOf("_pulse_check=uuid-ccc") !== -1');
+            expect(pac).toContain('PROXY 1.2.3.4:8080');
+            expect(pac).toContain('SOCKS5 5.6.7.8:1080');
+            expect(pac).toContain('PROXY 9.9.9.9:3128');
+        });
+
+        it('TC 2 (execution): каждый testId роутится через свой прокси, прочие URL → DIRECT', async () => {
+            const pac = await (ProxyManager as any).generateBatchCheckPacScript(BATCH);
+
+            const execPac = new Function(pac + '; return FindProxyForURL;');
+            const FindProxyForURL = execPac() as (url: string, host: string) => string;
+
+            expect(FindProxyForURL('http://example.com/?_pulse_check=uuid-aaa', 'example.com')).toBe('PROXY 1.2.3.4:8080');
+            expect(FindProxyForURL('http://example.com/?_pulse_check=uuid-bbb', 'example.com')).toBe('SOCKS5 5.6.7.8:1080');
+            expect(FindProxyForURL('http://example.com/?_pulse_check=uuid-ccc', 'example.com')).toBe('PROXY 9.9.9.9:3128');
+            expect(FindProxyForURL('https://other.com/', 'other.com')).toBe('DIRECT');
+        });
+
+        it('TC 3: generateCheckPacScript эквивалентен батчу из одного прокси (DRY)', async () => {
+            const single = await (ProxyManager as any).generateCheckPacScript(BATCH[0].proxy, BATCH[0].testId);
+            const batchOfOne = await (ProxyManager as any).generateBatchCheckPacScript([BATCH[0]]);
+
+            expect(single).toBe(batchOfOne);
+        });
+
+        it('TC 4 (execution): connected — test rules не перехватывают штатный роутинг', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [createPreset(['youtube.com'])],
+                migrationCompleted: true,
+            });
+            (ProxyManager as any).cachedPacScript = '__connected__';
+
+            const pac = await (ProxyManager as any).generateBatchCheckPacScript(BATCH);
+
+            const execPac = new Function(pac + '; return FindProxyForURL;');
+            const FindProxyForURL = execPac() as (url: string, host: string) => string;
+
+            expect(FindProxyForURL('http://example.com/?_pulse_check=uuid-bbb', 'example.com')).toBe('SOCKS5 5.6.7.8:1080');
+            expect(FindProxyForURL('https://youtube.com/', 'youtube.com')).toBe('PROXY 10.0.0.1:3128');
         });
     });
 
@@ -1598,6 +1719,37 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             );
             // applyPacScript НЕ вызывался
             expect(chrome.proxy.settings.set).not.toHaveBeenCalled();
+        });
+
+        it('TC 3: wasConnected === true при пустом кеше — регенерирует реальный PAC, а не оставляет DIRECT', async () => {
+            // Регрессия на утечку IP: правка presets/proxies обнуляет cachedPacScript
+            // прямо во время проверки прокси. Раньше restoreAfterCheck(true) при
+            // cachedPacScript === null молча ничего не восстанавливал, и в браузере
+            // оставался check-PAC "return DIRECT" при статусе CONNECTED.
+            mockHelpers.setLocalStorageData({
+                targetState: 'connected',
+                migrationCompleted: true,
+                presets: [],
+                proxies: [createProxy('real.proxy', 8080, 'http', true)],
+            });
+            await ProxyManager.init();
+
+            // Кеш инвалидирован (как после storage-change во время проверки)
+            (ProxyManager as any).cachedPacScript = null;
+            (ProxyManager as any).cachedConfigHash = null;
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+            (chrome.proxy.settings.clear as jest.Mock).mockClear();
+
+            // Act
+            await (ProxyManager as any).restoreAfterCheck(true);
+
+            // Assert: применён реальный PAC с боевым прокси, НЕ "return DIRECT"
+            expect(chrome.proxy.settings.set).toHaveBeenCalled();
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pacScript = setCall[0].value.pacScript.data;
+            expect(pacScript).toContain('real.proxy:8080');
+            // disable() НЕ вызывался — соединение восстановлено, а не разорвано
+            expect(chrome.proxy.settings.clear).not.toHaveBeenCalled();
         });
     });
 

@@ -6,6 +6,7 @@ import { showAlert, showConfirm } from './dialog';
 import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
 import { RemoteConfig } from '../shared/remote-config';
 import { UI } from './ui';
+import { resolveEffectiveTheme } from './theme-resolver';
 
 class SettingsService {
     private languageSelect: HTMLSelectElement | null = null;
@@ -110,8 +111,8 @@ class SettingsService {
             const confirmMessage = enabled
                 ? I18n.getMessage('syncEnableConfirm')
                 : I18n.getMessage('syncDisableConfirm');
-            
-            const confirmed = await showConfirm(confirmMessage);
+
+            const confirmed = await showConfirm(confirmMessage, { column: 'settings' });
             if (!confirmed) {
                 // Отменяем изменение
                 this.syncToggle!.checked = !enabled;
@@ -119,13 +120,16 @@ class SettingsService {
             }
 
             try {
-                await Storage.setSyncEnabled(enabled);
+                const stats = await Storage.setSyncEnabled(enabled);
                 console.log('Settings: Sync', enabled ? 'enabled' : 'disabled');
+                if (enabled && stats) {
+                    await showAlert(I18n.getMessage('syncEnabledStats', [String(stats.received), String(stats.added)]), 'settings');
+                }
             } catch (error) {
                 console.error('Settings: Failed to change sync state:', error);
                 // Откатываем UI при ошибке
                 this.syncToggle!.checked = !enabled;
-                await showAlert(error instanceof Error ? error.message : 'Failed to change sync state');
+                await showAlert(error instanceof Error ? error.message : 'Failed to change sync state', 'settings');
             }
         });
     }
@@ -145,14 +149,39 @@ class SettingsService {
     private async initThemeToggle(): Promise<void> {
         if (!this.themeToggle) return;
 
-        const currentTheme = await Storage.getTheme();
-        this.themeToggle.checked = currentTheme === 'dark';
-        this.applyThemeClass(currentTheme);
+        // Тема не задана вручную → наследуем от системных настроек ОС
+        const storedTheme = await Storage.getStoredTheme();
+        const effectiveTheme = resolveEffectiveTheme(storedTheme);
+        this.themeToggle.checked = effectiveTheme === 'dark';
+        this.applyThemeClass(effectiveTheme);
 
         this.themeToggle.addEventListener('change', async () => {
             const newTheme = this.themeToggle!.checked ? 'dark' : 'light';
             await Storage.setTheme(newTheme);
             this.applyThemeClass(newTheme);
+        });
+
+        this.watchSystemTheme();
+    }
+
+    /**
+     * Пока тема не задана вручную, попап следует за системными настройками ОС
+     * в реальном времени (актуально для открытия во вкладке / page-view).
+     * Как только пользователь выбрал тему явно — системные изменения игнорируются.
+     */
+    private watchSystemTheme(): void {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+        const media = window.matchMedia('(prefers-color-scheme: dark)');
+        media.addEventListener('change', async event => {
+            const storedTheme = await Storage.getStoredTheme();
+            if (storedTheme === 'light' || storedTheme === 'dark') return;
+
+            const systemTheme: ThemeType = event.matches ? 'dark' : 'light';
+            if (this.themeToggle) {
+                this.themeToggle.checked = systemTheme === 'dark';
+            }
+            this.applyThemeClass(systemTheme);
         });
     }
 
@@ -218,7 +247,7 @@ class SettingsService {
             console.log('Settings: Export completed');
         } catch (error) {
             console.error('Settings: Export failed:', error);
-            await showAlert(I18n.getMessage('exportError'));
+            await showAlert(I18n.getMessage('exportError'), 'settings');
         }
     }
 
@@ -233,7 +262,7 @@ class SettingsService {
                 const errorMessages = validation.errors
                     .map(e => I18n.getMessage(e as I18nKey))
                     .join('\n');
-                await showAlert(I18n.getMessage('importValidationError') + '\n' + errorMessages);
+                await showAlert(I18n.getMessage('importValidationError') + '\n' + errorMessages, 'settings');
                 return;
             }
             
@@ -247,7 +276,8 @@ class SettingsService {
                         I18n.getMessage('newerVersionConfirm'),
                         {
                             okText: I18n.getMessage('continue'),
-                            cancelText: I18n.getMessage('cancel')
+                            cancelText: I18n.getMessage('cancel'),
+                            column: 'settings'
                         }
                     );
                     if (!confirmed) {
@@ -268,7 +298,7 @@ class SettingsService {
             
             // Подтверждение импорта
             const confirmMessage = I18n.getMessage('importConfirm');
-            const confirmed = await showConfirm(confirmMessage);
+            const confirmed = await showConfirm(confirmMessage, { column: 'settings' });
             if (!confirmed) {
                 return;
             }
@@ -277,13 +307,13 @@ class SettingsService {
             await Storage.importAllData(validation.data!, 'replace');
             
             // Уведомление об успехе
-            await showAlert(I18n.getMessage('importSuccess'));
+            await showAlert(I18n.getMessage('importSuccess'), 'settings');
             
             // Перезагрузка страницы для применения новых настроек
             window.location.reload();
         } catch (error) {
             console.error('Settings: Import failed:', error);
-            await showAlert(I18n.getMessage('importValidationError'));
+            await showAlert(I18n.getMessage('importValidationError'), 'settings');
         }
     }
 

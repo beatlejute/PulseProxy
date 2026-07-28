@@ -2,8 +2,6 @@
  * @jest-environment jsdom
  */
 
-import { mockHelpers } from '../mocks/chrome-api';
-
 // Mock для модулей
 jest.mock('../../src/shared/storage', () => ({
     Storage: {
@@ -13,6 +11,7 @@ jest.mock('../../src/shared/storage', () => ({
         getProxyCheckEnabled: jest.fn().mockResolvedValue(true),
         setProxyCheckEnabled: jest.fn().mockResolvedValue(undefined),
         getTheme: jest.fn().mockResolvedValue('light'),
+        getStoredTheme: jest.fn().mockResolvedValue(undefined),
         setTheme: jest.fn().mockResolvedValue(undefined),
         exportAllData: jest.fn().mockResolvedValue({
             version: '1.0.0',
@@ -51,12 +50,22 @@ jest.mock('../../src/shared/i18n', () => ({
 }));
 
 jest.mock('../../src/shared/constants', () => ({
+    // Реальные константы (ProxyState и др. нужны транзитивным импортам, напр. ui.ts),
+    // переопределяем только языки для компактности тестов
+    ...jest.requireActual('../../src/shared/constants'),
     SUPPORTED_LANGUAGES: ['en', 'ru', 'de', 'fr'],
     LANGUAGE_NAMES: {
         en: 'English',
         ru: 'Русский',
         de: 'Deutsch',
         fr: 'Français',
+    },
+}));
+
+jest.mock('../../src/popup/ui', () => ({
+    UI: {
+        updateState: jest.fn(),
+        getCurrentState: jest.fn().mockReturnValue('disconnected'),
     },
 }));
 
@@ -230,6 +239,39 @@ describe('settings.ts - SettingsService', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
 
             expect(toggle.checked).toBe(initialChecked);
+        });
+
+        it('should show merge stats alert after enabling sync', async () => {
+            (showConfirm as jest.Mock).mockResolvedValue(true);
+            (Storage.setSyncEnabled as jest.Mock).mockResolvedValue({ received: 3, added: 2 });
+
+            await Settings.init();
+
+            const toggle = document.getElementById('sync-toggle') as HTMLInputElement;
+            toggle.checked = true;
+            toggle.dispatchEvent(new Event('change'));
+
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            expect(I18n.getMessage).toHaveBeenCalledWith('syncEnabledStats', ['3', '2']);
+            expect(showAlert).toHaveBeenCalledWith('syncEnabledStats', 'settings');
+        });
+
+        it('should not show stats alert when disabling sync', async () => {
+            (Storage.getSyncEnabled as jest.Mock).mockResolvedValue(true);
+            (showConfirm as jest.Mock).mockResolvedValue(true);
+            (Storage.setSyncEnabled as jest.Mock).mockResolvedValue(null);
+
+            await Settings.init();
+
+            const toggle = document.getElementById('sync-toggle') as HTMLInputElement;
+            toggle.checked = false;
+            toggle.dispatchEvent(new Event('change'));
+
+            await new Promise(resolve => setTimeout(resolve, 10));
+
+            expect(Storage.setSyncEnabled).toHaveBeenCalledWith(false);
+            expect(showAlert).not.toHaveBeenCalled();
         });
 
         it('should revert checkbox and show alert on error', async () => {
@@ -470,7 +512,7 @@ describe('settings.ts - SettingsService', () => {
 
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            expect(showAlert).toHaveBeenCalledWith('importSuccess');
+            expect(showAlert).toHaveBeenCalledWith('importSuccess', 'settings');
         });
 
         it('should reset file input after import', async () => {
@@ -551,7 +593,7 @@ describe('settings.ts - SettingsService', () => {
 
             await new Promise(resolve => setTimeout(resolve, 100));
 
-            expect(showAlert).toHaveBeenCalledWith('importValidationError');
+            expect(showAlert).toHaveBeenCalledWith('importValidationError', 'settings');
         });
 
         it('should show newerVersion confirm dialog when warnings contain newerVersion (version > EXPORT_FORMAT_VERSION)', async () => {
@@ -610,7 +652,7 @@ describe('settings.ts - SettingsService', () => {
                 'newerVersionConfirm',
                 expect.anything()
             );
-            expect(showConfirm).toHaveBeenCalledWith('importConfirm');
+            expect(showConfirm).toHaveBeenCalledWith('importConfirm', { column: 'settings' });
         });
     });
 
@@ -679,8 +721,12 @@ describe('settings.ts - SettingsService', () => {
     });
 
     describe('initThemeToggle()', () => {
+        afterEach(() => {
+            delete (window as unknown as { matchMedia?: unknown }).matchMedia;
+        });
+
         it('should save theme to storage when setTheme is called', async () => {
-            (Storage.getTheme as jest.Mock).mockResolvedValue('light');
+            (Storage.getStoredTheme as jest.Mock).mockResolvedValue('light');
 
             await Settings.init();
 
@@ -694,7 +740,7 @@ describe('settings.ts - SettingsService', () => {
         });
 
         it('should reflect current theme from storage on init', async () => {
-            (Storage.getTheme as jest.Mock).mockResolvedValue('dark');
+            (Storage.getStoredTheme as jest.Mock).mockResolvedValue('dark');
 
             await Settings.init();
 
@@ -703,7 +749,7 @@ describe('settings.ts - SettingsService', () => {
         });
 
         it('should apply CSS class to document.body on theme change', async () => {
-            (Storage.getTheme as jest.Mock).mockResolvedValue('light');
+            (Storage.getStoredTheme as jest.Mock).mockResolvedValue('light');
 
             await Settings.init();
 
@@ -714,6 +760,43 @@ describe('settings.ts - SettingsService', () => {
             await new Promise(resolve => setTimeout(resolve, 10));
 
             expect(document.body.classList.contains('theme-dark')).toBe(true);
+        });
+
+        it('should inherit dark theme from system when not set manually', async () => {
+            (Storage.getStoredTheme as jest.Mock).mockResolvedValue(undefined);
+            (window as unknown as { matchMedia: unknown }).matchMedia = jest.fn(
+                (query: string) => ({
+                    matches: query.includes('dark'),
+                    media: query,
+                    addEventListener: jest.fn(),
+                    removeEventListener: jest.fn(),
+                })
+            );
+
+            await Settings.init();
+
+            const toggle = document.getElementById('theme-toggle') as HTMLInputElement;
+            expect(toggle.checked).toBe(true);
+            expect(document.body.classList.contains('theme-dark')).toBe(true);
+            expect(Storage.setTheme).not.toHaveBeenCalled();
+        });
+
+        it('should inherit light theme from system when not set manually', async () => {
+            (Storage.getStoredTheme as jest.Mock).mockResolvedValue(undefined);
+            (window as unknown as { matchMedia: unknown }).matchMedia = jest.fn(
+                (query: string) => ({
+                    matches: !query.includes('dark'),
+                    media: query,
+                    addEventListener: jest.fn(),
+                    removeEventListener: jest.fn(),
+                })
+            );
+
+            await Settings.init();
+
+            const toggle = document.getElementById('theme-toggle') as HTMLInputElement;
+            expect(toggle.checked).toBe(false);
+            expect(document.body.classList.contains('theme-light')).toBe(true);
         });
     });
 

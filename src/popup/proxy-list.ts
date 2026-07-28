@@ -40,6 +40,7 @@ class ProxyListService {
         headerDiv.appendChild(title);
 
         const addProxyBtn = createElementFromTemplate<HTMLButtonElement>('button', { className: 'add-proxy-btn', title: 'Add proxy' });
+        setAttr(addProxyBtn, 'id', 'add-proxy-btn');
         const iconSpan = createElementFromTemplate<HTMLSpanElement>('span', { className: 'icon', textContent: '+' });
         addProxyBtn.appendChild(iconSpan);
         headerDiv.appendChild(addProxyBtn);
@@ -143,7 +144,8 @@ class ProxyListService {
     private showProxyTypeDialog(): void {
         const { body, closeModal, build } = ModalHelper.createSimple(
             I18n.getMessage('proxyTypeDialogTitle'),
-            'proxy-type-modal'
+            'proxy-type-modal',
+            'proxy'
         );
 
         const optionsDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-type-options' });
@@ -229,7 +231,7 @@ class ProxyListService {
 
         const proxyDisplayName = proxy.name || `${proxy.host}:${proxy.port}`;
         const confirmMessage = `${I18n.getMessage('deleteProxyConfirm')} "${proxyDisplayName}"?`;
-        const confirmed = await showConfirm(confirmMessage);
+        const confirmed = await showConfirm(confirmMessage, { column: 'proxy' });
         if (!confirmed) return;
 
         await Storage.deleteProxy(proxyId);

@@ -60,13 +60,16 @@ export interface SyncStorageData {
     language: SupportedLanguage;
     syncEnabled: boolean;
     proxyByDefault: boolean;     // Использовать прокси по умолчанию для сайтов вне пресетов
-    proxyCheckEnabled: boolean;  // Проверять прокси перед добавлением
+    proxyCheckEnabled: boolean;  // Проверять прокси перед добавлением (и фоновая проверка публичных)
 }
 
 // Локальные данные (только chrome.storage.local)
 export interface LocalStorageData {
     targetState: ProxyStateType;
     currentState: ProxyStateType;
+    publicProxiesWarningDismissed: boolean; // Предупреждение о публичных прокси закрыто крестиком
+    publicProxiesFiltersCollapsed: boolean; // Блок фильтров публичных прокси свёрнут
+    publicProxyCheckResults: PublicProxyCheckResults; // Кеш результатов фоновой проверки публичных прокси
 }
 
 // Объединённый тип данных хранилища
@@ -79,12 +82,34 @@ export type LocalStorageKey = keyof LocalStorageData;
 
 // Сообщения между popup и background
 export interface ExtensionMessage {
-    action: 'toggleProxy' | 'updateIcon' | 'checkProxy';
+    action: 'toggleProxy' | 'updateIcon' | 'checkProxy' | 'checkProxyBatch' | 'abortCheckBatch';
     iconPath?: string;
     proxy?: { type: ProxyType; host: string; port: number; username?: string; password?: string };
+    proxies?: Array<{ type: ProxyType; host: string; port: number }>;
 }
 
 export type CheckProxyResult = 'ok' | 'error' | 'timeout';
+
+// Результат одного прокси в батч-проверке: 'aborted' — батч отменён до завершения этого чека
+export type CheckProxyBatchItemResult = CheckProxyResult | 'aborted';
+
+// Ответ background на 'checkProxyBatch'; busy — сейчас идёт другая проверка (mutex занят)
+export interface CheckProxyBatchResponse {
+    busy?: boolean;
+    results?: CheckProxyBatchItemResult[];
+}
+
+// Статус живости публичного прокси в UI списка
+export type PublicProxyLiveStatus = 'alive' | 'dead' | 'checking' | 'unchecked';
+
+// Закешированный результат проверки публичного прокси
+export interface PublicProxyCheckResult {
+    status: 'alive' | 'dead';
+    checkedAt: number; // Timestamp проверки (для TTL)
+}
+
+// Кеш результатов проверок: ключ — `protocol://ip:port`
+export type PublicProxyCheckResults = Record<string, PublicProxyCheckResult>;
 
 // Конфигурация прокси
 export interface ProxyConfig {
@@ -116,6 +141,7 @@ export type I18nKey =
     | 'labelSync'
     | 'syncEnableConfirm'
     | 'syncDisableConfirm'
+    | 'syncEnabledStats'
     | 'syncEnabled'
     | 'syncDisabled'
     | 'labelPresets'
@@ -127,6 +153,23 @@ export type I18nKey =
     | 'tabProxy'
     | 'tabPresets'
     | 'tabSettings'
+    | 'buttonOpenInTab'
+    | 'tourStepCounter'
+    | 'tourStepAddProxyTitle'
+    | 'tourStepAddProxyText'
+    | 'tourStepModeTitle'
+    | 'tourStepModeText'
+    | 'tourChoiceAllSites'
+    | 'tourChoiceSelectedSites'
+    | 'tourStepPresetsTitle'
+    | 'tourStepPresetsText'
+    | 'tourStepConnectTitle'
+    | 'tourStepConnectText'
+    | 'tourStepPinTitle'
+    | 'tourStepPinText'
+    | 'tourNext'
+    | 'tourDone'
+    | 'tourSkip'
     | 'buttonAddProxy'
     | 'labelProxyType'
     | 'labelProxyHost'
@@ -219,6 +262,8 @@ export type I18nKey =
     | 'publicProxiesRetry'
     | 'publicProxiesWarning'
     | 'publicProxiesRecommendation'
+    | 'publicProxiesShowFilters'
+    | 'publicProxiesHideFilters'
     | 'checkProxy'
     | 'checkProxyChecking'
     | 'checkProxyOk'
@@ -227,11 +272,37 @@ export type I18nKey =
     | 'proxyCheckFailedTitle'
     | 'saveAnyway'
     | 'labelProxyCheck'
+    | 'publicProxyStatusAlive'
+    | 'publicProxyStatusDead'
+    | 'publicProxyCheckNow'
      | 'labelVersion'
      | 'ariaProxyOn'
      | 'ariaProxyOff'
      | 'ariaProxyConnecting'
-     | 'ariaProxyError';
+     | 'ariaProxyError'
+    | 'labelTheme'
+    | 'promoLink'
+    | 'proxyErrorTitle'
+    | 'proxyFormRecommendation'
+    | 'publicProxySearchHint'
+    | 'welcomeTitle'
+    | 'welcomeSubtitle'
+    | 'welcomeStep1Title'
+    | 'welcomeStep1Desc'
+    | 'welcomeStep2Title'
+    | 'welcomeStep2Desc'
+    | 'welcomeStep3Title'
+    | 'welcomeStep3Desc'
+    | 'welcomeGetStarted'
+    | 'welcomeChooseTitle'
+    | 'welcomeOptionWizard'
+    | 'welcomeOptionWizardDesc'
+    | 'welcomeOptionSync'
+    | 'welcomeOptionSyncDesc'
+    | 'welcomeOptionImport'
+    | 'welcomeOptionImportDesc'
+    | 'welcomeOptionSkip'
+    | 'welcomeSyncError';
 
 // Структура экспортируемых данных
 export interface ExportData {

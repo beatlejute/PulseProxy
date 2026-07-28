@@ -1,6 +1,7 @@
 import { IStorageBackend } from '../types/storage';
 import { ProxyServer, Preset } from '../types';
 import { StorageKeys } from '../shared/constants';
+import { withStorageLock } from './storage-lock';
 
 export class ProxyRepository {
     private readonly storageBackend: IStorageBackend;
@@ -29,56 +30,68 @@ export class ProxyRepository {
     }
 
     async update(id: string, updates: Partial<ProxyServer>): Promise<void> {
-        const proxies = await this.getAll();
-        const index = proxies.findIndex(p => p.id === id);
-        if (index !== -1) {
-            proxies[index] = { ...proxies[index], ...updates, updatedAt: Date.now() };
-            await this.setAll(proxies);
-        }
+        return withStorageLock(StorageKeys.PROXIES, async () => {
+            const proxies = await this.getAll();
+            const index = proxies.findIndex(p => p.id === id);
+            if (index !== -1) {
+                proxies[index] = { ...proxies[index], ...updates, updatedAt: Date.now() };
+                await this.setAll(proxies);
+            }
+        });
     }
 
     async delete(id: string): Promise<void> {
-        const proxies = await this.getAll();
-        const filtered = proxies.filter(p => p.id !== id);
-        
-        // Cascade cleanup: reset proxyId in presets that reference this proxy
+        // Каскадная чистка ссылок в пресетах и удаление прокси — две записи по
+        // разным ключам. Лочим каждую на своём ключе последовательно (не вложенно),
+        // чтобы не держать один лок при взятии другого.
         const presets = await this.storageBackend.get(StorageKeys.PRESETS) as Preset[] | undefined;
         if (Array.isArray(presets)) {
-            let updated = false;
-            const updatedPresets = presets.map(preset => {
-                if (preset.proxyId === id) {
-                    updated = true;
-                    return { ...preset, proxyId: null, updatedAt: Date.now() };
-                }
-                return preset;
-            });
-            if (updated) {
-                await this.storageBackend.set(StorageKeys.PRESETS, updatedPresets);
+            const hasRef = presets.some(preset => preset.proxyId === id);
+            if (hasRef) {
+                await withStorageLock(StorageKeys.PRESETS, async () => {
+                    // Перечитываем под локом — список мог измениться, пока считали ссылки
+                    const current = await this.storageBackend.get(StorageKeys.PRESETS) as Preset[] | undefined;
+                    if (!Array.isArray(current)) return;
+                    const cleaned = current.map(preset =>
+                        preset.proxyId === id
+                            ? { ...preset, proxyId: null, updatedAt: Date.now() }
+                            : preset
+                    );
+                    await this.storageBackend.set(StorageKeys.PRESETS, cleaned);
+                });
             }
         }
-        
-        await this.setAll(filtered);
+
+        await withStorageLock(StorageKeys.PROXIES, async () => {
+            const proxies = await this.getAll();
+            const filtered = proxies.filter(p => p.id !== id);
+            await this.setAll(filtered);
+        });
     }
 
     async add(proxyData: Omit<ProxyServer, 'id' | 'createdAt' | 'updatedAt'>): Promise<ProxyServer> {
-        const proxies = await this.getAll();
-        const now = Date.now();
-        const newProxy: ProxyServer = {
-            ...proxyData,
-            id: crypto.randomUUID(),
-            createdAt: now,
-            updatedAt: now,
-        };
-        proxies.push(newProxy);
-        await this.setAll(proxies);
-        return newProxy;
+        return withStorageLock(StorageKeys.PROXIES, async () => {
+            const proxies = await this.getAll();
+            const now = Date.now();
+            const newProxy: ProxyServer = {
+                ...proxyData,
+                id: crypto.randomUUID(),
+                createdAt: now,
+                updatedAt: now,
+            };
+            proxies.push(newProxy);
+            await this.setAll(proxies);
+            return newProxy;
+        });
     }
 
     async setDefault(id: string): Promise<void> {
-        const proxies = await this.getAll();
-        for (const proxy of proxies) {
-            proxy.isDefault = proxy.id === id;
-        }
-        await this.setAll(proxies);
+        return withStorageLock(StorageKeys.PROXIES, async () => {
+            const proxies = await this.getAll();
+            for (const proxy of proxies) {
+                proxy.isDefault = proxy.id === id;
+            }
+            await this.setAll(proxies);
+        });
     }
 }

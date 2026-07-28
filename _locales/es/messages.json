@@ -63,9 +63,25 @@
     "message": "Verificar proxy antes de agregar",
     "description": "Label for proxy check toggle"
   },
+  "publicProxyStatusAlive": {
+    "message": "Funciona",
+    "description": "Tooltip for working public proxy status icon"
+  },
+  "publicProxyStatusDead": {
+    "message": "No funciona",
+    "description": "Tooltip for dead public proxy status icon"
+  },
+  "publicProxyCheckNow": {
+    "message": "Comprobar",
+    "description": "Button to check a single public proxy"
+  },
   "syncEnableConfirm": {
-    "message": "¿Activar sincronización? Tu configuración estará disponible en todos los dispositivos con esta cuenta.",
+    "message": "¿Activar sincronización? Tu configuración local se combinará con los datos de la nube (sin duplicados) y estará disponible en todos los dispositivos con esta cuenta.",
     "description": "Confirmation message when enabling sync"
+  },
+  "syncEnabledStats": {
+    "message": "Sincronización activada. Recibidos de la nube: $1, añadidos a la nube: $2.",
+    "description": "Info message after enabling sync: how many entries were received from cloud and added to cloud"
   },
   "syncDisableConfirm": {
     "message": "¿Desactivar sincronización? La configuración se almacenará solo en este dispositivo.",
@@ -114,6 +130,10 @@
   "tabSettings": {
     "message": "Ajustes",
     "description": "Tab label for settings"
+  },
+  "buttonOpenInTab": {
+    "message": "Abrir en una pestaña",
+    "description": "Tooltip and aria-label for the open-in-tab button"
   },
   "buttonAddProxy": {
     "message": "Añadir proxy",
@@ -433,6 +453,14 @@
     "message": "Todos",
     "description": "All filter option"
   },
+  "publicProxiesShowFilters": {
+    "message": "Mostrar filtros",
+    "description": "Toggle button label to show public proxy filters"
+  },
+  "publicProxiesHideFilters": {
+    "message": "Ocultar filtros",
+    "description": "Toggle button label to hide public proxy filters"
+  },
   "connectionTypeResidential": {
     "message": "Residencial",
     "description": "Residential connection type"
@@ -557,13 +585,34 @@
   "welcomeGetStarted": {
     "message": "Comenzar"
   },
+  "welcomeChooseTitle": { "message": "¿Cómo quieres empezar?" },
+  "welcomeOptionWizard": { "message": "Asistente de configuración" },
+  "welcomeOptionWizardDesc": { "message": "Configuración guiada paso a paso" },
+  "welcomeOptionSync": { "message": "Sincronizar configuración" },
+  "welcomeOptionSyncDesc": { "message": "Activa la sincronización y recupera tu configuración guardada" },
+  "welcomeOptionImport": { "message": "Importar configuración" },
+  "welcomeOptionImportDesc": { "message": "Carga la configuración desde un archivo" },
+  "welcomeOptionSkip": { "message": "Omitir" },
+  "welcomeSyncError": { "message": "No se pudo activar la sincronización" },
+  "tourStepCounter": { "message": "Paso $1 de $2" },
+  "tourStepAddProxyTitle": { "message": "Añadir un proxy" },
+  "tourStepAddProxyText": { "message": "Haz clic en «Añadir proxy» en esta columna e introduce los datos de tu servidor proxy." },
+  "tourStepModeTitle": { "message": "¿Qué debe pasar por el proxy?" },
+  "tourStepModeText": { "message": "Todos los sitios: cada petición pasa por el proxy. Sitios seleccionados: solo los dominios de tus preajustes." },
+  "tourChoiceAllSites": { "message": "Todos los sitios" },
+  "tourChoiceSelectedSites": { "message": "Sitios seleccionados" },
+  "tourStepPresetsTitle": { "message": "Añadir un preajuste" },
+  "tourStepPresetsText": { "message": "Crea un preajuste con los dominios que deben pasar por el proxy." },
+  "tourStepConnectTitle": { "message": "Activar el proxy" },
+  "tourStepConnectText": { "message": "Haz clic en el botón del escudo para conectar." },
+  "tourStepPinTitle": { "message": "Fijar la extensión" },
+  "tourStepPinText": { "message": "El icono de la extensión está en la barra de herramientas, arriba a la derecha. Fíjalo para acceder con un clic." },
+  "tourNext": { "message": "Siguiente" },
+  "tourDone": { "message": "Listo" },
+  "tourSkip": { "message": "Omitir tutorial" },
   "labelTheme": {
     "message": "Tema oscuro",
     "description": "Label for dark theme toggle checkbox"
-  },
-  "selectDefaultProxyTitle": {
-    "message": "Seleccionar proxy predeterminado",
-    "description": "Title for select default proxy modal"
   },
   "ariaProxyOn": {
     "message": "Proxy activado",

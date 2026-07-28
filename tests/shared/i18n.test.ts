@@ -159,6 +159,7 @@ describe('i18n.ts - I18nService', () => {
                     <span data-i18n="buttonConnect">Original</span>
                     <span data-i18n="buttonConnected">Original</span>
                     <input data-i18n-placeholder="buttonConnect" placeholder="Original" />
+                    <button data-i18n-title="buttonConnect" title="Original" aria-label="Original"></button>
                 </div>
             `;
         });
@@ -184,9 +185,17 @@ describe('i18n.ts - I18nService', () => {
 
         it('should apply translations to placeholders', () => {
             I18n.applyTranslations();
-            
+
             const input = document.querySelector('[data-i18n-placeholder]') as HTMLInputElement;
             expect(input.placeholder).toBe('Connect');
+        });
+
+        it('should apply translations to title and aria-label via data-i18n-title', () => {
+            I18n.applyTranslations();
+
+            const button = document.querySelector('[data-i18n-title]') as HTMLButtonElement;
+            expect(button.getAttribute('title')).toBe('Connect');
+            expect(button.getAttribute('aria-label')).toBe('Connect');
         });
     });
 

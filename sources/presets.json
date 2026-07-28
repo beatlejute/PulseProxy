@@ -927,6 +927,90 @@
       ]
     },
     {
+      "name": "Hetzner",
+      "domains": [
+        "hetzner.com",
+        "*.hetzner.com",
+        "*.hetzner.cloud"
+      ]
+    },
+    {
+      "name": "OVH",
+      "domains": [
+        "ovh.com",
+        "*.ovh.com",
+        "ovhcloud.com",
+        "*.ovhcloud.com"
+      ]
+    },
+    {
+      "name": "Linode (Akamai)",
+      "domains": [
+        "linode.com",
+        "*.linode.com"
+      ]
+    },
+    {
+      "name": "Vultr",
+      "domains": [
+        "vultr.com",
+        "*.vultr.com"
+      ]
+    },
+    {
+      "name": "Contabo",
+      "domains": [
+        "contabo.com",
+        "*.contabo.com"
+      ]
+    },
+    {
+      "name": "Scaleway",
+      "domains": [
+        "scaleway.com",
+        "*.scaleway.com"
+      ]
+    },
+    {
+      "name": "Fly.io",
+      "domains": [
+        "fly.io",
+        "*.fly.io",
+        "*.fly.dev"
+      ]
+    },
+    {
+      "name": "Railway",
+      "domains": [
+        "railway.app",
+        "*.railway.app",
+        "railway.com",
+        "*.railway.com"
+      ]
+    },
+    {
+      "name": "Render",
+      "domains": [
+        "render.com",
+        "*.render.com",
+        "*.onrender.com"
+      ]
+    },
+    {
+      "name": "Namecheap",
+      "domains": [
+        "namecheap.com",
+        "*.namecheap.com"
+      ]
+    },
+    {
+      "name": "GoDaddy",
+      "domains": [
+        "godaddy.com",
+        "*.godaddy.com"
+      ]
+    },
+    {
       "name": "Vimeo",
       "domains": [
         "vimeo.com",
@@ -1163,6 +1247,183 @@
       "domains": [
         "mullvad.net",
         "*.mullvad.net"
+      ]
+    },
+    {
+      "name": "ExpressVPN",
+      "domains": [
+        "expressvpn.com",
+        "*.expressvpn.com"
+      ]
+    },
+    {
+      "name": "Surfshark",
+      "domains": [
+        "surfshark.com",
+        "*.surfshark.com"
+      ]
+    },
+    {
+      "name": "Windscribe",
+      "domains": [
+        "windscribe.com",
+        "*.windscribe.com"
+      ]
+    },
+    {
+      "name": "Private Internet Access",
+      "domains": [
+        "privateinternetaccess.com",
+        "*.privateinternetaccess.com"
+      ]
+    },
+    {
+      "name": "CyberGhost",
+      "domains": [
+        "cyberghostvpn.com",
+        "*.cyberghostvpn.com"
+      ]
+    },
+    {
+      "name": "TunnelBear",
+      "domains": [
+        "tunnelbear.com",
+        "*.tunnelbear.com"
+      ]
+    },
+    {
+      "name": "hide.me",
+      "domains": [
+        "hide.me",
+        "*.hide.me"
+      ]
+    },
+    {
+      "name": "IVPN",
+      "domains": [
+        "ivpn.net",
+        "*.ivpn.net"
+      ]
+    },
+    {
+      "name": "AirVPN",
+      "domains": [
+        "airvpn.org",
+        "*.airvpn.org"
+      ]
+    },
+    {
+      "name": "Amnezia VPN",
+      "domains": [
+        "amnezia.org",
+        "*.amnezia.org"
+      ]
+    },
+    {
+      "name": "Outline VPN",
+      "domains": [
+        "getoutline.org",
+        "*.getoutline.org"
+      ]
+    },
+    {
+      "name": "WireGuard",
+      "domains": [
+        "wireguard.com",
+        "*.wireguard.com"
+      ]
+    },
+    {
+      "name": "OpenVPN",
+      "domains": [
+        "openvpn.net",
+        "*.openvpn.net"
+      ]
+    },
+    {
+      "name": "Bright Data",
+      "domains": [
+        "brightdata.com",
+        "*.brightdata.com"
+      ]
+    },
+    {
+      "name": "Oxylabs",
+      "domains": [
+        "oxylabs.io",
+        "*.oxylabs.io"
+      ]
+    },
+    {
+      "name": "Decodo (Smartproxy)",
+      "domains": [
+        "decodo.com",
+        "*.decodo.com",
+        "smartproxy.com",
+        "*.smartproxy.com"
+      ]
+    },
+    {
+      "name": "IPRoyal",
+      "domains": [
+        "iproyal.com",
+        "*.iproyal.com"
+      ]
+    },
+    {
+      "name": "Webshare",
+      "domains": [
+        "webshare.io",
+        "*.webshare.io"
+      ]
+    },
+    {
+      "name": "SOAX",
+      "domains": [
+        "soax.com",
+        "*.soax.com"
+      ]
+    },
+    {
+      "name": "NetNut",
+      "domains": [
+        "netnut.io",
+        "*.netnut.io"
+      ]
+    },
+    {
+      "name": "Proxy-Seller",
+      "domains": [
+        "proxy-seller.com",
+        "*.proxy-seller.com"
+      ]
+    },
+    {
+      "name": "Proxy6",
+      "domains": [
+        "proxy6.net",
+        "*.proxy6.net"
+      ]
+    },
+    {
+      "name": "ProxyLine",
+      "domains": [
+        "proxyline.net",
+        "*.proxyline.net"
+      ]
+    },
+    {
+      "name": "Froxy",
+      "domains": [
+        "froxy.com",
+        "*.froxy.com"
+      ]
+    },
+    {
+      "name": "AstroProxy",
+      "domains": [
+        "astroproxy.com",
+        "*.astroproxy.com"
       ]
     },
     {

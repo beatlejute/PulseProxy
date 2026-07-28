@@ -292,7 +292,9 @@ describe('Proxy Toggle Integration Tests', () => {
     });
 
     describe('Error handling during enable()', () => {
-        it('should set state to ERROR when no proxy configured', async () => {
+        // SYNC (8d23446): при отсутствии прокси enable() ставит DISCONNECTED, не ERROR —
+        // попап сам не даёт включиться без прокси (TC-D3f)
+        it('should set state to DISCONNECTED when no proxy configured', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxies: [],
@@ -302,12 +304,12 @@ describe('Proxy Toggle Integration Tests', () => {
             await ProxyManager.enable();
 
             expect(chrome.storage.local.set).toHaveBeenCalledWith(
-                { currentState: ProxyState.ERROR },
+                { currentState: ProxyState.DISCONNECTED },
                 expect.any(Function)
             );
         });
 
-        it('should set state to ERROR when all proxies have isDefault=false (FIX-001)', async () => {
+        it('should set state to DISCONNECTED when all proxies have isDefault=false (FIX-001)', async () => {
             mockHelpers.setLocalStorageData({
                 presets: [],
                 proxies: [
@@ -320,7 +322,7 @@ describe('Proxy Toggle Integration Tests', () => {
             await ProxyManager.enable();
 
             expect(chrome.storage.local.set).toHaveBeenCalledWith(
-                { currentState: ProxyState.ERROR },
+                { currentState: ProxyState.DISCONNECTED },
                 expect.any(Function)
             );
         });

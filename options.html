@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Страница параметров расширения (chrome://extensions → «Параметры расширения»).
+         Единственная задача — открыть popup.html в полностраничном режиме.
+         Meta refresh вместо скрипта: CSP MV3 запрещает inline-JS, а отдельный
+         бандл ради одного redirect избыточен. Query обязан совпадать
+         с PAGE_VIEW_QUERY из src/popup/view-mode.ts. -->
+    <meta http-equiv="refresh" content="0; url=popup.html?view=page">
+    <title>Proxy Manager</title>
+</head>
+<body></body>
+</html>

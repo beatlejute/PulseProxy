@@ -20,17 +20,17 @@ export const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
 
 // Состояния прокси
 export const ProxyState = {
-    CONNECTED: 'connected' as ProxyStateType,
-    DISCONNECTED: 'disconnected' as ProxyStateType,
-    CONNECTING: 'connecting' as ProxyStateType,
-    ERROR: 'error' as ProxyStateType,
-} as const;
+    CONNECTED: 'connected',
+    DISCONNECTED: 'disconnected',
+    CONNECTING: 'connecting',
+    ERROR: 'error',
+} as const satisfies Record<string, ProxyStateType>;
 
 // Ключи для синхронизируемых данных (chrome.storage.sync)
 export const SYNC_STORAGE_KEYS = ['presets', 'proxies', 'theme', 'language', 'syncEnabled', 'proxyByDefault', 'proxyCheckEnabled'] as const;
 
 // Ключи для локальных данных (chrome.storage.local)
-export const LOCAL_STORAGE_KEYS = ['currentState', 'targetState', 'migrationCompleted', 'errorProxy'] as const;
+export const LOCAL_STORAGE_KEYS = ['currentState', 'targetState', 'migrationCompleted', 'errorProxy', 'publicProxiesWarningDismissed', 'publicProxiesFiltersCollapsed', 'publicProxyCheckResults'] as const;
 
 // ID пресета по умолчанию (Custom)
 export const DEFAULT_PRESET_ID = 'default-custom-preset';
@@ -48,6 +48,17 @@ export const StorageKeys = {
     PROXY_BY_DEFAULT: 'proxyByDefault',
     PROXY_CHECK_ENABLED: 'proxyCheckEnabled',
     ERROR_PROXY: 'errorProxy',
+    PUBLIC_PROXIES_WARNING_DISMISSED: 'publicProxiesWarningDismissed',
+    PUBLIC_PROXIES_FILTERS_COLLAPSED: 'publicProxiesFiltersCollapsed',
+    PUBLIC_PROXY_CHECK_RESULTS: 'publicProxyCheckResults',
+} as const;
+
+// Фоновая проверка публичных прокси
+export const PublicProxyCheckConfig = {
+    BATCH_SIZE: 20,                      // Прокси в одном батче (параллельные проверки)
+    CACHE_TTL_MS: 24 * 60 * 60 * 1000,   // Срок жизни результата проверки — сутки
+    BUSY_RETRY_DELAY_MS: 2000,           // Пауза перед повтором, если mutex проверки занят
+    SUSPEND_POLL_MS: 300,                // Период опроса флага приостановки сессии
 } as const;
 
 // Пути к иконкам
@@ -74,6 +85,7 @@ export const DOMIds = {
     TAB_PROXY: 'tab-proxy',
     TAB_PRESETS: 'tab-presets',
     TAB_SETTINGS: 'tab-settings',
+    OPEN_IN_TAB_BUTTON: 'open-in-tab-button',
 } as const;
 
 // Предопределённые цвета маркеров для прокси

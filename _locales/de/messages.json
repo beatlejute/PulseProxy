@@ -63,9 +63,25 @@
     "message": "Proxy vor dem Hinzufügen prüfen",
     "description": "Label for proxy check toggle"
   },
+  "publicProxyStatusAlive": {
+    "message": "Funktioniert",
+    "description": "Tooltip for working public proxy status icon"
+  },
+  "publicProxyStatusDead": {
+    "message": "Funktioniert nicht",
+    "description": "Tooltip for dead public proxy status icon"
+  },
+  "publicProxyCheckNow": {
+    "message": "Prüfen",
+    "description": "Button to check a single public proxy"
+  },
   "syncEnableConfirm": {
-    "message": "Synchronisierung aktivieren? Ihre Einstellungen werden auf allen Geräten mit diesem Konto verfügbar sein.",
+    "message": "Synchronisierung aktivieren? Ihre lokalen Einstellungen werden mit den Cloud-Daten zusammengeführt (ohne Duplikate) und sind auf allen Geräten mit diesem Konto verfügbar.",
     "description": "Confirmation message when enabling sync"
+  },
+  "syncEnabledStats": {
+    "message": "Synchronisierung aktiviert. Aus der Cloud erhalten: $1, zur Cloud hinzugefügt: $2.",
+    "description": "Info message after enabling sync: how many entries were received from cloud and added to cloud"
   },
   "syncDisableConfirm": {
     "message": "Synchronisierung deaktivieren? Einstellungen werden nur auf diesem Gerät gespeichert.",
@@ -114,6 +130,10 @@
   "tabSettings": {
     "message": "Einstellung.",
     "description": "Tab label for settings"
+  },
+  "buttonOpenInTab": {
+    "message": "Im Tab öffnen",
+    "description": "Tooltip and aria-label for the open-in-tab button"
   },
   "buttonAddProxy": {
     "message": "Proxy hinzufügen",
@@ -437,6 +457,14 @@
     "message": "Alle",
     "description": "All filter option"
   },
+  "publicProxiesShowFilters": {
+    "message": "Filter anzeigen",
+    "description": "Toggle button label to show public proxy filters"
+  },
+  "publicProxiesHideFilters": {
+    "message": "Filter ausblenden",
+    "description": "Toggle button label to hide public proxy filters"
+  },
   "connectionTypeResidential": {
     "message": "Privat",
     "description": "Residential connection type"
@@ -557,13 +585,34 @@
   "welcomeGetStarted": {
     "message": "Loslegen"
   },
+  "welcomeChooseTitle": { "message": "Wie möchten Sie beginnen?" },
+  "welcomeOptionWizard": { "message": "Einrichtungsassistent" },
+  "welcomeOptionWizardDesc": { "message": "Schritt-für-Schritt-Einrichtung" },
+  "welcomeOptionSync": { "message": "Einstellungen synchronisieren" },
+  "welcomeOptionSyncDesc": { "message": "Synchronisierung aktivieren und gespeicherte Einstellungen abrufen" },
+  "welcomeOptionImport": { "message": "Einstellungen importieren" },
+  "welcomeOptionImportDesc": { "message": "Einstellungen aus einer Datei laden" },
+  "welcomeOptionSkip": { "message": "Überspringen" },
+  "welcomeSyncError": { "message": "Synchronisierung konnte nicht aktiviert werden" },
+  "tourStepCounter": { "message": "Schritt $1 von $2" },
+  "tourStepAddProxyTitle": { "message": "Proxy hinzufügen" },
+  "tourStepAddProxyText": { "message": "Klicken Sie in dieser Spalte auf „Proxy hinzufügen“ und geben Sie die Daten Ihres Proxy-Servers ein." },
+  "tourStepModeTitle": { "message": "Was soll über den Proxy laufen?" },
+  "tourStepModeText": { "message": "Alle Seiten — jede Anfrage läuft über den Proxy. Ausgewählte Seiten — nur Domains aus Ihren Voreinstellungen." },
+  "tourChoiceAllSites": { "message": "Alle Seiten" },
+  "tourChoiceSelectedSites": { "message": "Ausgewählte Seiten" },
+  "tourStepPresetsTitle": { "message": "Voreinstellung hinzufügen" },
+  "tourStepPresetsText": { "message": "Erstellen Sie eine Voreinstellung mit den Domains, die über den Proxy laufen sollen." },
+  "tourStepConnectTitle": { "message": "Proxy aktivieren" },
+  "tourStepConnectText": { "message": "Klicken Sie auf die Schild-Schaltfläche, um sich zu verbinden." },
+  "tourStepPinTitle": { "message": "Erweiterung anheften" },
+  "tourStepPinText": { "message": "Das Erweiterungssymbol befindet sich oben rechts in der Symbolleiste. Heften Sie es an, um mit einem Klick darauf zuzugreifen." },
+  "tourNext": { "message": "Weiter" },
+  "tourDone": { "message": "Fertig" },
+  "tourSkip": { "message": "Tutorial überspringen" },
   "labelTheme": {
     "message": "Dunkles Design",
     "description": "Label for dark theme toggle checkbox"
-  },
-  "selectDefaultProxyTitle": {
-    "message": "Standard-Proxy auswählen",
-    "description": "Title for select default proxy modal"
   },
   "ariaProxyOn": {
     "message": "Proxy aktiviert",

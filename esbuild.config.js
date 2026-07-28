@@ -21,6 +21,16 @@ const buildOptions = [
         entryPoints: ['src/popup/index.ts'],
         outfile: 'dist/popup.js',
     },
+    {
+        ...commonOptions,
+        entryPoints: ['src/popup/theme-init.ts'],
+        outfile: 'dist/theme-init.js',
+    },
+    {
+        ...commonOptions,
+        entryPoints: ['src/welcome/index.ts'],
+        outfile: 'dist/welcome.js',
+    },
 ];
 
 async function build() {

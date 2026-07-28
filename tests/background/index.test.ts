@@ -11,11 +11,14 @@ const mockProxyManager = {
     removeTemporaryCredentials: jest.fn().mockResolvedValue(undefined),
     addTemporaryCredentials: jest.fn().mockResolvedValue(undefined),
     generateCheckPacScript: jest.fn().mockReturnValue('function FindProxyForURL(url, host) { return "PROXY test"; }'),
+    generateBatchCheckPacScript: jest.fn().mockResolvedValue('function FindProxyForURL(url, host) { return "DIRECT"; }'),
+    getRouteForUrl: jest.fn().mockReturnValue(null),
 };
 
 const mockIconManager = {
     update: jest.fn(),
-    setIcon: jest.fn()
+    setIcon: jest.fn(),
+    setTabProxyBadge: jest.fn(),
 };
 
 const mockStorage = {
@@ -24,8 +27,17 @@ const mockStorage = {
     getCurrentState: jest.fn(),
 };
 
+// background/index.ts на верхнем уровне вызывает SyncService.registerLocalToCloudSync()
+const mockSyncService = {
+    registerLocalToCloudSync: jest.fn(),
+};
+
 jest.mock('../../src/background/proxy-manager', () => ({
     ProxyManager: mockProxyManager
+}));
+
+jest.mock('../../src/storage/sync-service', () => ({
+    SyncService: mockSyncService
 }));
 
 
@@ -283,6 +295,29 @@ describe('Background Script', () => {
                     set: jest.fn((_details: unknown, cb?: () => void) => { if (cb) cb(); }),
                     clear: jest.fn((_details: unknown, cb?: () => void) => { if (cb) cb(); }),
                 },
+            };
+            chromeGlobal.storage = {
+                local: {
+                    get: jest.fn((_keys: unknown, cb?: (items: Record<string, unknown>) => void) => {
+                        if (cb) cb({});
+                        return Promise.resolve({});
+                    }),
+                    set: jest.fn((_items: unknown, cb?: () => void) => {
+                        if (cb) cb();
+                        return Promise.resolve();
+                    }),
+                },
+                sync: {
+                    get: jest.fn((_keys: unknown, cb?: (items: Record<string, unknown>) => void) => {
+                        if (cb) cb({});
+                        return Promise.resolve({});
+                    }),
+                    set: jest.fn((_items: unknown, cb?: () => void) => {
+                        if (cb) cb();
+                        return Promise.resolve();
+                    }),
+                },
+                onChanged: { addListener: jest.fn(), removeListener: jest.fn() },
             };
 
             // Импортируем реальный src/background/index.ts для захвата обработчика сообщений
@@ -619,6 +654,150 @@ describe('Background Script', () => {
 
                 // Если isChecking не сбросился в finally → второй вызов немедленно вернёт 'error'
                 expect(secondResult).not.toBe('error');
+            });
+        });
+
+        // Переключение proxyByDefault при уже подключённом прокси не меняет
+        // currentState → слушатель смены состояния бейджи не обновит. Поэтому
+        // обработчик toggleProxy обязан обновить бейджи всех вкладок сам,
+        // дождавшись завершения toggle() (иначе routing-кэш ещё старый).
+        describe('toggleProxy → обновление бейджей вкладок', () => {
+            it('should refresh badges of all tabs after toggle completes', async () => {
+                const server = { id: 'p1', type: 'http', host: '1.2.3.4', port: 8080 };
+                (mockProxyManager.toggle as jest.Mock).mockResolvedValue(undefined);
+                (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue({ server, viaProxyAll: true });
+                (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
+
+                const chromeGlobal = (global as unknown as { chrome: Record<string, unknown> }).chrome as Record<string, unknown>;
+                const tabsApi = chromeGlobal.tabs as { query: jest.Mock };
+                tabsApi.query.mockResolvedValue([{ id: 7, url: 'https://random-site.com/' }]);
+
+                indexMessageHandler({ action: 'toggleProxy' }, {}, jest.fn());
+                await jest.runAllTimersAsync();
+
+                expect(mockProxyManager.toggle).toHaveBeenCalled();
+                expect(mockIconManager.setTabProxyBadge).toHaveBeenCalledWith(7, server, false, true);
+            });
+
+            it('should clear badge when toggle turned routing off for the tab', async () => {
+                (mockProxyManager.toggle as jest.Mock).mockResolvedValue(undefined);
+                (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(null);
+                (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
+
+                const chromeGlobal = (global as unknown as { chrome: Record<string, unknown> }).chrome as Record<string, unknown>;
+                const tabsApi = chromeGlobal.tabs as { query: jest.Mock };
+                tabsApi.query.mockResolvedValue([{ id: 9, url: 'https://ignored-site.com/' }]);
+
+                indexMessageHandler({ action: 'toggleProxy' }, {}, jest.fn());
+                await jest.runAllTimersAsync();
+
+                expect(mockIconManager.setTabProxyBadge).toHaveBeenCalledWith(9, null, false, false);
+            });
+        });
+
+        describe('checkProxyBatch — батч-проверка публичных прокси', () => {
+            const BATCH_PROXIES = [
+                { type: 'http', host: '1.1.1.1', port: 8080 },
+                { type: 'http', host: '2.2.2.2', port: 8080 },
+                { type: 'socks5', host: '3.3.3.3', port: 1080 },
+            ];
+
+            beforeEach(() => {
+                resetIsChecking();
+                (mockProxyManager.generateBatchCheckPacScript as jest.Mock).mockReset()
+                    .mockResolvedValue('function FindProxyForURL(url, host) { return "DIRECT"; }');
+                (mockProxyManager.restoreAfterCheck as jest.Mock).mockReset().mockResolvedValue(undefined);
+                (mockStorage.getCurrentState as jest.Mock).mockReset();
+            });
+
+            afterEach(() => {
+                resetIsChecking();
+            });
+
+            const dispatchBatch = (proxies = BATCH_PROXIES): Promise<{ busy?: boolean; results?: string[] }> => {
+                return new Promise((resolve) => {
+                    const isAsync = indexMessageHandler({ action: 'checkProxyBatch', proxies }, {}, resolve as (r: unknown) => void);
+                    if (!isAsync) resolve(undefined as never);
+                });
+            };
+
+            const dispatchAbort = (): Promise<unknown> => {
+                return new Promise((resolve) => {
+                    const isAsync = indexMessageHandler({ action: 'abortCheckBatch' }, {}, resolve);
+                    if (!isAsync) resolve(undefined);
+                });
+            };
+
+            it('TC1: результат по каждому прокси, один PAC и одно restoreAfterCheck на батч', async () => {
+                (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+                mockFetchSuccess();        // 1.1.1.1 → ok
+                mockFetchNetworkError();   // 2.2.2.2 → error
+                mockFetchSuccess(500);     // 3.3.3.3 → response.ok === false → error
+
+                const done = dispatchBatch();
+                await jest.runAllTimersAsync();
+                const response = await done;
+
+                expect(response.results).toEqual(['ok', 'error', 'error']);
+                expect(mockProxyManager.generateBatchCheckPacScript).toHaveBeenCalledTimes(1);
+                const entries = (mockProxyManager.generateBatchCheckPacScript as jest.Mock).mock.calls[0][0];
+                expect(entries).toHaveLength(3);
+                expect(new Set(entries.map((e: { testId: string }) => e.testId)).size).toBe(3);
+                expect(mockProxyManager.restoreAfterCheck).toHaveBeenCalledTimes(1);
+                expect(mockProxyManager.restoreAfterCheck).toHaveBeenCalledWith(false);
+            });
+
+            it('TC2: busy при активной одиночной проверке (mutex занят)', async () => {
+                (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
+                // Одиночная проверка висит на fetch
+                (global.fetch as jest.Mock).mockReturnValueOnce(new Promise<Response>(() => {}));
+                dispatchCheckProxy();
+                for (let i = 0; i < 8; i++) await Promise.resolve();
+
+                const response = await dispatchBatch();
+
+                expect(response.busy).toBe(true);
+                expect(mockProxyManager.generateBatchCheckPacScript).not.toHaveBeenCalled();
+            });
+
+            it('TC3: abortCheckBatch снимает висящий батч → aborted-результаты + восстановление настроек', async () => {
+                (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
+                (global.fetch as jest.Mock).mockImplementation((_url: string, init: { signal: AbortSignal }) =>
+                    new Promise((_resolve, reject) => {
+                        init.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
+                    })
+                );
+
+                const batchDone = dispatchBatch();
+                for (let i = 0; i < 8; i++) await Promise.resolve();
+
+                const abortDone = dispatchAbort();
+                await jest.runAllTimersAsync();
+
+                const response = await batchDone;
+                expect(response.results).toEqual(['aborted', 'aborted', 'aborted']);
+                expect(mockProxyManager.restoreAfterCheck).toHaveBeenCalledWith(true);
+                await abortDone;
+            });
+
+            it('TC4: после завершения батча mutex свободен — одиночная проверка проходит', async () => {
+                (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.DISCONNECTED);
+                mockFetchSuccess();
+                mockFetchSuccess();
+                mockFetchSuccess();
+
+                const batchDone = dispatchBatch();
+                await jest.runAllTimersAsync();
+                await batchDone;
+
+                (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
+                mockFetchSuccess();
+
+                const singleDone = dispatchCheckProxy();
+                await jest.runAllTimersAsync();
+                const singleResult = await singleDone;
+
+                expect(singleResult).toBe('ok');
             });
         });
     });

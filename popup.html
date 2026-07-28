@@ -7,7 +7,16 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Применяет сохранённую тему до первой отрисовки (анти-FOUC), поэтому стоит первым в body -->
+    <script src="dist/theme-init.js"></script>
     <div class="container">
+        <button id="open-in-tab-button" class="open-in-tab-button" type="button" data-i18n-title="buttonOpenInTab" aria-label="Open in tab" title="Open in tab">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+        </button>
         <button id="main-button" class="main-button disconnected" role="switch" aria-pressed="false" aria-label="Proxy off">
             <svg class="shield-icon" viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
                 <!-- Щит -->
@@ -40,6 +49,7 @@
                 <span class="warning-recommendation" data-i18n="publicProxiesWarning">Public proxies may be slow, unstable, and insecure. Use at your own risk.</span>
                 <span class="warning-recommendation"><span data-i18n="publicProxiesRecommendation">We recommend buying reliable and affordable proxies</span> <a href="#" target="_blank" class="referral-link" data-i18n="promoLink">Buy proxies</a></span>
             </div>
+            <button id="error-banner-close" class="warning-close" type="button">×</button>
         </div>
 
         <button id="proxy-by-default-toggle" class="proxy-by-default-toggle" data-i18n="labelProxyByDefault">Proxy all sites by default</button>
@@ -55,21 +65,29 @@
         <div class="tab-contents">
             <!-- Proxy Tab -->
             <div id="tab-proxy" class="tab-content">
-                <div id="proxy-list-container"></div>
+                <h2 class="page-column-title" data-i18n="tabProxy">Proxy</h2>
+                <div class="tab-scroll">
+                    <div id="proxy-list-container"></div>
+                </div>
             </div>
 
             <!-- Presets Tab -->
             <div id="tab-presets" class="tab-content">
-                <div class="setting-group presets-section">
-                    <button id="add-preset-button" class="add-preset-button" data-i18n="buttonAddPreset">+ Add Preset</button>
-                    <div id="presets-container">
-                        <div id="presets-list"></div>
+                <h2 class="page-column-title" data-i18n="tabPresets">Presets</h2>
+                <div class="tab-scroll">
+                    <div class="setting-group presets-section">
+                        <button id="add-preset-button" class="add-preset-button" data-i18n="buttonAddPreset">+ Add Preset</button>
+                        <div id="presets-container">
+                            <div id="presets-list"></div>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Settings Tab -->
             <div id="tab-settings" class="tab-content">
+                <h2 class="page-column-title" data-i18n="tabSettings">Settings</h2>
+                <div class="tab-scroll">
                 <div class="setting-group language-selector">
                     <label for="language-select" data-i18n="labelLanguage">Language:</label>
                     <select id="language-select"></select>
@@ -106,6 +124,7 @@
 
                 <div class="setting-group version-info">
                     <span data-i18n="labelVersion">Version:</span> <span id="version-number"></span>
+                </div>
                 </div>
 
             </div>

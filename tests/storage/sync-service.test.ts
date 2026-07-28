@@ -19,13 +19,15 @@ describe('sync-service.ts - SyncService', () => {
             expect(chrome.storage.local.get).toHaveBeenCalledWith('syncEnabled');
         });
 
-        it('should default to syncEnabled = true if not set', async () => {
+        it('should default to syncEnabled = false if not set (opt-in)', async () => {
             mockHelpers.setLocalStorageData({});
-            
+
             await SyncService.init();
-            
+
             const syncEnabled = await SyncService.isEnabled();
-            expect(syncEnabled).toBe(true);
+            expect(syncEnabled).toBe(false);
+            // Флаг явно записан как false, чтобы поведение было детерминированным
+            expect(mockHelpers.getLocalStorageData().syncEnabled).toBe(false);
         });
 
         it('should subscribe to storage changes when enabled', async () => {
@@ -46,12 +48,12 @@ describe('sync-service.ts - SyncService', () => {
             expect(enabled).toBe(true);
         });
 
-        it('should return true by default', async () => {
+        it('should return false by default (opt-in)', async () => {
             mockHelpers.setLocalStorageData({});
-            
+
             const enabled = await SyncService.isEnabled();
-            
-            expect(enabled).toBe(true);
+
+            expect(enabled).toBe(false);
         });
     });
 
@@ -195,6 +197,102 @@ describe('sync-service.ts - SyncService', () => {
         it('should return false for local keys', () => {
             expect(SyncService.isSyncKey('currentState')).toBe(false);
             expect(SyncService.isSyncKey('targetState')).toBe(false);
+        });
+    });
+
+    // Push local→cloud должен жить в background: debounce-таймер, заведённый в
+    // попапе, умирает при его закрытии, и запись в облако теряется — при следующем
+    // открытии syncFromCloud() перетирает local устаревшим значением из облака
+    describe('registerLocalToCloudSync()', () => {
+        beforeEach(() => {
+            jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        it('should push local change of a sync key to cloud after debounce', async () => {
+            mockHelpers.setLocalStorageData({ syncEnabled: true });
+            SyncService.registerLocalToCloudSync();
+
+            mockHelpers.triggerStorageChange(
+                { proxyByDefault: { oldValue: false, newValue: true } },
+                'local'
+            );
+            await jest.runAllTimersAsync();
+
+            expect(mockHelpers.getSyncStorageData().proxyByDefault).toBe(true);
+        });
+
+        it('should not push when sync is disabled', async () => {
+            mockHelpers.setLocalStorageData({ syncEnabled: false });
+            SyncService.registerLocalToCloudSync();
+
+            mockHelpers.triggerStorageChange(
+                { proxyByDefault: { oldValue: false, newValue: true } },
+                'local'
+            );
+            await jest.runAllTimersAsync();
+
+            expect(chrome.storage.sync.set).not.toHaveBeenCalled();
+        });
+
+        it('should ignore non-sync keys and the syncEnabled key itself', async () => {
+            mockHelpers.setLocalStorageData({ syncEnabled: true });
+            SyncService.registerLocalToCloudSync();
+
+            mockHelpers.triggerStorageChange(
+                {
+                    currentState: { oldValue: 'disconnected', newValue: 'connected' },
+                    syncEnabled: { oldValue: false, newValue: true },
+                },
+                'local'
+            );
+            await jest.runAllTimersAsync();
+
+            expect(chrome.storage.sync.set).not.toHaveBeenCalled();
+        });
+
+        it('should ignore changes in sync area (handled by handleSyncChanges)', async () => {
+            mockHelpers.setLocalStorageData({ syncEnabled: true });
+            SyncService.registerLocalToCloudSync();
+
+            mockHelpers.triggerStorageChange(
+                { proxyByDefault: { oldValue: false, newValue: true } },
+                'sync'
+            );
+            await jest.runAllTimersAsync();
+
+            expect(chrome.storage.sync.set).not.toHaveBeenCalled();
+        });
+
+        it('should skip push when cloud already holds the same value (echo guard)', async () => {
+            mockHelpers.setLocalStorageData({ syncEnabled: true });
+            mockHelpers.setSyncStorageData({ proxyByDefault: true });
+            SyncService.registerLocalToCloudSync();
+
+            mockHelpers.triggerStorageChange(
+                { proxyByDefault: { oldValue: false, newValue: true } },
+                'local'
+            );
+            await jest.runAllTimersAsync();
+
+            expect(chrome.storage.sync.set).not.toHaveBeenCalled();
+        });
+
+        it('should debounce rapid changes and push only the last value', async () => {
+            mockHelpers.setLocalStorageData({ syncEnabled: true });
+            SyncService.registerLocalToCloudSync();
+
+            mockHelpers.triggerStorageChange({ theme: { newValue: 'dark' } }, 'local');
+            mockHelpers.triggerStorageChange({ theme: { newValue: 'light' } }, 'local');
+            await jest.runAllTimersAsync();
+
+            expect(mockHelpers.getSyncStorageData().theme).toBe('light');
+            const themeCalls = (chrome.storage.sync.set as jest.Mock).mock.calls
+                .filter(call => 'theme' in call[0]);
+            expect(themeCalls).toHaveLength(1);
         });
     });
 

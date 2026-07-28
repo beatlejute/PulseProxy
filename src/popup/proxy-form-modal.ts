@@ -7,6 +7,7 @@ import { createElementFromTemplate, setAttr } from './safe-dom';
 import { ModalHelper } from './modal-helper';
 import { showAlert, showConfirm } from './dialog';
 import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
+import { parseProxyString } from '../shared/proxy-parser';
 
 export async function checkProxyBeforeAdd(
     type: ProxyType,
@@ -41,6 +42,7 @@ export async function checkProxyBeforeAdd(
         okText: I18n.getMessage('saveAnyway') || 'Save anyway',
         cancelText: I18n.getMessage('cancel') || 'Cancel',
         htmlMessage,
+        column: 'proxy',
     });
 
     // Track affiliate clicks in the confirm dialog
@@ -63,10 +65,16 @@ export function showProxyForm(proxy: ProxyServer | null, onSaved: () => Promise<
     const isEdit = proxy !== null;
     const title = isEdit ? I18n.getMessage('editProxy') : I18n.getMessage('addProxy');
 
-    const { body, footer, closeModal, build } = ModalHelper.create({
+    const { body, footer, closeModal, onClose, build } = ModalHelper.create({
         title,
-        modalClass: 'proxy-form-modal'
+        modalClass: 'proxy-form-modal',
+        column: 'proxy'
     });
+
+    // Форму могли закрыть (Cancel/крестик/Escape/overlay), пока идёт асинхронная
+    // проверка прокси — тогда сохранять поверх закрытой формы нельзя.
+    let isClosed = false;
+    onClose(() => { isClosed = true; });
 
     // Recommendation
     const recDiv = createElementFromTemplate<HTMLDivElement>('div', { className: 'proxy-form-recommendation' });
@@ -237,45 +245,62 @@ export function showProxyForm(proxy: ProxyServer | null, onSaved: () => Promise<
     const originalSaveText = I18n.getMessage('save') || 'Save';
     let saveBtn: HTMLButtonElement | null = null;
 
+    // Защита от повторного входа: обработчик асинхронный (проверка прокси идёт
+    // через sendMessage в background), а кнопка Save живёт в footer вне <form>,
+    // поэтому без явного guard'а двойной клик добавлял дубликат прокси.
+    let isSubmitting = false;
+
+    const setSaveChecking = (checking: boolean): void => {
+        if (!saveBtn) return;
+        saveBtn.disabled = checking;
+        saveBtn.classList.toggle('btn-checking', checking);
+        saveBtn.textContent = checking
+            ? (I18n.getMessage('checkProxyChecking') || 'Checking...')
+            : originalSaveText;
+    };
+
     const { saveBtn: sb } = ModalHelper.addStandardButtons(
         footer,
         async () => {
-            const formData = new FormData(form);
-            const hasAuthCheckboxEl = form.querySelector('input[name="hasAuth"]') as HTMLInputElement;
+            if (isSubmitting) return;
+            isSubmitting = true;
+            // Блокируем сразу — даже когда проверка выключена, иначе два быстрых
+            // клика прогоняли обработчик дважды и создавали дубликат прокси.
+            if (saveBtn) saveBtn.disabled = true;
 
-            const host = (formData.get('host') as string)?.trim();
-            const port = parseInt(formData.get('port') as string, 10);
+            try {
+                const formData = new FormData(form);
+                const hasAuthCheckboxEl = form.querySelector('input[name="hasAuth"]') as HTMLInputElement;
 
-            if (!host || !port || port < 1 || port > 65535) {
-                await showAlert(I18n.getMessage('proxyValidationError'));
-                return;
-            }
+                const host = (formData.get('host') as string)?.trim();
+                const port = parseInt(formData.get('port') as string, 10);
 
-            const name = (formData.get('name') as string)?.trim() || undefined;
-            const type = formData.get('type') as ProxyType;
-            const username = hasAuthCheckboxEl.checked ? (formData.get('username') as string)?.trim() || undefined : undefined;
-            const password = hasAuthCheckboxEl.checked ? (formData.get('password') as string) || undefined : undefined;
-
-            const proxyCheckEnabled = await Storage.getProxyCheckEnabled();
-            let allowed = true;
-
-            if (proxyCheckEnabled) {
-                if (saveBtn) {
-                    saveBtn.disabled = true;
-                    saveBtn.classList.add('btn-checking');
-                    saveBtn.textContent = I18n.getMessage('checkProxyChecking') || 'Checking...';
+                if (!host || !port || port < 1 || port > 65535) {
+                    await showAlert(I18n.getMessage('proxyValidationError'), 'proxy');
+                    return;
                 }
 
-                allowed = await checkProxyBeforeAdd(type, host, port, username, password);
+                const name = (formData.get('name') as string)?.trim() || undefined;
+                const type = formData.get('type') as ProxyType;
+                const username = hasAuthCheckboxEl.checked ? (formData.get('username') as string)?.trim() || undefined : undefined;
+                const password = hasAuthCheckboxEl.checked ? (formData.get('password') as string) || undefined : undefined;
 
-                if (saveBtn) {
-                    saveBtn.disabled = false;
-                    saveBtn.classList.remove('btn-checking');
-                    saveBtn.textContent = originalSaveText;
+                const proxyCheckEnabled = await Storage.getProxyCheckEnabled();
+                let allowed = true;
+
+                if (proxyCheckEnabled) {
+                    setSaveChecking(true);
+                    try {
+                        allowed = await checkProxyBeforeAdd(type, host, port, username, password);
+                    } finally {
+                        setSaveChecking(false);
+                    }
                 }
-            }
 
-            if (allowed) {
+                if (!allowed) return;
+                // Форму закрыли, пока шла проверка — не добавляем поверх закрытой формы
+                if (isClosed) return;
+
                 const existingProxies = await Storage.getProxies();
                 const isFirst = existingProxies.length === 0;
                 const color = selectedColor || undefined;
@@ -293,6 +318,18 @@ export function showProxyForm(proxy: ProxyServer | null, onSaved: () => Promise<
                 }
                 closeModal();
                 await onSaved();
+            } catch (error) {
+                // Например, reject из sendMessage при выгруженном service worker —
+                // раньше кнопка навсегда застревала в "Checking...".
+                console.error('ProxyForm: save failed:', error);
+                await showAlert(I18n.getMessage('proxyValidationError'), 'proxy');
+            } finally {
+                isSubmitting = false;
+                if (saveBtn && !isClosed) {
+                    saveBtn.disabled = false;
+                    saveBtn.classList.remove('btn-checking');
+                    saveBtn.textContent = originalSaveText;
+                }
             }
         },
         closeModal
@@ -306,6 +343,24 @@ export function showProxyForm(proxy: ProxyServer | null, onSaved: () => Promise<
     const authFieldsEl = body.querySelector('.auth-fields') as HTMLElement;
     hasAuthCheckboxEl?.addEventListener('change', () => {
         authFieldsEl.style.display = hasAuthCheckboxEl.checked ? 'block' : 'none';
+    });
+
+    // Вставка полной строки прокси в поле Host раскладывает компоненты по полям
+    hostInput.addEventListener('paste', (e) => {
+        const text = e.clipboardData?.getData('text') || '';
+        const parsed = parseProxyString(text);
+        if (!parsed || (!parsed.type && parsed.port === undefined && parsed.username === undefined)) return;
+
+        e.preventDefault();
+        hostInput.value = parsed.host;
+        if (parsed.type) typeSelect.value = parsed.type;
+        if (parsed.port !== undefined) portInput.value = String(parsed.port);
+        if (parsed.username !== undefined) {
+            hasAuthCheckboxEl.checked = true;
+            authFieldsEl.style.display = 'block';
+            usernameInput.value = parsed.username;
+            passwordInput.value = parsed.password ?? '';
+        }
     });
 
     I18n.applyTranslations();

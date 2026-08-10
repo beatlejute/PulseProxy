@@ -1,16 +1,16 @@
 {
   "http": [
     {
-      "ip": "103.246.194.251:3128",
-      "score": 4,
+      "ip": "103.39.75.123:8080",
+      "score": 3,
       "type": "Residential",
-      "country": "IN"
+      "country": "ID"
     },
     {
-      "ip": "140.238.32.108:3128",
+      "ip": "115.231.181.40:8128",
       "score": 4,
-      "type": "Corporate",
-      "country": "JP"
+      "type": "Residential",
+      "country": "CN"
     },
     {
       "ip": "176.111.37.216:39811",
@@ -20,56 +20,25 @@
     },
     {
       "ip": "176.111.37.5:39811",
-      "score": 5,
+      "score": 4,
       "type": "Residential",
       "country": "UA"
     },
     {
-      "ip": "20.108.84.75:3128",
-      "score": 5,
-      "type": "Corporate",
-      "country": "GB"
-    },
-    {
-      "ip": "216.106.182.177:3128",
-      "score": 4.5,
-      "type": "Corporate",
-      "country": "US"
-    }
-  ],
-  "https": [
-    {
-      "ip": "108.136.140.236:15960",
-      "score": 4,
-      "type": "Corporate",
-      "country": "DE"
-    },
-    {
-      "ip": "16.28.29.244:8217",
-      "score": 3.5,
-      "type": "Residential",
-      "country": "NL"
-    },
-    {
-      "ip": "43.200.174.95:40000",
-      "score": 3.5,
-      "type": "Corporate",
-      "country": "IT"
-    },
-    {
-      "ip": "43.218.124.29:24094",
+      "ip": "190.12.150.244:999",
       "score": 3,
       "type": "Residential",
-      "country": "NL"
-    },
-    {
-      "ip": "43.218.124.29:9867",
-      "score": 4,
-      "type": "Residential",
-      "country": "NL"
+      "country": "EC"
     }
   ],
+  "https": [],
   "socks4": [
+    {
+      "ip": "107.181.161.81:4145",
+      "score": 4,
+      "type": "Corporate",
+      "country": "US"
+    },
     {
       "ip": "142.54.231.38:4145",
       "score": 4,
@@ -77,37 +46,13 @@
       "country": "US"
     },
     {
-      "ip": "174.77.111.197:4145",
+      "ip": "174.75.211.222:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "174.77.111.198:49547",
-      "score": 4,
-      "type": "Residential",
-      "country": "US"
-    },
-    {
-      "ip": "184.170.248.5:4145",
-      "score": 4,
-      "type": "Corporate",
-      "country": "US"
-    },
-    {
-      "ip": "184.178.172.11:4145",
-      "score": 4,
-      "type": "Residential",
-      "country": "US"
-    },
-    {
-      "ip": "184.178.172.13:15311",
-      "score": 4,
-      "type": "Residential",
-      "country": "US"
-    },
-    {
-      "ip": "184.178.172.23:4145",
+      "ip": "174.77.111.196:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
@@ -119,7 +64,13 @@
       "country": "US"
     },
     {
-      "ip": "184.178.172.26:4145",
+      "ip": "184.178.172.5:15303",
+      "score": 4,
+      "type": "Residential",
+      "country": "US"
+    },
+    {
+      "ip": "184.181.217.213:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
@@ -132,24 +83,18 @@
     },
     {
       "ip": "184.185.2.12:4145",
-      "score": 4,
+      "score": 3,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "192.111.130.2:4145",
+      "ip": "192.111.137.35:4145",
       "score": 4,
       "type": "Corporate",
       "country": "US"
     },
     {
-      "ip": "192.252.215.5:16137",
-      "score": 4,
-      "type": "Corporate",
-      "country": "US"
-    },
-    {
-      "ip": "198.8.94.170:4145",
+      "ip": "192.111.139.162:4145",
       "score": 4,
       "type": "Corporate",
       "country": "US"
@@ -161,7 +106,7 @@
       "country": "US"
     },
     {
-      "ip": "199.229.254.129:4145",
+      "ip": "199.116.112.6:4145",
       "score": 4,
       "type": "Corporate",
       "country": "US"
@@ -179,25 +124,43 @@
       "country": "US"
     },
     {
+      "ip": "208.102.51.6:58208",
+      "score": 3.5,
+      "type": "Residential",
+      "country": "US"
+    },
+    {
       "ip": "216.68.128.121:4145",
       "score": 3.5,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "45.61.129.165:9050",
-      "score": 4,
+      "ip": "66.42.224.229:41679",
+      "score": 3,
       "type": "Residential",
-      "country": "NL"
+      "country": "US"
     },
     {
-      "ip": "68.1.210.163:4145",
+      "ip": "67.201.35.145:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "68.71.247.130:4145",
+      "ip": "68.1.210.189:4145",
+      "score": 4,
+      "type": "Residential",
+      "country": "US"
+    },
+    {
+      "ip": "68.71.242.118:4145",
+      "score": 4,
+      "type": "Residential",
+      "country": "US"
+    },
+    {
+      "ip": "68.71.249.158:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
@@ -209,25 +172,13 @@
       "country": "US"
     },
     {
-      "ip": "70.166.167.38:57728",
-      "score": 4,
-      "type": "Residential",
-      "country": "US"
-    },
-    {
-      "ip": "70.166.167.55:57745",
-      "score": 4,
+      "ip": "69.61.200.104:36181",
+      "score": 3.5,
       "type": "Residential",
       "country": "US"
     },
     {
       "ip": "72.195.101.99:4145",
-      "score": 4,
-      "type": "Residential",
-      "country": "US"
-    },
-    {
-      "ip": "72.195.114.184:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
@@ -239,31 +190,31 @@
       "country": "US"
     },
     {
-      "ip": "72.214.108.67:4145",
+      "ip": "72.207.113.97:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "95.85.233.144:18443",
-      "score": 5,
-      "type": "Residential",
-      "country": "DE"
-    },
-    {
-      "ip": "98.175.31.195:4145",
+      "ip": "72.223.188.67:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "98.181.137.80:4145",
+      "ip": "72.223.188.92:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "98.181.137.83:4145",
+      "ip": "98.178.72.21:10919",
+      "score": 3,
+      "type": "Residential",
+      "country": "US"
+    },
+    {
+      "ip": "98.178.72.30:4145",
       "score": 4,
       "type": "Residential",
       "country": "US"
@@ -272,75 +223,87 @@
   "socks5": [
     {
       "ip": "101.36.104.239:10808",
+      "score": 3.5,
+      "type": "Corporate",
+      "country": "JP"
+    },
+    {
+      "ip": "101.36.104.46:10808",
       "score": 3,
       "type": "Corporate",
       "country": "JP"
     },
     {
-      "ip": "103.119.60.219:1080",
-      "score": 4,
-      "type": "Residential",
-      "country": "ID"
-    },
-    {
-      "ip": "109.172.55.210:1082",
-      "score": 5,
-      "type": "Residential",
-      "country": "FR"
-    },
-    {
-      "ip": "110.235.252.74:1080",
-      "score": 3.5,
-      "type": "Residential",
-      "country": "KH"
-    },
-    {
-      "ip": "121.169.46.116:1090",
+      "ip": "109.123.251.109:1080",
       "score": 3,
-      "type": "Residential",
-      "country": "KR"
-    },
-    {
-      "ip": "124.156.182.217:1080",
-      "score": 3,
-      "type": "Residential",
-      "country": "CA"
-    },
-    {
-      "ip": "147.45.221.115:1082",
-      "score": 3,
-      "type": "Residential",
-      "country": "AL"
-    },
-    {
-      "ip": "147.45.60.124:1082",
-      "score": 3,
-      "type": "Residential",
-      "country": "US"
-    },
-    {
-      "ip": "174.77.111.198:49547",
-      "score": 4,
-      "type": "Residential",
-      "country": "US"
-    },
-    {
-      "ip": "176.65.140.212:1081",
-      "score": 5,
       "type": "Corporate",
       "country": "FR"
     },
     {
-      "ip": "176.65.140.212:1085",
-      "score": 3.5,
-      "type": "Corporate",
-      "country": "HU"
+      "ip": "109.172.55.227:1082",
+      "score": 4,
+      "type": "Residential",
+      "country": "FR"
     },
     {
-      "ip": "176.65.140.214:1081",
+      "ip": "138.16.169.124:7890",
+      "score": 3,
+      "type": "Corporate",
+      "country": "RU"
+    },
+    {
+      "ip": "139.28.240.201:1082",
+      "score": 3,
+      "type": "Residential",
+      "country": "NL"
+    },
+    {
+      "ip": "144.24.111.128:1088",
+      "score": 4,
+      "type": "Corporate",
+      "country": "IN"
+    },
+    {
+      "ip": "144.91.111.48:1088",
+      "score": 4.5,
+      "type": "Corporate",
+      "country": "FR"
+    },
+    {
+      "ip": "147.45.60.250:1082",
+      "score": 4.5,
+      "type": "Residential",
+      "country": "US"
+    },
+    {
+      "ip": "151.115.99.193:10006",
       "score": 5,
       "type": "Corporate",
-      "country": "HR"
+      "country": "PL"
+    },
+    {
+      "ip": "152.32.219.123:10808",
+      "score": 4,
+      "type": "Corporate",
+      "country": "SG"
+    },
+    {
+      "ip": "152.69.167.87:1080",
+      "score": 3.5,
+      "type": "Corporate",
+      "country": "AU"
+    },
+    {
+      "ip": "158.220.101.43:1080",
+      "score": 4.5,
+      "type": "Residential",
+      "country": "US"
+    },
+    {
+      "ip": "159.195.49.27:1080",
+      "score": 5,
+      "type": "Corporate",
+      "country": "DE"
     },
     {
       "ip": "184.178.172.25:15291",
@@ -349,106 +312,130 @@
       "country": "US"
     },
     {
-      "ip": "193.233.218.213:1080",
-      "score": 5,
-      "type": "Residential",
-      "country": "RU"
-    },
-    {
-      "ip": "193.233.233.62:56736",
-      "score": 5,
-      "type": "Corporate",
-      "country": "AT"
-    },
-    {
-      "ip": "193.25.215.182:22222",
+      "ip": "184.178.172.5:15303",
       "score": 4,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "213.176.113.24:50001",
+      "ip": "185.209.29.226:1080",
       "score": 5,
+      "type": "Corporate",
+      "country": "RU"
+    },
+    {
+      "ip": "185.216.71.90:10808",
+      "score": 3,
       "type": "Corporate",
       "country": "NL"
     },
     {
-      "ip": "213.199.47.140:1080",
+      "ip": "191.252.210.157:1080",
+      "score": 3,
+      "type": "Corporate",
+      "country": "BR"
+    },
+    {
+      "ip": "193.233.139.106:1080",
       "score": 5,
       "type": "Corporate",
+      "country": "FI"
+    },
+    {
+      "ip": "194.163.174.78:1080",
+      "score": 5,
+      "type": "Corporate",
+      "country": "GB"
+    },
+    {
+      "ip": "194.163.174.78:1085",
+      "score": 3,
+      "type": "Residential",
       "country": "FR"
     },
     {
-      "ip": "43.164.3.124:1080",
-      "score": 3,
-      "type": "Corporate",
-      "country": "TH"
-    },
-    {
-      "ip": "45.194.33.12:30001",
+      "ip": "208.102.51.6:58208",
       "score": 3.5,
       "type": "Residential",
-      "country": "HK"
+      "country": "US"
     },
     {
-      "ip": "46.37.123.166:1081",
-      "score": 5,
+      "ip": "37.18.73.60:5566",
+      "score": 4.5,
+      "type": "Residential",
+      "country": "NL"
+    },
+    {
+      "ip": "45.144.54.40:1080",
+      "score": 3.5,
       "type": "Corporate",
       "country": "DE"
     },
     {
-      "ip": "5.255.113.177:1080",
-      "score": 5,
-      "type": "Corporate",
-      "country": "NL"
-    },
-    {
-      "ip": "5.255.117.127:1080",
-      "score": 5,
-      "type": "Corporate",
-      "country": "NL"
-    },
-    {
-      "ip": "66.163.119.55:10006",
-      "score": 5,
-      "type": "Residential",
-      "country": "IT"
-    },
-    {
-      "ip": "66.163.127.204:10006",
-      "score": 5,
-      "type": "Residential",
-      "country": "NL"
-    },
-    {
-      "ip": "69.10.42.58:1080",
-      "score": 3,
-      "type": "Corporate",
-      "country": "US"
-    },
-    {
-      "ip": "69.55.49.177:38182",
-      "score": 4.5,
-      "type": "Corporate",
-      "country": "US"
-    },
-    {
-      "ip": "72.195.34.41:4145",
+      "ip": "45.194.33.12:30001",
       "score": 4,
       "type": "Residential",
+      "country": "HK"
+    },
+    {
+      "ip": "45.43.63.37:10808",
+      "score": 4,
+      "type": "Corporate",
+      "country": "SG"
+    },
+    {
+      "ip": "5.45.119.70:1080",
+      "score": 3.5,
+      "type": "Corporate",
+      "country": "EE"
+    },
+    {
+      "ip": "64.181.250.108:50001",
+      "score": 4,
+      "type": "Corporate",
       "country": "US"
     },
     {
-      "ip": "72.195.34.42:4145",
-      "score": 4,
+      "ip": "66.42.224.229:41679",
+      "score": 3,
       "type": "Residential",
       "country": "US"
     },
     {
-      "ip": "87.239.251.202:1081",
-      "score": 3,
+      "ip": "66.59.197.62:3128",
+      "score": 4,
+      "type": "Residential",
+      "country": "KR"
+    },
+    {
+      "ip": "69.61.200.104:36181",
+      "score": 3.5,
+      "type": "Residential",
+      "country": "US"
+    },
+    {
+      "ip": "86.53.163.185:10002",
+      "score": 5,
+      "type": "Residential",
+      "country": "GB"
+    },
+    {
+      "ip": "92.118.234.124:1080",
+      "score": 3.5,
       "type": "Corporate",
-      "country": "NL"
+      "country": "FI"
+    },
+    {
+      "ip": "95.181.213.41:10808",
+      "score": 4,
+      "type": "Corporate",
+      "country": "LV"
+    },
+    {
+      "ip": "98.178.72.21:10919",
+      "score": 3,
+      "type": "Residential",
+      "country": "US"
     }
   ]
 }

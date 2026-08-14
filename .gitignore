@@ -34,7 +34,7 @@ npm-debug.log*
 .mcp.json
 
 # Proxy update scripts
-scripts/update-proxies.ts
+scripts/
 
 # Workflow AI specific
 .workflow-state/

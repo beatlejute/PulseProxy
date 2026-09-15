@@ -1901,6 +1901,8 @@ button.support-project {
   /* Страховка от схлопывания в 0px, когда warning + фильтры съедают всю высоту модалки */
   min-height: 160px;
   overflow-y: auto;
+  /* Контент переносится по строкам — горизонтальный скролл не нужен */
+  overflow-x: hidden;
 }
 
 /* Custom scrollbar for proxies list */
@@ -1929,16 +1931,35 @@ button.support-project {
 }
 
 /* Public Proxy Item */
+/* Адрес занимает всю ширину строки (в узком попапе длинные hostname'ы иначе
+   не помещаются), чипсы и статус/кнопка проверки — во второй строке */
 .public-proxy-item {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "address address"
+    "info    status";
   align-items: center;
+  row-gap: 4px;
+  column-gap: 8px;
   padding: 10px 12px;
   border-radius: 6px;
   background-color: var(--secondary-color);
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease;
   border: 1px solid transparent;
+}
+
+/* Обёртка не участвует в раскладке — её дети ложатся прямо в grid */
+.public-proxy-item .proxy-item-main {
+  display: contents;
+}
+
+.public-proxy-item .proxy-live-status,
+.public-proxy-item .proxy-check-now-btn {
+  grid-area: status;
+  justify-self: end;
+  margin-left: 0;
 }
 
 .public-proxy-item:hover {
@@ -1962,7 +1983,20 @@ button.support-project {
   white-space: nowrap;
 }
 
+/* Длинные hostname'ы (cpe-72-175-31-195.hr.hr.cox.net:4145) переносим по строкам,
+   иначе список уезжает в горизонтальный скролл */
+.public-proxy-item .proxy-item-address {
+  grid-area: address;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+  /* .container задаёт text-align: center — для многострочного адреса это разъезжается */
+  text-align: left;
+}
+
 .public-proxy-item .proxy-item-info {
+  grid-area: info;
   display: flex;
   flex-direction: row;
   align-items: center;

@@ -12,8 +12,7 @@
         "test:watch": "jest --watch",
         "test:coverage": "jest --coverage",
         "package": "npm run build && node scripts/package.cjs",
-        "update-proxies": "npx tsx scripts/update-proxies.ts",
-        "update-proxies:local": "npx tsx scripts/update-proxies.ts --local"
+        "update-proxies": "npx tsx scripts/update-proxies.ts"
     },
     "devDependencies": {
         "@playwright/test": "^1.59.1",

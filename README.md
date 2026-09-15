@@ -133,7 +133,7 @@ After entering a proxy address, the extension verifies its availability (when "C
 | `npm run package` | Build and create a ZIP archive for the Chrome Web Store |
 | `npx playwright test` | Run E2E tests (Playwright, real Chromium with the extension loaded) |
 
-`update-proxies` / `update-proxies:local` are maintainer-only scripts that refresh [sources/proxys.json](sources/proxys.json); the script itself is not part of the public repository.
+`update-proxies` is a maintainer-only script that refreshes [sources/proxys.json](sources/proxys.json); the script itself is not part of the public repository.
 
 ### Project Structure
 

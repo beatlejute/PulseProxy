@@ -17,7 +17,10 @@
         "*.youtube.com",
         "*.googlevideo.com",
         "*.ytimg.com",
-        "youtu.be"
+        "youtu.be",
+        "youtube-nocookie.com",
+        "*.youtube-nocookie.com",
+        "*.ggpht.com"
       ]
     },
     {
@@ -52,6 +55,13 @@
       ]
     },
     {
+      "name": "Kick",
+      "domains": [
+        "kick.com",
+        "*.kick.com"
+      ]
+    },
+    {
       "name": "Twitter/X",
       "domains": [
         "twitter.com",
@@ -62,12 +72,45 @@
       ]
     },
     {
+      "name": "Threads",
+      "domains": [
+        "threads.com",
+        "*.threads.com",
+        "threads.net",
+        "*.threads.net"
+      ]
+    },
+    {
+      "name": "Bluesky",
+      "domains": [
+        "bsky.app",
+        "*.bsky.app",
+        "bsky.social",
+        "*.bsky.social",
+        "*.bsky.network"
+      ]
+    },
+    {
       "name": "Instagram",
-      "domains": ["instagram.com", "*.instagram.com", "*.cdninstagram.com"]
+      "domains": [
+        "instagram.com",
+        "*.instagram.com",
+        "*.cdninstagram.com"
+      ]
     },
     {
       "name": "Facebook",
-      "domains": ["facebook.com", "*.facebook.com", "*.fbcdn.net", "*.fna.fbcdn.net"]
+      "domains": [
+        "facebook.com",
+        "*.facebook.com",
+        "*.fbcdn.net",
+        "*.fna.fbcdn.net",
+        "fb.com",
+        "*.fb.com",
+        "fb.me",
+        "*.facebook.net",
+        "*.fbsbx.com"
+      ]
     },
     {
       "name": "TikTok",
@@ -81,7 +124,11 @@
     },
     {
       "name": "LinkedIn",
-      "domains": ["linkedin.com", "*.linkedin.com", "*.licdn.com"]
+      "domains": [
+        "linkedin.com",
+        "*.linkedin.com",
+        "*.licdn.com"
+      ]
     },
     {
       "name": "Reddit",
@@ -90,6 +137,30 @@
         "*.reddit.com",
         "*.redd.it",
         "*.redditmedia.com"
+      ]
+    },
+    {
+      "name": "Tumblr",
+      "domains": [
+        "tumblr.com",
+        "*.tumblr.com"
+      ]
+    },
+    {
+      "name": "Quora",
+      "domains": [
+        "quora.com",
+        "*.quora.com",
+        "*.quoracdn.net"
+      ]
+    },
+    {
+      "name": "Substack",
+      "domains": [
+        "substack.com",
+        "*.substack.com",
+        "substackcdn.com",
+        "*.substackcdn.com"
       ]
     },
     {
@@ -105,11 +176,19 @@
     },
     {
       "name": "Epic Games",
-      "domains": ["epicgames.com", "*.epicgames.com", "*.unrealengine.com"]
+      "domains": [
+        "epicgames.com",
+        "*.epicgames.com",
+        "*.unrealengine.com"
+      ]
     },
     {
       "name": "Amazon",
-      "domains": ["amazon.com", "*.amazon.com", "*.amazonaws.com"]
+      "domains": [
+        "amazon.com",
+        "*.amazon.com",
+        "*.amazonaws.com"
+      ]
     },
     {
       "name": "ChatGPT",
@@ -132,7 +211,8 @@
         "claude.ai",
         "*.claude.ai",
         "claude.com",
-        "*.claude.com"
+        "*.claude.com",
+        "*.claudeusercontent.com"
       ]
     },
     {
@@ -164,6 +244,29 @@
         "notebooklm.google.com",
         "accounts.google.com",
         "console.cloud.google.com"
+      ]
+    },
+    {
+      "name": "Google Antigravity",
+      "domains": [
+        "antigravity.google",
+        "*.antigravity.google"
+      ]
+    },
+    {
+      "name": "Google Jules",
+      "domains": [
+        "jules.google.com",
+        "jules.googleapis.com"
+      ]
+    },
+    {
+      "name": "Google Labs (Flow, Veo)",
+      "domains": [
+        "labs.google",
+        "*.labs.google",
+        "flow.google",
+        "*.flow.google"
       ]
     },
     {
@@ -229,15 +332,6 @@
       ]
     },
     {
-      "name": "Roo Code",
-      "domains": [
-        "roocode.com",
-        "*.roocode.com",
-        "roocline.dev",
-        "*.roocline.dev"
-      ]
-    },
-    {
       "name": "Disney+",
       "domains": [
         "disneyplus.com",
@@ -250,10 +344,10 @@
     {
       "name": "HBO Max",
       "domains": [
-        "max.com",
-        "*.max.com",
         "hbomax.com",
-        "*.hbomax.com"
+        "*.hbomax.com",
+        "max.com",
+        "*.max.com"
       ]
     },
     {
@@ -265,18 +359,18 @@
       ]
     },
     {
-      "name": "Apple TV+",
+      "name": "Apple (Apple TV, Apple Music)",
       "domains": [
-        "tv.apple.com",
-        "*.apple.com"
+        "apple.com",
+        "*.apple.com",
+        "*.mzstatic.com"
       ]
     },
     {
       "name": "Crunchyroll",
       "domains": [
         "crunchyroll.com",
-        "*.crunchyroll.com",
-        "*.vrv.co"
+        "*.crunchyroll.com"
       ]
     },
     {
@@ -293,7 +387,12 @@
         "*.telegram.org",
         "t.me",
         "*.t.me",
-        "telegram.me"
+        "telegram.me",
+        "telesco.pe",
+        "*.telesco.pe",
+        "tdesktop.com",
+        "*.tdesktop.com",
+        "*.cdn-telegram.org"
       ]
     },
     {
@@ -301,7 +400,8 @@
       "domains": [
         "whatsapp.com",
         "*.whatsapp.com",
-        "*.whatsapp.net"
+        "*.whatsapp.net",
+        "wa.me"
       ]
     },
     {
@@ -318,13 +418,6 @@
         "*.slack.com",
         "*.slack-edge.com",
         "*.slack-msgs.com"
-      ]
-    },
-    {
-      "name": "Apple Music",
-      "domains": [
-        "music.apple.com",
-        "*.apple.com"
       ]
     },
     {
@@ -362,12 +455,46 @@
       ]
     },
     {
+      "name": "Minecraft",
+      "domains": [
+        "minecraft.net",
+        "*.minecraft.net",
+        "mojang.com",
+        "*.mojang.com",
+        "*.minecraftservices.com"
+      ]
+    },
+    {
+      "name": "Rockstar Games",
+      "domains": [
+        "rockstargames.com",
+        "*.rockstargames.com"
+      ]
+    },
+    {
+      "name": "HoYoverse",
+      "domains": [
+        "hoyoverse.com",
+        "*.hoyoverse.com",
+        "hoyolab.com",
+        "*.hoyolab.com",
+        "mihoyo.com",
+        "*.mihoyo.com"
+      ]
+    },
+    {
+      "name": "FACEIT",
+      "domains": [
+        "faceit.com",
+        "*.faceit.com",
+        "*.faceit-cdn.net"
+      ]
+    },
+    {
       "name": "EA",
       "domains": [
         "ea.com",
-        "*.ea.com",
-        "origin.com",
-        "*.origin.com"
+        "*.ea.com"
       ]
     },
     {
@@ -439,10 +566,10 @@
     {
       "name": "Kilo Code",
       "domains": [
-        "kilocode.ai",
-        "*.kilocode.ai",
         "kilo.ai",
-        "*.kilo.ai"
+        "*.kilo.ai",
+        "kilocode.ai",
+        "*.kilocode.ai"
       ]
     },
     {
@@ -515,16 +642,19 @@
       "domains": [
         "githubcopilot.com",
         "*.githubcopilot.com",
-        "copilot-proxy.githubusercontent.com"
+        "copilot-proxy.githubusercontent.com",
+        "origin-tracker.githubusercontent.com"
       ]
     },
     {
-      "name": "Windsurf",
+      "name": "Windsurf / Devin",
       "domains": [
         "windsurf.com",
         "*.windsurf.com",
         "codeium.com",
-        "*.codeium.com"
+        "*.codeium.com",
+        "devin.ai",
+        "*.devin.ai"
       ]
     },
     {
@@ -532,6 +662,75 @@
       "domains": [
         "cline.bot",
         "*.cline.bot"
+      ]
+    },
+    {
+      "name": "Kiro",
+      "domains": [
+        "kiro.dev",
+        "*.kiro.dev",
+        "q.us-east-1.amazonaws.com",
+        "cognito-identity.us-east-1.amazonaws.com"
+      ]
+    },
+    {
+      "name": "Trae",
+      "domains": [
+        "trae.ai",
+        "*.trae.ai"
+      ]
+    },
+    {
+      "name": "Qoder",
+      "domains": [
+        "qoder.com",
+        "*.qoder.com",
+        "*.qoder.sh"
+      ]
+    },
+    {
+      "name": "Zed",
+      "domains": [
+        "zed.dev",
+        "*.zed.dev"
+      ]
+    },
+    {
+      "name": "Warp",
+      "domains": [
+        "warp.dev",
+        "*.warp.dev"
+      ]
+    },
+    {
+      "name": "Augment Code",
+      "domains": [
+        "augmentcode.com",
+        "*.augmentcode.com"
+      ]
+    },
+    {
+      "name": "Amp",
+      "domains": [
+        "ampcode.com",
+        "*.ampcode.com",
+        "*.ampworkers.com"
+      ]
+    },
+    {
+      "name": "Factory",
+      "domains": [
+        "factory.ai",
+        "*.factory.ai",
+        "factory.com",
+        "*.factory.com"
+      ]
+    },
+    {
+      "name": "OpenCode",
+      "domains": [
+        "opencode.ai",
+        "*.opencode.ai"
       ]
     },
     {
@@ -577,6 +776,13 @@
       ]
     },
     {
+      "name": "Udio",
+      "domains": [
+        "udio.com",
+        "*.udio.com"
+      ]
+    },
+    {
       "name": "Runway",
       "domains": [
         "runwayml.com",
@@ -602,6 +808,54 @@
       "domains": [
         "leonardo.ai",
         "*.leonardo.ai"
+      ]
+    },
+    {
+      "name": "Kling AI",
+      "domains": [
+        "kling.ai",
+        "*.kling.ai",
+        "klingai.com",
+        "*.klingai.com"
+      ]
+    },
+    {
+      "name": "Hailuo (MiniMax)",
+      "domains": [
+        "hailuoai.video",
+        "*.hailuoai.video",
+        "minimax.io",
+        "*.minimax.io"
+      ]
+    },
+    {
+      "name": "Pika",
+      "domains": [
+        "pika.art",
+        "*.pika.art"
+      ]
+    },
+    {
+      "name": "Krea",
+      "domains": [
+        "krea.ai",
+        "*.krea.ai"
+      ]
+    },
+    {
+      "name": "HeyGen",
+      "domains": [
+        "heygen.com",
+        "*.heygen.com"
+      ]
+    },
+    {
+      "name": "Civitai",
+      "domains": [
+        "civitai.com",
+        "*.civitai.com",
+        "civitai.red",
+        "*.civitai.red"
       ]
     },
     {
@@ -651,6 +905,13 @@
       "domains": [
         "manus.im",
         "*.manus.im"
+      ]
+    },
+    {
+      "name": "Genspark",
+      "domains": [
+        "genspark.ai",
+        "*.genspark.ai"
       ]
     },
     {
@@ -738,7 +999,13 @@
         "*.vkontakte.ru",
         "*.userapi.com",
         "vk.me",
-        "*.vk.me"
+        "*.vk.me",
+        "vk.ru",
+        "*.vk.ru",
+        "vkvideo.ru",
+        "*.vkvideo.ru",
+        "*.vk-cdn.net",
+        "*.vkuser.net"
       ]
     },
     {
@@ -845,7 +1112,8 @@
       "domains": [
         "replit.com",
         "*.replit.com",
-        "*.repl.co"
+        "*.replit.dev",
+        "*.replit.app"
       ]
     },
     {
@@ -864,10 +1132,78 @@
       ]
     },
     {
+      "name": "HashiCorp / Terraform",
+      "domains": [
+        "hashicorp.com",
+        "*.hashicorp.com",
+        "terraform.io",
+        "*.terraform.io"
+      ]
+    },
+    {
+      "name": "Postman",
+      "domains": [
+        "postman.com",
+        "*.postman.com",
+        "getpostman.com",
+        "*.getpostman.com",
+        "postman.co",
+        "*.postman.co",
+        "*.pstmn.io"
+      ]
+    },
+    {
+      "name": "ngrok",
+      "domains": [
+        "ngrok.com",
+        "*.ngrok.com",
+        "*.ngrok-free.app",
+        "*.ngrok-free.dev",
+        "*.ngrok.app",
+        "*.ngrok.dev",
+        "*.ngrok.io"
+      ]
+    },
+    {
+      "name": "Sentry",
+      "domains": [
+        "sentry.io",
+        "*.sentry.io"
+      ]
+    },
+    {
+      "name": "Supabase",
+      "domains": [
+        "supabase.com",
+        "*.supabase.com",
+        "*.supabase.co"
+      ]
+    },
+    {
+      "name": "Firebase",
+      "domains": [
+        "firebase.google.com",
+        "*.firebaseio.com",
+        "*.firebaseapp.com",
+        "*.web.app"
+      ]
+    },
+    {
+      "name": "Anaconda",
+      "domains": [
+        "anaconda.com",
+        "*.anaconda.com",
+        "anaconda.org",
+        "*.anaconda.org"
+      ]
+    },
+    {
       "name": "Hugging Face",
       "domains": [
         "huggingface.co",
-        "*.huggingface.co"
+        "*.huggingface.co",
+        "hf.co",
+        "*.hf.co"
       ]
     },
     {
@@ -885,6 +1221,22 @@
       ]
     },
     {
+      "name": "Cohere",
+      "domains": [
+        "cohere.com",
+        "*.cohere.com",
+        "cohere.ai",
+        "*.cohere.ai"
+      ]
+    },
+    {
+      "name": "Cerebras",
+      "domains": [
+        "cerebras.ai",
+        "*.cerebras.ai"
+      ]
+    },
+    {
       "name": "Replicate",
       "domains": [
         "replicate.com",
@@ -897,8 +1249,7 @@
       "domains": [
         "aws.amazon.com",
         "*.aws.amazon.com",
-        "*.awsstatic.com",
-        "console.aws.amazon.com"
+        "*.awsstatic.com"
       ]
     },
     {
@@ -906,8 +1257,7 @@
       "domains": [
         "azure.microsoft.com",
         "*.azure.com",
-        "*.azure.net",
-        "portal.azure.com"
+        "*.azure.net"
       ]
     },
     {
@@ -1116,7 +1466,11 @@
         "*.yandex.ru",
         "yandex.com",
         "*.yandex.com",
-        "*.yandex.net"
+        "*.yandex.net",
+        "ya.ru",
+        "*.ya.ru",
+        "yastatic.net",
+        "*.yastatic.net"
       ]
     },
     {
@@ -1141,7 +1495,9 @@
         "wildberries.ru",
         "*.wildberries.ru",
         "*.wbstatic.net",
-        "*.wbbasket.ru"
+        "*.wbbasket.ru",
+        "wb.ru",
+        "*.wb.ru"
       ]
     },
     {
@@ -1156,8 +1512,129 @@
       "name": "Кинопоиск",
       "domains": [
         "kinopoisk.ru",
-        "*.kinopoisk.ru",
-        "hd.kinopoisk.ru"
+        "*.kinopoisk.ru"
+      ]
+    },
+    {
+      "name": "Rutube",
+      "domains": [
+        "rutube.ru",
+        "*.rutube.ru"
+      ]
+    },
+    {
+      "name": "Okko",
+      "domains": [
+        "okko.tv",
+        "*.okko.tv"
+      ]
+    },
+    {
+      "name": "Иви",
+      "domains": [
+        "ivi.ru",
+        "*.ivi.ru",
+        "ivi.tv",
+        "*.ivi.tv"
+      ]
+    },
+    {
+      "name": "Кион",
+      "domains": [
+        "kion.ru",
+        "*.kion.ru"
+      ]
+    },
+    {
+      "name": "Wink",
+      "domains": [
+        "wink.ru",
+        "*.wink.ru"
+      ]
+    },
+    {
+      "name": "Premier",
+      "domains": [
+        "premier.one",
+        "*.premier.one"
+      ]
+    },
+    {
+      "name": "Звук",
+      "domains": [
+        "zvuk.com",
+        "*.zvuk.com"
+      ]
+    },
+    {
+      "name": "MAX (мессенджер)",
+      "domains": [
+        "max.ru",
+        "*.max.ru"
+      ]
+    },
+    {
+      "name": "Госуслуги",
+      "domains": [
+        "gosuslugi.ru",
+        "*.gosuslugi.ru"
+      ]
+    },
+    {
+      "name": "ФНС (Налоговая)",
+      "domains": [
+        "nalog.gov.ru",
+        "*.nalog.gov.ru",
+        "nalog.ru",
+        "*.nalog.ru"
+      ]
+    },
+    {
+      "name": "Mos.ru",
+      "domains": [
+        "mos.ru",
+        "*.mos.ru"
+      ]
+    },
+    {
+      "name": "РЖД",
+      "domains": [
+        "rzd.ru",
+        "*.rzd.ru"
+      ]
+    },
+    {
+      "name": "Сбербанк",
+      "domains": [
+        "sberbank.ru",
+        "*.sberbank.ru",
+        "sber.ru",
+        "*.sber.ru",
+        "sberbank.com",
+        "*.sberbank.com"
+      ]
+    },
+    {
+      "name": "Т-Банк",
+      "domains": [
+        "tbank.ru",
+        "*.tbank.ru",
+        "tinkoff.ru",
+        "*.tinkoff.ru"
+      ]
+    },
+    {
+      "name": "ВТБ",
+      "domains": [
+        "vtb.ru",
+        "*.vtb.ru"
+      ]
+    },
+    {
+      "name": "Альфа-Банк",
+      "domains": [
+        "alfabank.ru",
+        "*.alfabank.ru"
       ]
     },
     {
@@ -1184,7 +1661,7 @@
       ]
     },
     {
-      "name": "Atlassian",
+      "name": "Atlassian (Jira, Confluence, Trello)",
       "domains": [
         "atlassian.com",
         "*.atlassian.com",
@@ -1192,6 +1669,20 @@
         "*.jira.com",
         "trello.com",
         "*.trello.com"
+      ]
+    },
+    {
+      "name": "Linear",
+      "domains": [
+        "linear.app",
+        "*.linear.app"
+      ]
+    },
+    {
+      "name": "Loom",
+      "domains": [
+        "loom.com",
+        "*.loom.com"
       ]
     },
     {
@@ -1222,6 +1713,20 @@
       "domains": [
         "grammarly.com",
         "*.grammarly.com"
+      ]
+    },
+    {
+      "name": "DeepL",
+      "domains": [
+        "deepl.com",
+        "*.deepl.com"
+      ]
+    },
+    {
+      "name": "Gamma",
+      "domains": [
+        "gamma.app",
+        "*.gamma.app"
       ]
     },
     {
@@ -1459,13 +1964,17 @@
     {
       "name": "YTS",
       "domains": [
-        "yts.mx",
-        "*.yts.mx"
+        "yts.gg",
+        "*.yts.gg",
+        "yts.lt",
+        "*.yts.lt"
       ]
     },
     {
       "name": "EZTV",
       "domains": [
+        "eztvx.to",
+        "*.eztvx.to",
         "eztv.re",
         "*.eztv.re"
       ]
@@ -1475,13 +1984,6 @@
       "domains": [
         "nyaa.si",
         "*.nyaa.si"
-      ]
-    },
-    {
-      "name": "TorrentGalaxy",
-      "domains": [
-        "torrentgalaxy.to",
-        "*.torrentgalaxy.to"
       ]
     },
     {
@@ -1516,11 +2018,7 @@
       "name": "OpenClaw",
       "domains": [
         "openclaw.ai",
-        "*.openclaw.ai",
-        "openclaws.io",
-        "*.openclaws.io",
-        "open-claw.org",
-        "*.open-claw.org"
+        "*.openclaw.ai"
       ]
     },
     {
@@ -1550,10 +2048,10 @@
       ]
     },
     {
-      "name": "Apple Books",
+      "name": "Audible",
       "domains": [
-        "books.apple.com",
-        "*.apple.com"
+        "audible.com",
+        "*.audible.com"
       ]
     },
     {
@@ -1568,22 +2066,6 @@
       "domains": [
         "trello.com",
         "*.trello.com"
-      ]
-    },
-    {
-      "name": "Jira",
-      "domains": [
-        "jira.com",
-        "*.jira.com",
-        "*.atlassian.net"
-      ]
-    },
-    {
-      "name": "Confluence",
-      "domains": [
-        "confluence.com",
-        "*.confluence.com",
-        "*.atlassian.net"
       ]
     },
     {
@@ -1614,22 +2096,6 @@
       "domains": [
         "databricks.com",
         "*.databricks.com"
-      ]
-    },
-    {
-      "name": "Anthropic Research",
-      "domains": [
-        "anthropic.com",
-        "*.anthropic.com",
-        "research.anthropic.com"
-      ]
-    },
-    {
-      "name": "OpenAI Research",
-      "domains": [
-        "openai.com",
-        "*.openai.com",
-        "research.openai.com"
       ]
     },
     {
@@ -1709,8 +2175,8 @@
     {
       "name": "SonarQube",
       "domains": [
-        "sonarqube.org",
-        "*.sonarqube.org",
+        "sonarsource.com",
+        "*.sonarsource.com",
         "sonarcloud.io",
         "*.sonarcloud.io"
       ]
@@ -1718,9 +2184,7 @@
     {
       "name": "VS Code",
       "domains": [
-        "code.visualstudio.com",
-        "*.visualstudio.com",
-        "marketplace.visualstudio.com"
+        "*.visualstudio.com"
       ]
     },
     {
@@ -1785,14 +2249,6 @@
       ]
     },
     {
-      "name": "MacOS",
-      "domains": [
-        "apple.com",
-        "*.apple.com",
-        "developer.apple.com"
-      ]
-    },
-    {
       "name": "Windows",
       "domains": [
         "microsoft.com",
@@ -1814,8 +2270,7 @@
       "name": "Apache",
       "domains": [
         "apache.org",
-        "*.apache.org",
-        "httpd.apache.org"
+        "*.apache.org"
       ]
     },
     {
@@ -1961,16 +2416,14 @@
       "domains": [
         "intel.com",
         "*.intel.com",
-        "*.intel.co.jp",
-        "downloadcenter.intel.com"
+        "*.intel.co.jp"
       ]
     },
     {
       "name": "AMD",
       "domains": [
         "amd.com",
-        "*.amd.com",
-        "drivers.amd.com"
+        "*.amd.com"
       ]
     },
     {
@@ -2007,41 +2460,35 @@
       "name": "ASUS",
       "domains": [
         "asus.com",
-        "*.asus.com",
-        "dlcdnets.asus.com"
+        "*.asus.com"
       ]
     },
     {
       "name": "MSI",
       "domains": [
         "msi.com",
-        "*.msi.com",
-        "download.msi.com"
+        "*.msi.com"
       ]
     },
     {
       "name": "Gigabyte",
       "domains": [
         "gigabyte.com",
-        "*.gigabyte.com",
-        "download.gigabyte.com"
+        "*.gigabyte.com"
       ]
     },
     {
       "name": "ASRock",
       "domains": [
         "asrock.com",
-        "*.asrock.com",
-        "download.asrock.com"
+        "*.asrock.com"
       ]
     },
     {
       "name": "Lenovo",
       "domains": [
         "lenovo.com",
-        "*.lenovo.com",
-        "download.lenovo.com",
-        "pcsupport.lenovo.com"
+        "*.lenovo.com"
       ]
     },
     {
@@ -2056,8 +2503,7 @@
       "name": "HP",
       "domains": [
         "hp.com",
-        "*.hp.com",
-        "support.hp.com"
+        "*.hp.com"
       ]
     },
     {
@@ -2071,8 +2517,7 @@
       "name": "Samsung",
       "domains": [
         "samsung.com",
-        "*.samsung.com",
-        "semiconductor.samsung.com"
+        "*.samsung.com"
       ]
     },
     {
@@ -2171,8 +2616,7 @@
       "name": "Canon",
       "domains": [
         "canon.com",
-        "*.canon.com",
-        "usa.canon.com"
+        "*.canon.com"
       ]
     },
     {
@@ -2343,6 +2787,20 @@
       ]
     },
     {
+      "name": "LeetCode",
+      "domains": [
+        "leetcode.com",
+        "*.leetcode.com"
+      ]
+    },
+    {
+      "name": "ResearchGate",
+      "domains": [
+        "researchgate.net",
+        "*.researchgate.net"
+      ]
+    },
+    {
       "name": "Wise",
       "domains": [
         "wise.com",
@@ -2361,6 +2819,29 @@
       "domains": [
         "revolut.com",
         "*.revolut.com"
+      ]
+    },
+    {
+      "name": "Upwork",
+      "domains": [
+        "upwork.com",
+        "*.upwork.com"
+      ]
+    },
+    {
+      "name": "Fiverr",
+      "domains": [
+        "fiverr.com",
+        "*.fiverr.com"
+      ]
+    },
+    {
+      "name": "DocuSign",
+      "domains": [
+        "docusign.com",
+        "*.docusign.com",
+        "docusign.net",
+        "*.docusign.net"
       ]
     },
     {

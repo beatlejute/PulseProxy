@@ -1,4 +1,4 @@
-import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, Preset, ProxyServer, ExportData, ImportValidationResult, PublicProxyCheckResults } from '../types';
+import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, Preset, ProxyServer, ExportData, ImportValidationResult, PublicPoolConfig, PublicProxyCatalogCache, PublicProxyCheckResults } from '../types';
 import { pruneCheckResults, mergeCheckResults } from './public-proxy-check-cache';
 import { IStorageBackend, ISettingsRepository, IPresetRepository, IProxyRepository, IMigrationService, IImportExportService, SyncMergeStats } from '../types/storage';
 import { StorageKeys, ProxyState } from '../shared/constants';
@@ -78,6 +78,7 @@ export class StorageService implements IStorageBackend, ISettingsRepository {
     async addPreset(presetData: Omit<Preset, 'id' | 'createdAt' | 'updatedAt'>): Promise<Preset> { return this.presetRepository.add(presetData); }
     async setPresetEnabled(id: string, enabled: boolean): Promise<void> { return this.presetRepository.setEnabled(id, enabled); }
     async setPresetProxy(id: string, proxyId: string | null): Promise<void> { return this.presetRepository.setProxy(id, proxyId); }
+    async setPresetPublicPool(id: string, publicPool: PublicPoolConfig | null): Promise<void> { return this.presetRepository.setPublicPool(id, publicPool); }
     async reorderPresets(orderedIds: string[]): Promise<void> { return this.presetRepository.reorder(orderedIds); }
     async getActivePresets(): Promise<Preset[]> { return this.presetRepository.getActive(); }
     async getAllActiveDomains(): Promise<string[]> { return this.presetRepository.getAllActiveDomains(); }
@@ -107,6 +108,14 @@ export class StorageService implements IStorageBackend, ISettingsRepository {
     async getPublicProxiesWarningDismissed(): Promise<boolean> { const value = await this.getTyped(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED as StorageKey) as boolean | undefined; return value ?? false; }
     async setPublicProxiesWarningDismissed(dismissed: boolean): Promise<void> { return this.setTyped(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED as StorageKey, dismissed); }
     async getPublicProxyCheckResults(): Promise<PublicProxyCheckResults> { const raw = await this.getTyped(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS as StorageKey) as PublicProxyCheckResults | undefined; return pruneCheckResults(raw ?? {}, Date.now()); }
+    async getPublicProxyCatalog(): Promise<PublicProxyCatalogCache | undefined> {
+        const raw = await this.getTyped(StorageKeys.PUBLIC_PROXY_CATALOG as StorageKey) as PublicProxyCatalogCache | undefined;
+        if (!raw || typeof raw !== 'object' || typeof raw.fetchedAt !== 'number' || !Array.isArray(raw.proxies)) {
+            return undefined;
+        }
+        return raw;
+    }
+    async setPublicProxyCatalog(cache: PublicProxyCatalogCache): Promise<void> { return this.setTyped(StorageKeys.PUBLIC_PROXY_CATALOG as StorageKey, cache); }
     async mergePublicProxyCheckResults(updates: PublicProxyCheckResults): Promise<void> { const current = await this.getPublicProxyCheckResults(); return this.setTyped(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS as StorageKey, mergeCheckResults(current, updates)); }
     async getPublicProxiesFiltersCollapsed(): Promise<boolean> { const value = await this.getTyped(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED as StorageKey) as boolean | undefined; return value ?? false; }
     async setPublicProxiesFiltersCollapsed(collapsed: boolean): Promise<void> { return this.setTyped(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED as StorageKey, collapsed); }

@@ -1,5 +1,5 @@
 import { IStorageBackend, IPresetRepository } from '../types/storage';
-import { Preset } from '../types';
+import { Preset, PublicPoolConfig } from '../types';
 import { StorageKeys, DEFAULT_PRESET_ID } from '../shared/constants';
 import { withStorageLock } from './storage-lock';
 
@@ -152,7 +152,15 @@ export class PresetRepository implements IPresetRepository {
     }
 
     async setProxy(id: string, proxyId: string | null): Promise<void> {
-        await this.update(id, { proxyId });
+        await this.update(id, { proxyId, publicPool: null });
+    }
+
+    async setPublicPool(id: string, config: PublicPoolConfig | null): Promise<void> {
+        if (config !== null) {
+            await this.update(id, { publicPool: config, proxyId: null });
+        } else {
+            await this.update(id, { publicPool: null });
+        }
     }
 
     async reorder(orderedIds: string[]): Promise<void> {
@@ -202,6 +210,7 @@ export class PresetRepository implements IPresetRepository {
             isDefault: true,
             order: 0,
             proxyId: null,
+            publicPool: null,
             createdAt: now,
             updatedAt: now,
         };

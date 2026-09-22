@@ -597,5 +597,29 @@
   "labelTheme": {
     "message": "Dark theme",
     "description": "Label for dark theme toggle checkbox"
+  },
+  "presetProxyPublicPool": {
+    "message": "Public pool",
+    "description": "Label for public pool option in proxy selector"
+  },
+  "publicPoolHint": {
+    "message": "Routes domains to different proxies from the pool for stability",
+    "description": "Hint for public pool preset option"
+  },
+  "publicPoolHttpHint": {
+    "message": "HTTP proxies may not support HTTPS traffic",
+    "description": "Hint warning about HTTP proxies in public pool"
+  },
+  "poolStatusLabel": {
+    "message": "Pool status:",
+    "description": "Label for pool status"
+  },
+  "poolStatusChecking": {
+    "message": "Checking…",
+    "description": "Status text while checking pool"
+  },
+  "poolStatusEmpty": {
+    "message": "No proxies available",
+    "description": "Status text when pool is empty"
   }
 }

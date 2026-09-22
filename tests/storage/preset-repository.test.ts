@@ -4,7 +4,7 @@
  */
 
 import { mockHelpers } from '../setup';
-import { Preset } from '../../src/types';
+import { Preset, PublicPoolConfig } from '../../src/types';
 
 // Динамический импорт для правильного порядка инициализации моков
 let PresetRepository: typeof import('../../src/storage/preset-repository').PresetRepository;
@@ -293,6 +293,103 @@ describe('PresetRepository', () => {
 
             const stored = mockHelpers.getLocalStorageData();
             expect(stored.presets[0].proxyId).toBeNull();
+        });
+
+        it('should clear publicPool when setting proxyId (mutual exclusion)', async () => {
+            const publicPool: PublicPoolConfig = {
+                protocol: 'socks5' as const,
+                ip: '1.2.3.4',
+                port: 1080,
+                score: 90,
+                connectionType: 'high',
+                country: 'RU',
+            };
+            const preset = createMockPreset({ id: 'test-id', proxyId: null, publicPool });
+            mockHelpers.setLocalStorageData({ presets: [preset] });
+
+            const repository = new PresetRepository(storageBackend);
+            await repository.setProxy('test-id', 'proxy-123');
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].proxyId).toBe('proxy-123');
+            expect(stored.presets[0].publicPool).toBeNull();
+        });
+
+        it('should clear publicPool when setting proxyId to null (mutual exclusion)', async () => {
+            const publicPool: PublicPoolConfig = {
+                protocol: 'socks5' as const,
+                ip: '1.2.3.4',
+                port: 1080,
+                score: 90,
+                connectionType: 'high',
+                country: 'RU',
+            };
+            const preset = createMockPreset({ id: 'test-id', proxyId: 'old-proxy', publicPool });
+            mockHelpers.setLocalStorageData({ presets: [preset] });
+
+            const repository = new PresetRepository(storageBackend);
+            await repository.setProxy('test-id', null);
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].proxyId).toBeNull();
+            expect(stored.presets[0].publicPool).toBeNull();
+        });
+    });
+
+    describe('setPublicPool()', () => {
+        const publicPoolConfig: PublicPoolConfig = {
+            protocol: 'socks5' as const,
+            ip: '1.2.3.4',
+            port: 1080,
+            score: 90,
+            connectionType: 'high',
+            country: 'RU',
+        };
+
+        it('should set publicPool config for preset', async () => {
+            const preset = createMockPreset({ id: 'test-id', publicPool: null, proxyId: null });
+            mockHelpers.setLocalStorageData({ presets: [preset] });
+
+            const repository = new PresetRepository(storageBackend);
+            await repository.setPublicPool('test-id', publicPoolConfig);
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].publicPool).toEqual(publicPoolConfig);
+        });
+
+        it('should set proxyId to null when publicPool config is set (mutual exclusion)', async () => {
+            const preset = createMockPreset({ id: 'test-id', publicPool: null, proxyId: 'old-proxy' });
+            mockHelpers.setLocalStorageData({ presets: [preset] });
+
+            const repository = new PresetRepository(storageBackend);
+            await repository.setPublicPool('test-id', publicPoolConfig);
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].publicPool).toEqual(publicPoolConfig);
+            expect(stored.presets[0].proxyId).toBeNull();
+        });
+
+        it('should set publicPool to null when config is null', async () => {
+            const preset = createMockPreset({ id: 'test-id', publicPool: publicPoolConfig, proxyId: null });
+            mockHelpers.setLocalStorageData({ presets: [preset] });
+
+            const repository = new PresetRepository(storageBackend);
+            await repository.setPublicPool('test-id', null);
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].publicPool).toBeNull();
+        });
+
+        it('should preserve proxyId when clearing publicPool (config is null)', async () => {
+            const preset = createMockPreset({ id: 'test-id', publicPool: publicPoolConfig, proxyId: 'keep-proxy' });
+            mockHelpers.setLocalStorageData({ presets: [preset] });
+
+            const repository = new PresetRepository(storageBackend);
+            await repository.setPublicPool('test-id', null);
+
+            const stored = mockHelpers.getLocalStorageData();
+            expect(stored.presets[0].publicPool).toBeNull();
+            expect(stored.presets[0].proxyId).toBe('keep-proxy');
         });
     });
 

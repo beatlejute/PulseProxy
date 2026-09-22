@@ -37,6 +37,7 @@ export interface Preset {
     isDefault: boolean;   // Является ли пресетом по умолчанию (Custom)
     order: number;        // Порядковый номер для сортировки
     proxyId: string | null; // ID прокси или null для использования default
+    publicPool?: PublicPoolConfig | null; // объект = пресет идёт через публичный пул; proxyId игнорируется
     createdAt: number;    // Timestamp создания
     updatedAt: number;    // Timestamp последнего обновления
 }
@@ -70,6 +71,7 @@ export interface LocalStorageData {
     publicProxiesWarningDismissed: boolean; // Предупреждение о публичных прокси закрыто крестиком
     publicProxiesFiltersCollapsed: boolean; // Блок фильтров публичных прокси свёрнут
     publicProxyCheckResults: PublicProxyCheckResults; // Кеш результатов фоновой проверки публичных прокси
+    publicProxyCatalog: PublicProxyCatalogCache; // Кэш нормализованного каталога публичных прокси
 }
 
 // Объединённый тип данных хранилища
@@ -302,7 +304,16 @@ export type I18nKey =
     | 'welcomeOptionImport'
     | 'welcomeOptionImportDesc'
     | 'welcomeOptionSkip'
-    | 'welcomeSyncError';
+    | 'welcomeSyncError'
+    | 'presetProxyPublicPool'
+    | 'publicPoolHint'
+    | 'publicPoolProtocols'
+    | 'publicPoolStatus'
+    | 'publicPoolEmpty'
+    | 'publicPoolHttpHint'
+    | 'poolStatusLabel'
+    | 'poolStatusChecking'
+    | 'poolStatusEmpty';
 
 // Структура экспортируемых данных
 export interface ExportData {
@@ -351,6 +362,20 @@ export interface NormalizedPublicProxy {
     score: number;          // Рейтинг
     connectionType: string; // residential, corporate, mobile (lowercase)
     country: string;        // Код страны ISO
+}
+
+// Настройки публичного пула пресета
+export interface PublicPoolConfig {
+    protocols: ProxyType[];
+    country?: string;
+    connectionType?: string;
+    minScore?: number;
+}
+
+// Кэш каталога в chrome.storage.local
+export interface PublicProxyCatalogCache {
+    fetchedAt: number;
+    proxies: NormalizedPublicProxy[];
 }
 
 // Состояние фильтров публичных прокси

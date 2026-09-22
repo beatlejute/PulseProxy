@@ -1,4 +1,4 @@
-import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, Preset, ProxyServer, ExportData, ImportValidationResult, PublicProxyCheckResults } from '../types';
+import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, Preset, ProxyServer, ExportData, ImportValidationResult, PublicProxyCheckResults, PublicPoolConfig, PublicProxyCatalogCache } from '../types';
 import { pruneCheckResults, mergeCheckResults } from '../storage/public-proxy-check-cache';
 import { IStorageBackend, ISettingsRepository, SyncMergeStats } from '../types/storage';
 import { StorageKeys, ProxyState, SYNC_STORAGE_KEYS, DEFAULT_PRESET_ID } from './constants';
@@ -186,6 +186,10 @@ class StorageService implements IStorageBackend, ISettingsRepository {
         return this.presetRepository.setProxy(id, proxyId);
     }
 
+    async setPresetPublicPool(id: string, config: PublicPoolConfig | null): Promise<void> {
+        return this.presetRepository.setPublicPool(id, config);
+    }
+
     async reorderPresets(orderedIds: string[]): Promise<void> {
         return this.presetRepository.reorder(orderedIds);
     }
@@ -328,6 +332,18 @@ class StorageService implements IStorageBackend, ISettingsRepository {
     async getPublicProxyCheckResults(): Promise<PublicProxyCheckResults> {
         const raw = await this.getTyped(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS as StorageKey) as PublicProxyCheckResults | undefined;
         return pruneCheckResults(raw ?? {}, Date.now());
+    }
+
+    async getPublicProxyCatalog(): Promise<PublicProxyCatalogCache | undefined> {
+        const raw = await this.getTyped(StorageKeys.PUBLIC_PROXY_CATALOG as StorageKey) as PublicProxyCatalogCache | undefined;
+        if (!raw || typeof raw !== 'object' || typeof raw.fetchedAt !== 'number' || !Array.isArray(raw.proxies)) {
+            return undefined;
+        }
+        return raw;
+    }
+
+    async setPublicProxyCatalog(cache: PublicProxyCatalogCache): Promise<void> {
+        return this.setTyped(StorageKeys.PUBLIC_PROXY_CATALOG as StorageKey, cache);
     }
 
     async mergePublicProxyCheckResults(updates: PublicProxyCheckResults): Promise<void> {

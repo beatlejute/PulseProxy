@@ -5,7 +5,7 @@ import { adjustContainerHeight } from './dom-utils';
 import { showAlert, showConfirm } from './dialog';
 import { showPresetTypeDialog, showPresetTemplatesModal } from './preset-dialogs';
 import { PresetDragController } from './preset-drag';
-import { createProxyDropdown } from './preset-proxy-dropdown';
+import { createProxyDropdown, PresetProxySelection } from './preset-proxy-dropdown';
 
 class PresetsService {
     private container: HTMLElement | null = null;
@@ -176,8 +176,8 @@ class PresetsService {
         }
 
         if (!preset.isDefault) {
-            const proxySelector = await createProxyDropdown(preset, proxies, (proxyId) => {
-                this.updatePresetProxy(preset.id, proxyId);
+            const proxySelector = await createProxyDropdown(preset, proxies, (selection) => {
+                this.updatePresetSelection(preset.id, selection);
             });
             content.appendChild(proxySelector);
         }
@@ -264,6 +264,7 @@ class PresetsService {
             isDefault: false,
             order: presets.length,
             proxyId: null,
+            publicPool: null,
         });
 
         console.log('Presets: Added new preset', newPreset);
@@ -305,6 +306,7 @@ class PresetsService {
             isDefault: false,
             order: presets.length,
             proxyId: null,
+            publicPool: null,
         });
 
         console.log('Presets: Created preset from template', template.name, newPreset);
@@ -316,6 +318,14 @@ class PresetsService {
     private async updatePresetProxy(presetId: string, proxyId: string | null): Promise<void> {
         await Storage.setPresetProxy(presetId, proxyId);
         console.log('Presets: Updated proxy for preset', presetId, 'to', proxyId);
+    }
+
+    private async updatePresetSelection(presetId: string, selection: PresetProxySelection): Promise<void> {
+        await Storage.updatePreset(presetId, {
+            proxyId: selection.proxyId,
+            publicPool: selection.publicPool,
+        });
+        console.log('Presets: Updated selection for preset', presetId, 'to', selection);
     }
 
     private async deletePreset(id: string): Promise<void> {

@@ -1,10 +1,22 @@
 import { I18n } from '../shared/i18n';
-import { Preset, ProxyServer } from '../types';
+import { PublicPoolCheckConfig } from '../shared/constants';
+import { Preset, ProxyServer, PublicPoolConfig } from '../types';
+
+export const PUBLIC_POOL_OPTION_VALUE = '__public_pool__';
+
+export interface PresetProxySelection {
+    proxyId: string | null;
+    publicPool: PublicPoolConfig | null;
+}
+
+const DEFAULT_PUBLIC_POOL_CONFIG: PublicPoolConfig = {
+    protocols: [...PublicPoolCheckConfig.DEFAULT_PROTOCOLS],
+};
 
 export async function createProxyDropdown(
     preset: Preset,
     proxies: ProxyServer[],
-    onProxyChange: (proxyId: string | null) => void
+    onSelectionChange: (selection: PresetProxySelection) => void
 ): Promise<HTMLElement> {
     const defaultProxy = proxies.find(p => p.isDefault);
 
@@ -25,7 +37,7 @@ export async function createProxyDropdown(
     defaultOption.textContent = defaultProxyLabel
         ? `${I18n.getMessage('proxyDefault')} (${defaultProxyLabel})`
         : I18n.getMessage('proxyNone');
-    if (!preset.proxyId) {
+    if (!preset.proxyId && !preset.publicPool) {
         defaultOption.selected = true;
     }
     select.appendChild(defaultOption);
@@ -42,7 +54,27 @@ export async function createProxyDropdown(
             select.appendChild(option);
         });
 
-    select.addEventListener('change', () => onProxyChange(select.value || null));
+    const publicPoolOption = document.createElement('option');
+    publicPoolOption.value = PUBLIC_POOL_OPTION_VALUE;
+    publicPoolOption.textContent = `🌐 ${I18n.getMessage('presetProxyPublicPool')}`;
+    if (preset.publicPool) {
+        publicPoolOption.selected = true;
+    }
+    select.appendChild(publicPoolOption);
+
+    select.addEventListener('change', () => {
+        if (select.value === PUBLIC_POOL_OPTION_VALUE) {
+            onSelectionChange({
+                proxyId: null,
+                publicPool: preset.publicPool ?? DEFAULT_PUBLIC_POOL_CONFIG,
+            });
+        } else {
+            onSelectionChange({
+                proxyId: select.value || null,
+                publicPool: null,
+            });
+        }
+    });
 
     container.appendChild(label);
     container.appendChild(select);

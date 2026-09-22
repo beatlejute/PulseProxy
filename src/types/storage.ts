@@ -5,7 +5,7 @@
  * Используются для декомпозиции god-класса на отдельные сервисы.
  */
 
-import { ProxyServer, Preset, ExportData, ImportValidationResult, ThemeType, SupportedLanguage, ProxyStateType } from './index';
+import { ProxyServer, Preset, ExportData, ImportValidationResult, ThemeType, SupportedLanguage, ProxyStateType, PublicPoolConfig } from './index';
 
 // ============================================================================
 // IStorageBackend - низкоуровневый доступ к chrome.storage
@@ -95,6 +95,11 @@ export interface IPresetRepository {
      * Установить proxyId для пресета
      */
     setProxy(id: string, proxyId: string | null): Promise<void>;
+
+    /**
+     * Установить конфигурацию публичного пула для пресета
+     */
+    setPublicPool(id: string, config: PublicPoolConfig | null): Promise<void>;
 
     /**
      * Переупорядочить пресеты по массиву ID

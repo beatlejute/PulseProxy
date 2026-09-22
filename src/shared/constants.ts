@@ -30,7 +30,7 @@ export const ProxyState = {
 export const SYNC_STORAGE_KEYS = ['presets', 'proxies', 'theme', 'language', 'syncEnabled', 'proxyByDefault', 'proxyCheckEnabled'] as const;
 
 // Ключи для локальных данных (chrome.storage.local)
-export const LOCAL_STORAGE_KEYS = ['currentState', 'targetState', 'migrationCompleted', 'errorProxy', 'publicProxiesWarningDismissed', 'publicProxiesFiltersCollapsed', 'publicProxyCheckResults'] as const;
+export const LOCAL_STORAGE_KEYS = ['currentState', 'targetState', 'migrationCompleted', 'errorProxy', 'publicProxiesWarningDismissed', 'publicProxiesFiltersCollapsed', 'publicProxyCheckResults', 'publicProxyCatalog'] as const;
 
 // ID пресета по умолчанию (Custom)
 export const DEFAULT_PRESET_ID = 'default-custom-preset';
@@ -51,6 +51,7 @@ export const StorageKeys = {
     PUBLIC_PROXIES_WARNING_DISMISSED: 'publicProxiesWarningDismissed',
     PUBLIC_PROXIES_FILTERS_COLLAPSED: 'publicProxiesFiltersCollapsed',
     PUBLIC_PROXY_CHECK_RESULTS: 'publicProxyCheckResults',
+    PUBLIC_PROXY_CATALOG: 'publicProxyCatalog',
 } as const;
 
 // Фоновая проверка публичных прокси
@@ -59,6 +60,23 @@ export const PublicProxyCheckConfig = {
     CACHE_TTL_MS: 24 * 60 * 60 * 1000,   // Срок жизни результата проверки — сутки
     BUSY_RETRY_DELAY_MS: 2000,           // Пауза перед повтором, если mutex проверки занят
     SUSPEND_POLL_MS: 300,                // Период опроса флага приостановки сессии
+} as const;
+
+export const PublicPoolCheckConfig = {
+    ALARM_NAME: 'public_pool_check',
+    CHECK_INTERVAL_MIN: 15,
+    RECHECK_INTERVAL_MS: 15 * 60 * 1000,
+    MAX_PER_CYCLE: 100,
+    BUSY_RETRIES: 3,
+    ERROR_RECHECK_DEBOUNCE_MS: 60 * 1000,
+    MAX_MEMBERS: 200,
+    CHAIN_LENGTH: 3,
+    CATALOG_TTL_MS: 6 * 60 * 60 * 1000,
+    CATALOG_FETCH_TIMEOUT_MS: 10000,
+    EMPTY_POOL_SENTINEL: 'PROXY 127.0.0.1:9',
+    DEFAULT_PROTOCOLS: ['socks5'] as ProxyType[],
+    BADGE_TEXT: '🌐',
+    BADGE_COLOR: '#845EF7',
 } as const;
 
 // Пути к иконкам

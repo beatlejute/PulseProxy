@@ -629,5 +629,9 @@
   "ariaProxyError": {
     "message": "Erreur de connexion",
     "description": "TODO: needs native translation"
+  },
+  "presetProxyPublicPool": {
+    "message": "Pool public",
+    "description": "Label for public pool option in proxy selector"
   }
 }

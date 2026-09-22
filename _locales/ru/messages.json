@@ -629,5 +629,29 @@
   "labelTheme": {
     "message": "Тёмная тема",
     "description": "Label for dark theme toggle checkbox"
+  },
+  "presetProxyPublicPool": {
+    "message": "Публичный пул",
+    "description": "Label for public pool option in proxy selector"
+  },
+  "publicPoolHint": {
+    "message": "Распределяет домены по прокси из пула для стабильности",
+    "description": "Подсказка для пресета с публичным пулом"
+  },
+  "publicPoolHttpHint": {
+    "message": "HTTP-прокси могут не поддерживать HTTPS-трафик",
+    "description": "Предупреждение о HTTP-прокси в публичном пуле"
+  },
+  "poolStatusLabel": {
+    "message": "Статус пула:",
+    "description": "Лейбл для статуса пула"
+  },
+  "poolStatusChecking": {
+    "message": "Проверяем…",
+    "description": "Текст статуса во время проверки пула"
+  },
+  "poolStatusEmpty": {
+    "message": "Нет доступных прокси",
+    "description": "Текст статуса, когда пул пуст"
   }
 }

@@ -630,8 +630,28 @@
     "message": "连接错误",
     "description": "TODO: needs native translation"
   },
+  "publicPoolHint": {
+    "message": "将域名路由到池中不同的代理服务器，以提高稳定性",
+    "description": "Public pool hint text"
+  },
+  "publicPoolHttpHint": {
+    "message": "HTTP代理可能不支持HTTPS流量",
+    "description": "HTTP proxy warning for public pool"
+  },
+  "poolStatusLabel": {
+    "message": "池状态：",
+    "description": "Pool status label prefix"
+  },
+  "poolStatusChecking": {
+    "message": "检查中…",
+    "description": "Pool status checking text"
+  },
+  "poolStatusEmpty": {
+    "message": "没有可用的代理",
+    "description": "Pool status empty message"
+  },
   "presetProxyPublicPool": {
-    "message": "公共代理池",
+    "message": "🌐 公共代理池",
     "description": "Label for public pool option in proxy selector"
   }
 }

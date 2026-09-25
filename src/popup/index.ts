@@ -66,12 +66,18 @@ class PopupApp {
 
         if (newTargetState === ProxyState.CONNECTED) {
             const proxies = await Storage.getProxies();
+            const activePresets = await Storage.getActivePresets();
+            const hasPublicPoolPreset = activePresets.some(preset => !preset.proxyId && preset.publicPool);
             // REGRESSION-GUARD (TC-D3f, PLAN-014): proxies.length === 0 → показать диалог "добавить прокси"
-            if (proxies.length === 0) {
+            if (proxies.length === 0 && !hasPublicPoolPreset) {
                 const shouldAdd = await showConfirm(I18n.getMessage('noProxiesConfigured'), { column: 'proxy' });
                 if (shouldAdd) {
                     ProxyList.openAddProxyForm();
                 }
+                return;
+            }
+            if (proxies.length === 0 && hasPublicPoolPreset) {
+                await Storage.setTargetState(newTargetState);
                 return;
             }
             const defaultProxy = await Storage.getDefaultProxy();

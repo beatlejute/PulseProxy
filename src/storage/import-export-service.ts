@@ -182,6 +182,40 @@ export class ImportExportService implements IImportExportService {
     private isValidPreset(preset: unknown): preset is Preset {
         if (!preset || typeof preset !== 'object') return false;
         const p = preset as Record<string, unknown>;
+        const publicPool = p.publicPool;
+
+        if (publicPool !== undefined && publicPool !== null) {
+            if (typeof publicPool !== 'object') return false;
+
+            const pool = publicPool as Record<string, unknown>;
+
+            if (!Array.isArray(pool.protocols) || pool.protocols.length === 0) return false;
+            if (
+                !pool.protocols.every(
+                    (proto: unknown) => typeof proto === 'string' && VALID_PROXY_TYPES.includes(proto as string)
+                )
+            )
+                return false;
+
+            if (
+                pool.country !== undefined &&
+                typeof pool.country !== 'string'
+            )
+                return false;
+
+            if (
+                pool.connectionType !== undefined &&
+                typeof pool.connectionType !== 'string'
+            )
+                return false;
+
+            if (
+                pool.minScore !== undefined &&
+                (typeof pool.minScore !== 'number' || !isFinite(pool.minScore))
+            )
+                return false;
+        }
+
         return (
             typeof p.id === 'string' &&
             typeof p.name === 'string' &&

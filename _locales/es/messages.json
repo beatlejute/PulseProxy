@@ -630,8 +630,28 @@
     "message": "Error de conexión",
     "description": "TODO: needs native translation"
   },
+  "publicPoolHint": {
+    "message": "Enruta dominios a diferentes proxies del pool para estabilidad",
+    "description": "Public pool hint text"
+  },
+  "publicPoolHttpHint": {
+    "message": "Los proxies HTTP pueden no soportar tráfico HTTPS",
+    "description": "HTTP proxy warning for public pool"
+  },
+  "poolStatusLabel": {
+    "message": "Estado del pool:",
+    "description": "Pool status label prefix"
+  },
+  "poolStatusChecking": {
+    "message": "Comprobando…",
+    "description": "Pool status checking text"
+  },
+  "poolStatusEmpty": {
+    "message": "No hay proxies disponibles",
+    "description": "Pool status empty message"
+  },
   "presetProxyPublicPool": {
-    "message": "Pool público",
+    "message": "🌐 Pool público",
     "description": "Label for public pool option in proxy selector"
   }
 }

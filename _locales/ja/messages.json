@@ -630,8 +630,28 @@
     "message": "接続エラー",
     "description": "TODO: needs native translation"
   },
+  "publicPoolHint": {
+    "message": "安定性のため、ドメインをプール内の異なるプロキシにルーティングします",
+    "description": "Public pool hint text"
+  },
+  "publicPoolHttpHint": {
+    "message": "HTTPプロキシはHTTPSトラフィックをサポートしない場合があります",
+    "description": "HTTP proxy warning for public pool"
+  },
+  "poolStatusLabel": {
+    "message": "プールステータス:",
+    "description": "Pool status label prefix"
+  },
+  "poolStatusChecking": {
+    "message": "確認中…",
+    "description": "Pool status checking text"
+  },
+  "poolStatusEmpty": {
+    "message": "利用可能なプロキシがありません",
+    "description": "Pool status empty message"
+  },
   "presetProxyPublicPool": {
-    "message": "公開プール",
+    "message": "🌐 公開プール",
     "description": "Label for public pool option in proxy selector"
   }
 }

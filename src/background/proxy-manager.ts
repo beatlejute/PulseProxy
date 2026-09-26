@@ -1,14 +1,17 @@
 import { Storage } from '../shared/storage';
-import { ProxyState, Config } from '../shared/constants';
-import { ProxyServer, ProxyType } from '../types';
+import { ProxyState, Config, PublicPoolCheckConfig } from '../shared/constants';
+import { Preset, ProxyServer, ProxyType } from '../types';
 import { toASCII } from '../shared/punycode';
 import { matchesDomain } from '../shared/domain-matcher';
 import { trackEvent } from '../shared/analytics';
+import { poolSignature, resolvePoolMembers } from '../shared/public-pool';
 
 // Routing decision for a URL: which proxy serves it and whether it matched
 // only via the "proxy all sites by default" fallback (no preset rule).
 export interface ProxyRoute {
-    server: ProxyServer;
+    kind: 'own' | 'pool';
+    server: ProxyServer | null;   // для kind='pool' всегда null
+    poolSize?: number;            // для kind='pool': число членов пула
     viaProxyAll: boolean;
 }
 
@@ -115,6 +118,7 @@ class ProxyManagerService {
     // domain -> proxy label (host:port)
     private domainProxyMap: Map<string, string> = new Map();
     private domainProxyServerMap: Map<string, ProxyServer> = new Map();
+    private domainPoolRouteMap: Map<string, number> = new Map();
     private ignoreDomains: Set<string> = new Set();
     private proxyByDefault: boolean = false;
     private defaultProxyLabel: string = '';
@@ -148,6 +152,11 @@ class ProxyManagerService {
             if (matchesDomain(host, domain)) return null;
         }
 
+        // Check pool route rules
+        for (const [domain, poolSize] of this.domainPoolRouteMap) {
+            if (matchesDomain(host, domain)) return `Public pool (${poolSize})`;
+        }
+
         // Check domain-specific proxy rules
         for (const [domain, label] of this.domainProxyMap) {
             if (matchesDomain(host, domain)) return label;
@@ -171,12 +180,16 @@ class ProxyManagerService {
             if (matchesDomain(host, domain)) return null;
         }
 
+        for (const [domain, poolSize] of this.domainPoolRouteMap) {
+            if (matchesDomain(host, domain)) return { kind: 'pool', server: null, poolSize, viaProxyAll: false };
+        }
+
         for (const [domain, server] of this.domainProxyServerMap) {
-            if (matchesDomain(host, domain)) return { server, viaProxyAll: false };
+            if (matchesDomain(host, domain)) return { kind: 'own', server, viaProxyAll: false };
         }
 
         return this.proxyByDefault && this.defaultProxyServer
-            ? { server: this.defaultProxyServer, viaProxyAll: true }
+            ? { kind: 'own', server: this.defaultProxyServer, viaProxyAll: true }
             : null;
     }
 
@@ -221,8 +234,8 @@ class ProxyManagerService {
         });
     }
 
-    private computeConfigHash(presets: any[], proxies: any[], proxyByDefault: boolean): string {
-        const config = JSON.stringify({ presets, proxies, proxyByDefault });
+    private computeConfigHash(presets: any[], proxies: any[], proxyByDefault: boolean, poolSignature: string): string {
+        const config = JSON.stringify({ presets, proxies, proxyByDefault, poolSignature });
         console.log('ProxyManager: computeConfigHash input:', config);
         let hash = 5381;
         for (let i = 0; i < config.length; i++) {
@@ -332,7 +345,7 @@ class ProxyManagerService {
         }
     }
 
-    async enable(): Promise<void> {
+    async enable(options?: { silent?: boolean }): Promise<void> {
         await this.loadDomainsFromPresets();
         await this.loadCredentials();
 
@@ -342,7 +355,8 @@ class ProxyManagerService {
             Storage.getProxyByDefault(),
         ]);
 
-        const configHash = this.computeConfigHash(activePresets, proxies, proxyByDefault);
+        const { signature: poolSig } = await this.resolvePools(activePresets);
+        const configHash = this.computeConfigHash(activePresets, proxies, proxyByDefault, poolSig);
 
         // Get defaultProxy early to validate before cache check
         const defaultProxy = await Storage.getDefaultProxy();
@@ -373,13 +387,16 @@ class ProxyManagerService {
             await this.updateRoutingCache();
             this.lastConnectedProxyId = defaultProxy?.id ?? null;
             const gen = ++this.enableGeneration;
-            return this.applyPacScript(pacScript, defaultProxy, gen);
+            return this.applyPacScript(pacScript, defaultProxy, gen, options?.silent);
         }
 
         if (!defaultProxy) {
-            console.log('ProxyManager: No proxy configured');
-            await Storage.setCurrentState(ProxyState.DISCONNECTED);
-            return;
+            const hasPool = activePresets.some(preset => !!preset.publicPool);
+            if (!hasPool) {
+                console.log('ProxyManager: No proxy configured');
+                await Storage.setCurrentState(ProxyState.DISCONNECTED);
+                return;
+            }
         }
 
         const pacScript = await this.generatePacScript();
@@ -394,10 +411,10 @@ class ProxyManagerService {
         this.lastConnectedProxyId = defaultProxy?.id ?? null;
 
         const gen = ++this.enableGeneration;
-        return this.applyPacScript(pacScript, defaultProxy, gen);
+        return this.applyPacScript(pacScript, defaultProxy, gen, options?.silent);
     }
 
-    private async applyPacScript(pacScript: string, defaultProxy?: ProxyServer, gen = 0): Promise<void> {
+    private async applyPacScript(pacScript: string, defaultProxy?: ProxyServer, gen = 0, silent = false): Promise<void> {
         return new Promise((resolve) => {
             chrome.proxy.settings.set(
                 {
@@ -420,7 +437,7 @@ class ProxyManagerService {
                         console.log('ProxyManager: Proxy enabled');
                         Storage.setCurrentState(ProxyState.CONNECTED);
 
-                        if (defaultProxy) {
+                        if (defaultProxy && !silent) {
                             const result = await chrome.storage.local.get(['ga4_activation_count', 'ga4_install_ts']);
                             const ga4_activation_count = (result.ga4_activation_count as number) || 0;
                             const ga4_install_ts = (result.ga4_install_ts as number) || 0;
@@ -474,6 +491,7 @@ class ProxyManagerService {
         this.ignoreDomains = new Set();
         this.domainProxyMap = new Map();
         this.domainProxyServerMap = new Map();
+        this.domainPoolRouteMap = new Map();
     }
 
     private async updateRoutingCache(): Promise<void> {
@@ -490,18 +508,49 @@ class ProxyManagerService {
         this.ignoreDomains = new Set();
         this.domainProxyMap = new Map();
         this.domainProxyServerMap = new Map();
+        this.domainPoolRouteMap = new Map();
+
+        const { poolSizes } = await this.resolvePools(activePresets);
+
+        // Keep routing precedence consistent with PAC: ignore, pool, then own.
+        const ownerOf = (preset: Preset): 'ignore' | 'own' | 'pool' =>
+            preset.isDefault ? 'ignore' : preset.publicPool ? 'pool' : 'own';
+        const ownerRank = { own: 1, pool: 2, ignore: 3 } as const;
+        const lastOwner = new Map<string, 'ignore' | 'own' | 'pool'>();
+        for (const preset of activePresets) {
+            for (const domain of preset.domains) {
+                const owner = ownerOf(preset);
+                const current = lastOwner.get(domain);
+                if (!current || ownerRank[owner] >= ownerRank[current]) {
+                    lastOwner.set(domain, owner);
+                }
+            }
+        }
 
         for (const preset of activePresets) {
             if (preset.isDefault) {
-                for (const d of preset.domains) this.ignoreDomains.add(d);
+                for (const d of preset.domains) {
+                    if (lastOwner.get(d) === 'ignore') this.ignoreDomains.add(d);
+                }
+            } else if (preset.publicPool) {
+                for (const d of preset.domains) {
+                    if (lastOwner.get(d) === 'pool') {
+                        const poolSize = poolSizes.get(d);
+                        if (poolSize !== undefined) {
+                            this.domainPoolRouteMap.set(d, poolSize);
+                        }
+                    }
+                }
             } else {
                 const proxy = preset.proxyId
                     ? proxies.find(p => p.id === preset.proxyId)
                     : defaultProxy;
                 const label = proxy ? this.proxyLabel(proxy) : this.defaultProxyLabel;
                 for (const d of preset.domains) {
-                    this.domainProxyMap.set(d, label);
-                    if (proxy) this.domainProxyServerMap.set(d, proxy);
+                    if (lastOwner.get(d) === 'own') {
+                        this.domainProxyMap.set(d, label);
+                        if (proxy) this.domainProxyServerMap.set(d, proxy);
+                    }
                 }
             }
         }
@@ -547,6 +596,43 @@ class ProxyManagerService {
         }
     }
 
+    private async resolvePools(activePresets: Preset[]): Promise<{
+        pools: string[][];
+        domainPoolMap: Record<string, number>;
+        poolSizes: Map<string, number>;
+        signature: string;
+    }> {
+        const [catalogCache, results] = await Promise.all([
+            Storage.getPublicProxyCatalog(),
+            Storage.getPublicProxyCheckResults(),
+        ]);
+        const catalog = catalogCache?.proxies ?? [];
+        const pools: string[][] = [];
+        const domainPoolMap: Record<string, number> = {};
+        const poolSizes = new Map<string, number>();
+        const signatures: string[] = [];
+
+        for (const preset of activePresets) {
+            if (preset.isDefault || !preset.publicPool) continue;
+
+            const { members } = resolvePoolMembers(preset.publicPool, catalog, results, Date.now());
+            const poolIndex = pools.length;
+            pools.push(members.map(member => this.formatProxyForPac({
+                type: member.protocol,
+                host: member.ip,
+                port: member.port,
+            })));
+            signatures.push(poolSignature(members));
+
+            for (const domain of preset.domains) {
+                domainPoolMap[domain] = poolIndex;
+                poolSizes.set(domain, members.length);
+            }
+        }
+
+        return { pools, domainPoolMap, poolSizes, signature: signatures.join(';') };
+    }
+
     /**
      * Generates PAC script for proxy configuration.
      *
@@ -568,33 +654,59 @@ class ProxyManagerService {
 
         // Создаём маппинг домен -> прокси
         const domainProxyMap: { [domain: string]: string } = {};
-        
+
+        // Публичные пулы: домен -> индекс пула, pools[индекс] -> список "TYPE ip:port"
+        const { pools, domainPoolMap } = await this.resolvePools(activePresets);
+
         // Собираем домены из Ignore List (isDefault пресет) - они всегда идут DIRECT
         const ignoreListDomains: string[] = [];
-        
+
+        // Домен одновременно только в одной карте. Приоритет: Ignore List,
+        // публичный пул, затем собственный прокси.
+        const ownerOf = (preset: Preset): 'ignore' | 'own' | 'pool' =>
+            preset.isDefault ? 'ignore' : preset.publicPool ? 'pool' : 'own';
+        const ownerRank = { own: 1, pool: 2, ignore: 3 } as const;
+        const lastOwner = new Map<string, 'ignore' | 'own' | 'pool'>();
         for (const preset of activePresets) {
-            if (preset.isDefault) {
-                // Ignore List - домены идут напрямую (DIRECT)
-                ignoreListDomains.push(...preset.domains);
-            } else {
-                // Обычные пресеты - домены идут через прокси
-                const proxy = preset.proxyId
-                    ? proxies.find(p => p.id === preset.proxyId)
-                    : defaultProxy;
-                
-                if (proxy) {
-                    const proxyString = this.formatProxyForPac(proxy);
-                    for (const domain of preset.domains) {
-                        domainProxyMap[domain] = proxyString;
-                    }
+            for (const domain of preset.domains) {
+                const owner = ownerOf(preset);
+                const current = lastOwner.get(domain);
+                if (!current || ownerRank[owner] >= ownerRank[current]) {
+                    lastOwner.set(domain, owner);
                 }
             }
         }
-        
+
+        for (const preset of activePresets) {
+            const owner = ownerOf(preset);
+            for (const domain of preset.domains) {
+                if (lastOwner.get(domain) !== owner) continue;
+
+                if (owner === 'ignore') {
+                    ignoreListDomains.push(domain);
+                } else if (owner === 'own') {
+                    const proxy = preset.proxyId
+                        ? proxies.find(p => p.id === preset.proxyId)
+                        : defaultProxy;
+                    if (proxy) {
+                        domainProxyMap[domain] = this.formatProxyForPac(proxy);
+                    }
+                }
+                // owner === 'pool': домен уже в domainPoolMap из resolvePools
+            }
+        }
+
+        // Домены с более высоким приоритетом уходят из pool-карты.
+        for (const domain of Object.keys(domainPoolMap)) {
+            if (lastOwner.get(domain) !== 'pool') {
+                delete domainPoolMap[domain];
+            }
+        }
+
         // Добавляем дефолтные домены с дефолтным прокси (не в режиме proxyByDefault)
         if (defaultProxy && !proxyByDefault) {
             for (const domain of Config.DEFAULT_DOMAINS) {
-                if (!domainProxyMap[domain]) {
+                if (!lastOwner.has(domain) && !domainProxyMap[domain]) {
                     domainProxyMap[domain] = this.formatProxyForPac(defaultProxy);
                 }
             }
@@ -608,6 +720,7 @@ class ProxyManagerService {
             : 'DIRECT';
 
         console.log('ProxyManager: Generating PAC script with domain-proxy map:', domainProxyMap,
+            'domain-pool map:', domainPoolMap,
             'ignoreList:', ignoreListDomains, 'fallback:', fallbackProxy, 'proxyByDefault:', proxyByDefault);
 
         // Convert domains to Punycode (ASCII) for PAC script
@@ -616,13 +729,21 @@ class ProxyManagerService {
             asciiDomainProxyMap[toASCII(domain)] = proxy;
         }
         const asciiIgnoreList = ignoreListDomains.map(d => toASCII(d));
+        const asciiDomainPoolMap: { [domain: string]: number } = {};
+        for (const [domain, poolIndex] of Object.entries(domainPoolMap)) {
+            asciiDomainPoolMap[toASCII(domain)] = poolIndex;
+        }
 
         // PAC script must be ASCII-only (no non-ASCII comments or strings)
         return `
             var domainProxyMap = ${JSON.stringify(asciiDomainProxyMap)};
+            var domainPoolMap = ${JSON.stringify(asciiDomainPoolMap)};
+            var pools = ${JSON.stringify(pools)};
             var ignoreList = ${JSON.stringify(asciiIgnoreList)};
             var fallbackProxy = ${JSON.stringify(fallbackProxy)};
             var proxyByDefault = ${JSON.stringify(proxyByDefault)};
+            var POOL_CHAIN = ${PublicPoolCheckConfig.CHAIN_LENGTH};
+            var EMPTY_POOL = ${JSON.stringify(PublicPoolCheckConfig.EMPTY_POOL_SENTINEL)};
             
             function matchDomain(host, domain) {
                 if (domain.indexOf("*.") === 0) {
@@ -633,12 +754,50 @@ class ProxyManagerService {
                 return host === domain;
             }
 
+            // FNV-1a 32-bit: stable per-domain hash for rendezvous picking.
+            // Same host always scores the same pool members the same way.
+            function fnv1a(s) {
+                var h = 0x811c9dc5;
+                for (var i = 0; i < s.length; i++) {
+                    h ^= s.charCodeAt(i);
+                    h = Math.imul(h, 0x01000193);
+                }
+                return h >>> 0;
+            }
+
+            // Rendezvous key: "*.example.com" and "example.com" share one key.
+            function poolKey(rule) {
+                return rule.indexOf("*.") === 0 ? rule.substring(2) : rule;
+            }
+
+            // Top POOL_CHAIN members by hash score, joined as a PAC chain.
+            // Empty pool fails closed: no real IP may leak through DIRECT.
+            function pickFromPool(pool, key) {
+                if (!pool || pool.length === 0) return EMPTY_POOL;
+                var scored = [];
+                for (var i = 0; i < pool.length; i++) {
+                    scored.push([fnv1a(key + "|" + pool[i]), pool[i]]);
+                }
+                scored.sort(function (a, b) { return b[0] - a[0]; });
+                var out = [];
+                for (var j = 0; j < scored.length && j < POOL_CHAIN; j++) out.push(scored[j][1]);
+                return out.join("; ");
+            }
+
             function FindProxyForURL(url, host) {
                 ${testRuleInjection}
                 // Check ignore list first (always DIRECT)
                 for (var i = 0; i < ignoreList.length; i++) {
                     if (matchDomain(host, ignoreList[i])) {
                         return "DIRECT";
+                    }
+                }
+
+                // Check public pool rules (stable chain per domain, no DIRECT tail)
+                var poolDomains = Object.keys(domainPoolMap);
+                for (var k = 0; k < poolDomains.length; k++) {
+                    if (matchDomain(host, poolDomains[k])) {
+                        return pickFromPool(pools[domainPoolMap[poolDomains[k]]], poolKey(poolDomains[k]));
                     }
                 }
 
@@ -737,6 +896,12 @@ class ProxyManagerService {
 
     get isConnected(): boolean {
         return this.cachedPacScript !== null;
+    }
+
+    async refreshIfConnected(): Promise<void> {
+        if (this.isConnected && (await Storage.getTargetState()) === 'connected') {
+            await this.enable({ silent: true });
+        }
     }
 }
 

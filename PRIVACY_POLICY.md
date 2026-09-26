@@ -49,10 +49,11 @@ Notes:
 
 | Request | Destination | Purpose |
 |---------|-------------|---------|
-| Public proxy list | `raw.githubusercontent.com` → fallback `cdn.jsdelivr.net` | Fetch `sources/proxys.json` for the public proxies catalog |
+| Public proxy list | `raw.githubusercontent.com` → fallback `cdn.jsdelivr.net` | Fetch `sources/proxys.json` for the public proxies catalog; also loaded in background (no more than once every 6 hours) while a preset with the public pool is enabled |
 | Preset templates | `raw.githubusercontent.com` → fallback `cdn.jsdelivr.net` | Fetch ready-made domain sets |
 | Remote configuration | `raw.githubusercontent.com` → fallback `cdn.jsdelivr.net` | Fetch the current promo/referral link |
 | Proxy health check | `http://example.com/?_pulse_check=<random-id>` **through the proxy being tested** | Verify that the proxy actually works |
+| Pool liveness check | `http://example.com/` **through each proxy in the pool** every 15 minutes while pool is enabled | Verify that proxies in the pool remain reachable (same mechanism as manual check in modal) |
 
 These requests contain no personal data. The health-check request is deliberately routed through the proxy under test, so that proxy's operator sees it — as they would see any request you send through them.
 

@@ -1415,6 +1415,108 @@ button.support-project {
 }
 
 /* ========================================
+   Preset Public Pool Config
+   ======================================== */
+
+/* Контейнер блока публичного пула — отделён от остальных секций пресета
+   тонкой рамкой сверху, как .preset-proxy-selector */
+.preset-pool-config {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left;
+}
+
+/* Чекбоксы протоколов в строку с переносом */
+.pool-protocols {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 4px;
+  width: 100%;
+}
+
+/* Заголовок и текстовые подсказки занимают отдельную строку внутри flex-контейнера */
+.pool-protocols > h4,
+.pool-protocols > .pool-hint {
+  flex: 0 0 100%;
+}
+
+/* label + checkbox в одну горизонтальную строку */
+.pool-protocols label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--main-text-color);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pool-protocols input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  min-width: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: var(--action-color);
+  cursor: pointer;
+}
+
+/* Мелкая приглушённая подсказка под списком протоколов */
+.pool-hint {
+  margin: 0;
+  color: var(--initial-color);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: left;
+}
+
+/* Строка статуса: подпись слева, значение справа */
+.pool-status-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  font-size: 11px;
+}
+
+.pool-status-label {
+  color: var(--initial-color);
+  font-size: 11px;
+}
+
+.pool-status-value {
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Три различимых состояния статуса */
+.pool-status--checking {
+  color: var(--initial-color);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.pool-status--ok {
+  color: var(--success-color);
+}
+
+.pool-status--empty {
+  color: var(--error-color);
+}
+
+/* ========================================
    Preset Type Dialog & Templates Modal
    ======================================== */
 

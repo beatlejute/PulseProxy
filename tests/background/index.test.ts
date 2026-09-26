@@ -25,6 +25,8 @@ const mockStorage = {
     init: jest.fn().mockResolvedValue(undefined),
     onChange: jest.fn(),
     getCurrentState: jest.fn(),
+    getTargetState: jest.fn().mockResolvedValue('disconnected'),
+    getActivePresets: jest.fn().mockResolvedValue([]),
 };
 
 // background/index.ts на верхнем уровне вызывает SyncService.registerLocalToCloudSync()
@@ -283,6 +285,8 @@ describe('Background Script', () => {
             };
             chromeGlobal.alarms = {
                 create: jest.fn(),
+                clear: jest.fn().mockResolvedValue(true),
+                get: jest.fn().mockResolvedValue(null),
                 onAlarm: { addListener: jest.fn(), removeListener: jest.fn() },
             };
             chromeGlobal.webRequest = {
@@ -665,7 +669,7 @@ describe('Background Script', () => {
             it('should refresh badges of all tabs after toggle completes', async () => {
                 const server = { id: 'p1', type: 'http', host: '1.2.3.4', port: 8080 };
                 (mockProxyManager.toggle as jest.Mock).mockResolvedValue(undefined);
-                (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue({ server, viaProxyAll: true });
+                (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue({ kind: 'own', server, viaProxyAll: true });
                 (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
 
                 const chromeGlobal = (global as unknown as { chrome: Record<string, unknown> }).chrome as Record<string, unknown>;

@@ -621,5 +621,9 @@
   "poolStatusEmpty": {
     "message": "No proxies available",
     "description": "Status text when pool is empty"
+  },
+  "proxiesAvailable": {
+    "message": "proxies available",
+    "description": "Text for available proxies count"
   }
 }

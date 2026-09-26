@@ -650,6 +650,10 @@
     "message": "No hay proxies disponibles",
     "description": "Pool status empty message"
   },
+  "proxiesAvailable": {
+    "message": "proxies disponibles",
+    "description": "Texto para cantidad de proxys disponibles"
+  },
   "presetProxyPublicPool": {
     "message": "🌐 Pool público",
     "description": "Label for public pool option in proxy selector"

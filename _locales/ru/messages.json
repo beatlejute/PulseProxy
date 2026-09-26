@@ -653,5 +653,9 @@
   "poolStatusEmpty": {
     "message": "Нет доступных прокси",
     "description": "Текст статуса, когда пул пуст"
+  },
+  "proxiesAvailable": {
+    "message": "прокси доступно",
+    "description": "Текст для количества доступных прокси"
   }
 }

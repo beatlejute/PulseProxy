@@ -1,17 +1,16 @@
 import { I18n } from '../shared/i18n';
 import { RemoteConfig } from '../shared/remote-config';
 import { Storage } from '../shared/storage';
-import { ProxyType, ProxyServer, NormalizedPublicProxy, PublicProxiesResponse, PublicProxyFilters, PublicProxyLiveStatus } from '../types';
+import { ProxyType, ProxyServer, NormalizedPublicProxy, PublicProxyFilters, PublicProxyLiveStatus } from '../types';
 import { createElementFromTemplate, setAttr } from './safe-dom';
 import { ModalHelper } from './modal-helper';
 import { checkProxyBeforeAdd } from './proxy-form-modal';
 import { trackEvent, buildAffiliateUrl } from '../shared/analytics';
-import { fetchWithFallback } from '../shared/fetch-with-fallback';
 import { parseProxyString } from '../shared/proxy-parser';
 import { PublicProxyCheckSession, publicProxyCacheKey, sortByLiveStatus } from './public-proxy-check';
+import { PublicProxyCatalog } from '../shared/public-proxy-catalog';
 
-const PUBLIC_PROXIES_PRIMARY_URL = 'https://raw.githubusercontent.com/beatlejute/PulseProxy/refs/heads/main/sources/proxys.json';
-const PUBLIC_PROXIES_FALLBACK_URL = 'https://cdn.jsdelivr.net/gh/beatlejute/PulseProxy@master/sources/proxys.json';
+export { normalizeProxies } from '../shared/public-proxy-catalog';
 
 export function validateIpPortFormat(input: string): boolean {
     const ipPortRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}:\d{1,5}$/;
@@ -24,10 +23,10 @@ export function normalizeProxySearchQuery(input: string): string {
     return parsed.port !== undefined ? `${parsed.host}:${parsed.port}` : parsed.host;
 }
 
-let cachedProxies: NormalizedPublicProxy[] | null = null;
+let forceRefreshOnNextOpen = false;
 
 export function clearPublicProxiesCache(): void {
-    cachedProxies = null;
+    forceRefreshOnNextOpen = true;
 }
 
 // UI-хуки фоновой проверки для элемента списка (undefined — функционал выключен)
@@ -216,19 +215,13 @@ async function loadAndRenderPublicProxies(
     onProxyAdded: (proxy: NormalizedPublicProxy) => Promise<void>
 ): Promise<void> {
     try {
-        if (!cachedProxies) {
-            const cacheBuster = `?_t=${Date.now()}`;
-            const urls = [
-                `${PUBLIC_PROXIES_PRIMARY_URL}${cacheBuster}`,
-                `${PUBLIC_PROXIES_FALLBACK_URL}${cacheBuster}`,
-            ];
-            const rawData = await fetchWithFallback<PublicProxiesResponse>(urls);
-            cachedProxies = normalizeProxies(rawData);
-        }
+        const forceRefresh = forceRefreshOnNextOpen;
+        forceRefreshOnNextOpen = false;
+        const catalogProxies = await PublicProxyCatalog.get({ forceRefresh });
 
         // Уже добавленные пользователем прокси в списке не показываем
         const savedProxies = await Storage.getProxies();
-        const proxies = excludeAddedProxies(cachedProxies || [], savedProxies);
+        const proxies = excludeAddedProxies(catalogProxies || [], savedProxies);
 
         const countries = [...new Set(proxies.map(p => p.country))].sort();
         const countrySelect = body.querySelector('#filter-country') as HTMLSelectElement;
@@ -341,35 +334,11 @@ async function loadAndRenderPublicProxies(
             listContainer.appendChild(loadingStateEl);
 
             I18n.applyTranslations();
-            cachedProxies = null;
+            // Force refresh by clearing the in-flight promise
+            PublicProxyCatalog.get({ forceRefresh: true }).catch(() => { /* ignore */ });
             loadAndRenderPublicProxies(body, listContainer, closeModal, onProxyAdded);
         });
     }
-}
-
-export function normalizeProxies(response: PublicProxiesResponse): NormalizedPublicProxy[] {
-    const result: NormalizedPublicProxy[] = [];
-    const protocols: (keyof PublicProxiesResponse)[] = ['http', 'https', 'socks4', 'socks5'];
-
-    for (const protocol of protocols) {
-        const proxies = response[protocol] || [];
-        for (const proxy of proxies) {
-            const [ip, portStr] = proxy.ip.split(':');
-            const port = parseInt(portStr, 10);
-            if (ip && !isNaN(port)) {
-                result.push({
-                    protocol: protocol as ProxyType,
-                    ip,
-                    port,
-                    score: proxy.score,
-                    connectionType: proxy.type.toLowerCase(),
-                    country: proxy.country,
-                });
-            }
-        }
-    }
-
-    return result.sort((a, b) => b.score - a.score);
 }
 
 export function excludeAddedProxies(

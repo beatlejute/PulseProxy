@@ -26,6 +26,33 @@ Current version: **1.4.0**
 - **Domain Matching**: Exact (`example.com`) and wildcard subdomain (`*.example.com`) matching, with IDN/punycode support
 - **Proxy All Sites Mode**: Route all traffic through the proxy by default
 - **Ignore List**: Domains that always bypass the proxy
+- **Public Proxy Pool**: Bind a preset to a filtered subset of the built-in public proxies catalog instead of a single server
+
+### Public Proxy Pool
+
+#### What is the public proxy pool
+
+A preset can be bound to a filtered subset of public proxies from the catalog rather than a single proxy server. Each site in the preset is routed through its own randomly selected live proxy — dead proxies are dropped automatically by background checks.
+
+Rendezvous hashing: each site is stably routed to one proxy from the pool. The same domain always resolves to the same proxy, so sessions and IP-bound tokens (e.g. `cf_clearance`) stay intact across page reloads.
+
+#### How to configure
+
+1. Open the preset settings
+2. In the "Proxy" field, select "🌐 Public pool"
+3. Configure filters: protocols, country, connection type, minimum score
+4. Save — the pool activates automatically
+
+#### Indication
+
+- Tab badge `🌐` — pool is active, N proxies in the pool
+- Badge `!` — pool is empty, traffic goes via DIRECT
+
+#### Limitations
+
+- Maximum 200 proxies in the pool
+- HTTP proxies cannot carry HTTPS traffic
+- The pool is rechecked every 15 minutes
 
 ### Interface
 - **Per-tab Badge**: The toolbar icon shows whether the current tab goes through a proxy — a flag/checkmark in the proxy's color, `ALL` for the "proxy all sites" mode, and an error indicator on failure

@@ -221,8 +221,9 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             const route = ProxyManager.getRouteForUrl('https://random-site.com/page');
 
             expect(route).not.toBeNull();
+            expect(route!.kind).toBe('own');
             expect(route!.viaProxyAll).toBe(true);
-            expect(route!.server.host).toBe('10.0.0.1');
+            expect(route!.server!.host).toBe('10.0.0.1');
         });
 
         it('should not mark route as viaProxyAll for preset-matched sites', async () => {
@@ -238,8 +239,9 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             const route = ProxyManager.getRouteForUrl('https://preset-site.com/page');
 
             expect(route).not.toBeNull();
+            expect(route!.kind).toBe('own');
             expect(route!.viaProxyAll).toBe(false);
-            expect(route!.server.host).toBe('10.0.0.1');
+            expect(route!.server!.host).toBe('10.0.0.1');
         });
 
         it('should return null for ignore-list sites even when proxyByDefault is enabled', async () => {
@@ -266,6 +268,238 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             await ProxyManager.enable();
 
             expect(ProxyManager.getRouteForUrl('https://random-site.com/page')).toBeNull();
+        });
+
+        it('should return pool route for pool preset domain', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            const proxy2 = { protocol: 'socks5', ip: '5.6.7.8', port: 1081, score: 4, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                presets: [{
+                    ...createPreset(['pool-site.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1, proxy2],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                    'socks5://5.6.7.8:1081': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const route = ProxyManager.getRouteForUrl('https://pool-site.com/page');
+
+            expect(route).not.toBeNull();
+            expect(route!.kind).toBe('pool');
+            expect(route!.server).toBeNull();
+            expect(route!.poolSize).toBe(2);
+            expect(route!.viaProxyAll).toBe(false);
+        });
+
+        it('should give ignore-list priority over pool routes', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                presets: [
+                    {
+                        ...createPreset(['shared-domain.com'], true, false, 'pool-preset'),
+                        proxyId: null,
+                        publicPool: { protocols: ['socks5' as const] },
+                    },
+                    createPreset(['shared-domain.com'], true, true, 'ignore-list'),
+                ],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            expect(ProxyManager.getRouteForUrl('https://shared-domain.com/page')).toBeNull();
+        });
+
+        it('should give pool route priority over own route when both match', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [
+                    createPreset(['conflict.com'], true, false, 'own-preset'),
+                    {
+                        ...createPreset(['conflict.com'], true, false, 'pool-preset'),
+                        proxyId: null,
+                        publicPool: { protocols: ['socks5' as const] },
+                    },
+                ],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const route = ProxyManager.getRouteForUrl('https://conflict.com/page');
+
+            expect(route).not.toBeNull();
+            expect(route!.kind).toBe('pool');
+            expect(route!.server).toBeNull();
+        });
+    });
+
+    describe('getProxyForUrl()', () => {
+        it('should return proxy label for own preset domain', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['own-site.com'])],
+                proxyByDefault: false,
+            });
+
+            await ProxyManager.enable();
+
+            const label = ProxyManager.getProxyForUrl('https://own-site.com/page');
+            expect(label).toBe('10.0.0.1:8080');
+        });
+
+        it('should return "Public pool (N)" for pool preset domain', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            const proxy2 = { protocol: 'socks5', ip: '5.6.7.8', port: 1081, score: 4, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                presets: [{
+                    ...createPreset(['pool-site.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1, proxy2],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                    'socks5://5.6.7.8:1081': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            expect(ProxyManager.getProxyForUrl('https://pool-site.com/page')).toBe('Public pool (2)');
+        });
+
+        it('should return null for ignore-list domain with pool', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                presets: [
+                    createPreset(['ignored.com'], true, true, 'ignore-list'),
+                    {
+                        ...createPreset(['pool-site.com'], true, false, 'pool-preset'),
+                        proxyId: null,
+                        publicPool: { protocols: ['socks5' as const] },
+                    },
+                ],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            expect(ProxyManager.getProxyForUrl('https://ignored.com/page')).toBeNull();
+        });
+    });
+
+    describe('getProxyServerForUrl()', () => {
+        it('should return proxy server for own preset domain', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['own-site.com'])],
+                proxyByDefault: false,
+            });
+
+            await ProxyManager.enable();
+
+            const server = ProxyManager.getProxyServerForUrl('https://own-site.com/page');
+            expect(server).not.toBeNull();
+            expect(server!.host).toBe('10.0.0.1');
+        });
+
+        it('should return null for pool route', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                presets: [{
+                    ...createPreset(['pool-site.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            expect(ProxyManager.getProxyServerForUrl('https://pool-site.com/page')).toBeNull();
+        });
+
+        it('should return null after disable clears routing cache', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                presets: [{
+                    ...createPreset(['pool-site.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const routeBefore = ProxyManager.getRouteForUrl('https://pool-site.com/page');
+            expect(routeBefore).not.toBeNull();
+            expect(routeBefore!.kind).toBe('pool');
+
+            await ProxyManager.disable();
+
+            expect(ProxyManager.getRouteForUrl('https://pool-site.com/page')).toBeNull();
+            expect(ProxyManager.getProxyServerForUrl('https://pool-site.com/page')).toBeNull();
         });
     });
 

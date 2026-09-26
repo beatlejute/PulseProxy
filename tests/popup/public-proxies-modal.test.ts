@@ -48,6 +48,8 @@ jest.mock('../../src/shared/storage', () => ({
         setPublicProxiesFiltersCollapsed: jest.fn().mockResolvedValue(undefined),
         getPublicProxyCheckResults: jest.fn().mockResolvedValue({}),
         mergePublicProxyCheckResults: jest.fn().mockResolvedValue(undefined),
+        getPublicProxyCatalog: jest.fn().mockResolvedValue({ proxies: [], fetchedAt: 0 }),
+        setPublicProxyCatalog: jest.fn().mockResolvedValue(undefined),
     },
 }));
 

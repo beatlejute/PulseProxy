@@ -313,7 +313,8 @@ export type I18nKey =
     | 'publicPoolHttpHint'
     | 'poolStatusLabel'
     | 'poolStatusChecking'
-    | 'poolStatusEmpty';
+    | 'poolStatusEmpty'
+    | 'proxiesAvailable';
 
 // Структура экспортируемых данных
 export interface ExportData {

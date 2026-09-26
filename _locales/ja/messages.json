@@ -650,6 +650,10 @@
     "message": "利用可能なプロキシがありません",
     "description": "Pool status empty message"
   },
+  "proxiesAvailable": {
+    "message": "プロキシ利用可能",
+    "description": "プール利用可能なプロキシの数のテキスト"
+  },
   "presetProxyPublicPool": {
     "message": "🌐 公開プール",
     "description": "Label for public pool option in proxy selector"

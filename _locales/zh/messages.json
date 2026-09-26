@@ -650,6 +650,10 @@
     "message": "没有可用的代理",
     "description": "Pool status empty message"
   },
+  "proxiesAvailable": {
+    "message": "代理可用",
+    "description": "池中可用代理的文本"
+  },
   "presetProxyPublicPool": {
     "message": "🌐 公共代理池",
     "description": "Label for public pool option in proxy selector"

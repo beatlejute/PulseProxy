@@ -99,10 +99,11 @@ describe('constants.ts', () => {
             expect(LOCAL_STORAGE_KEYS).toContain('publicProxiesWarningDismissed');
             expect(LOCAL_STORAGE_KEYS).toContain('publicProxiesFiltersCollapsed');
             expect(LOCAL_STORAGE_KEYS).toContain('publicProxyCheckResults');
+            expect(LOCAL_STORAGE_KEYS).toContain('publicProxyCatalog');
         });
 
-        it('should have 7 keys', () => {
-            expect(LOCAL_STORAGE_KEYS).toHaveLength(7);
+        it('should have 8 keys', () => {
+            expect(LOCAL_STORAGE_KEYS).toHaveLength(8);
         });
     });
 
@@ -122,10 +123,11 @@ describe('constants.ts', () => {
             expect(StorageKeys.PUBLIC_PROXIES_WARNING_DISMISSED).toBe('publicProxiesWarningDismissed');
             expect(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED).toBe('publicProxiesFiltersCollapsed');
             expect(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS).toBe('publicProxyCheckResults');
+            expect(StorageKeys.PUBLIC_PROXY_CATALOG).toBe('publicProxyCatalog');
         });
 
-        it('should have 14 keys', () => {
-            expect(Object.keys(StorageKeys)).toHaveLength(14);
+        it('should have 15 keys', () => {
+            expect(Object.keys(StorageKeys)).toHaveLength(15);
         });
     });
 

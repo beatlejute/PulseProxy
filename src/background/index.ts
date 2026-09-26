@@ -1,13 +1,19 @@
 import { ProxyManager } from './proxy-manager';
 import { IconManager } from './icon-manager';
+import { PublicPoolScheduler } from './public-pool-scheduler';
 import { Storage } from '../shared/storage';
 import { SyncService } from '../storage/sync-service';
-import { StorageKeys, SYNC_STORAGE_KEYS, ProxyState } from '../shared/constants';
+import { StorageKeys, SYNC_STORAGE_KEYS, ProxyState, PublicPoolCheckConfig } from '../shared/constants';
 import { ExtensionMessage, StorageChanges, CheckProxyResult, CheckProxyBatchItemResult, CheckProxyBatchResponse, ProxyServer } from '../types';
 import { trackEvent, sendGA4Event } from '../shared/analytics';
 
 const HEARTBEAT_ALARM = 'ga4_heartbeat';
 const HEARTBEAT_INTERVAL_MIN = 10080;
+
+export const publicPoolScheduler = new PublicPoolScheduler({
+    runBatch: checkProxyBatch,
+    refreshProxy: () => ProxyManager.refreshIfConnected(),
+});
 
 console.log('Background: Starting...');
 
@@ -49,7 +55,7 @@ chrome.runtime.setUninstallURL(
 );
 
 // Обработчик изменений в storage
-Storage.onChange((changes: StorageChanges, area: string) => {
+Storage.onChange(async (changes: StorageChanges, area: string) => {
     // Обработка локальных изменений
     if (area === 'local') {
         if (StorageKeys.TARGET_STATE in changes) {
@@ -58,6 +64,11 @@ Storage.onChange((changes: StorageChanges, area: string) => {
 
         if (StorageKeys.CURRENT_STATE in changes) {
             IconManager.update();
+            publicPoolScheduler.sync();
+        }
+
+        if (StorageKeys.PRESETS in changes) {
+            publicPoolScheduler.sync();
         }
     }
 
@@ -68,7 +79,8 @@ Storage.onChange((changes: StorageChanges, area: string) => {
         // Если изменились пресеты или прокси - переинициализируем прокси
         if (StorageKeys.PRESETS in changes || StorageKeys.PROXIES in changes) {
             console.log('Background: Presets or proxies changed from sync, reinitializing...');
-            ProxyManager.init();
+            await ProxyManager.init();
+            publicPoolScheduler.sync();
         }
     }
 });
@@ -414,6 +426,10 @@ Storage.onChange(async (changes: StorageChanges, area: string) => {
 });
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+    if (alarm.name === PublicPoolCheckConfig.ALARM_NAME) {
+        publicPoolScheduler.runCycle();
+        return;
+    }
     if (alarm.name !== HEARTBEAT_ALARM) return;
 
     const result = await chrome.storage.local.get(['ga4_install_ts', 'ga4_activation_count']);
@@ -438,7 +454,8 @@ async function init() {
     await Storage.init();
     console.log('Background: Storage initialized');
     IconManager.update();
-    ProxyManager.init();
+    await ProxyManager.init();
+    publicPoolScheduler.sync();
 }
 
 init();

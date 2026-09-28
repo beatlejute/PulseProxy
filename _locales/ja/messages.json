@@ -631,31 +631,27 @@
     "description": "TODO: needs native translation"
   },
   "publicPoolHint": {
-    "message": "安定性のため、ドメインをプール内の異なるプロキシにルーティングします",
-    "description": "Public pool hint text"
+    "message": "Each site gets its own random public proxy from the catalog. Dead proxies are dropped automatically. Public proxies are slow and unreliable — do not use for logins or payments.",
+    "description": "TODO: needs native translation"
+  },
+  "publicPoolProtocols": {
+    "message": "Protocols",
+    "description": "TODO: needs native translation"
+  },
+  "publicPoolStatus": {
+    "message": "$1 candidates · $2 alive",
+    "description": "TODO: needs native translation"
+  },
+  "publicPoolEmpty": {
+    "message": "No live proxies match these filters",
+    "description": "TODO: needs native translation"
   },
   "publicPoolHttpHint": {
-    "message": "HTTPプロキシはHTTPSトラフィックをサポートしない場合があります",
-    "description": "HTTP proxy warning for public pool"
-  },
-  "poolStatusLabel": {
-    "message": "プールステータス:",
-    "description": "Pool status label prefix"
-  },
-  "poolStatusChecking": {
-    "message": "確認中…",
-    "description": "Pool status checking text"
-  },
-  "poolStatusEmpty": {
-    "message": "利用可能なプロキシがありません",
-    "description": "Pool status empty message"
-  },
-  "proxiesAvailable": {
-    "message": "プロキシ利用可能",
-    "description": "プール利用可能なプロキシの数のテキスト"
+    "message": "HTTP proxies can't open HTTPS sites",
+    "description": "TODO: needs native translation"
   },
   "presetProxyPublicPool": {
-    "message": "🌐 公開プール",
-    "description": "Label for public pool option in proxy selector"
+    "message": "Public pool",
+    "description": "TODO: needs native translation"
   }
 }

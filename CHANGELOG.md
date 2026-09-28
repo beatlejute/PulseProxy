@@ -2,7 +2,13 @@
 
 All notable changes to PulseProxy VPN will be documented in this file.
 
-## [Unreleased]
+## [1.5.0] - 2026-09-28
+
+### Added
+- Public proxy pool for presets: bind a preset to a filtered subset of public proxies
+- Rendezvous hashing for stable per-site proxy assignment from the pool
+- Background scheduler (PublicPoolScheduler) for automatic pool liveness checks every 15 minutes
+- Pool status badge (🌐) in browser tab
 
 ### Changed
 - Maintainer tooling: the public proxy list refresh now verifies liveness before publishing, so `sources/proxys.json` contains only proxies that responded to a check

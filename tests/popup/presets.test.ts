@@ -14,6 +14,7 @@ jest.mock('../../src/popup/dialog', () => ({
 }));
 
 import { showConfirm, showAlert } from '../../src/popup/dialog';
+import { PublicProxyCatalog } from '../../src/shared/public-proxy-catalog';
 
 let Presets: typeof import('../../src/popup/presets').Presets;
 
@@ -1280,6 +1281,201 @@ describe('presets.ts - PresetsService', () => {
             await new Promise(resolve => setTimeout(resolve, 100));
 
             expect(chrome.storage.local.set).toHaveBeenCalled();
+        });
+    });
+
+    describe('presets public pool', () => {
+        describe('block visibility', () => {
+            it('renders pool config block for preset with publicPool', async () => {
+                const preset = createPreset('with-pool', 'With Pool', [], true, false);
+                preset.publicPool = { protocols: ['socks5'], country: '', connectionType: '', minScore: 0 };
+
+                mockHelpers.setLocalStorageData({
+                    presets: [preset],
+                    proxies: [],
+                    proxyByDefault: false,
+                });
+
+                await Presets.init();
+
+                const poolBlock = document.querySelector('[data-preset-id="with-pool"] .preset-pool-config');
+                expect(poolBlock).not.toBeNull();
+                expect(poolBlock?.style.display).not.toBe('none');
+            });
+
+            it('does not show pool config block for preset without publicPool', async () => {
+                mockHelpers.setLocalStorageData({
+                    presets: [createPreset('no-pool', 'No Pool', [], true, false)],
+                    proxies: [],
+                    proxyByDefault: false,
+                });
+
+                await Presets.init();
+
+                const poolBlock = document.querySelector('[data-preset-id="no-pool"] .preset-pool-config');
+                expect(poolBlock === null || poolBlock?.style.display === 'none').toBe(true);
+            });
+        });
+
+        describe('selection', () => {
+            it('selecting public pool option calls Storage.setPresetPublicPool with default config', async () => {
+                mockHelpers.setLocalStorageData({
+                    presets: [createPreset('test', 'Test', [], true, false)],
+                    proxies: [],
+                    proxyByDefault: false,
+                });
+
+                await Presets.init();
+
+                const select = document.querySelector('[data-preset-id="test"] .proxy-select') as HTMLSelectElement;
+                select.value = '__public_pool__';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                expect(chrome.storage.local.set).toHaveBeenCalled();
+            });
+
+            it('selecting proxy option calls Storage.setPresetProxy with proxyId', async () => {
+                const preset = createPreset('test', 'Test', [], true, false);
+                preset.publicPool = { protocols: ['socks5'], country: '', connectionType: '', minScore: 0 };
+
+                mockHelpers.setLocalStorageData({
+                    presets: [preset],
+                    proxies: [
+                        { id: 'proxy-1', name: 'Proxy 1', host: '127.0.0.1', port: 8080, type: 'http', isDefault: true },
+                    ],
+                    proxyByDefault: false,
+                });
+
+                await Presets.init();
+
+                const select = document.querySelector('[data-preset-id="test"] .proxy-select') as HTMLSelectElement;
+                select.value = 'proxy-1';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+
+                await new Promise(resolve => setTimeout(resolve, 100));
+
+                expect(chrome.storage.local.set).toHaveBeenCalled();
+            });
+        });
+    });
+
+    describe('presets pool rerender', () => {
+        const catalog = [
+            { ip: '1.1.1.1', port: 80, protocol: 'http' as const, country: 'US', connectionType: 'residential' as const, score: 4.5 },
+            { ip: '2.2.2.2', port: 1080, protocol: 'socks5' as const, country: 'ID', connectionType: 'mobile' as const, score: 4.0 },
+        ];
+
+        beforeEach(() => {
+            jest.spyOn(PublicProxyCatalog, 'get').mockResolvedValue(catalog);
+        });
+
+        afterEach(() => jest.restoreAllMocks());
+
+        const selectPool = async (presetId: string): Promise<void> => {
+            const select = document.querySelector(`[data-preset-id="${presetId}"] .proxy-select`) as HTMLSelectElement;
+            select.value = '__public_pool__';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            await new Promise(resolve => setTimeout(resolve, 100));
+        };
+
+        it('shows pool block with protocols from storage after selecting public pool', async () => {
+            mockHelpers.setLocalStorageData({ presets: [createPreset('pool', 'Pool')], proxies: [], proxyByDefault: false });
+            await Presets.init();
+            await selectPool('pool');
+
+            const checked = [...document.querySelectorAll<HTMLInputElement>('[data-preset-id="pool"] [data-protocol]:checked')]
+                .map(input => input.dataset.protocol);
+            expect(checked).toEqual(['socks5']);
+        });
+
+        it('keeps preset expanded and unsaved domains text after rerender', async () => {
+            mockHelpers.setLocalStorageData({ presets: [createPreset('pool', 'Pool')], proxies: [], proxyByDefault: false });
+            await Presets.init();
+            (document.querySelector('[data-preset-id="pool"] .preset-expand-btn') as HTMLButtonElement).click();
+            const textarea = document.querySelector('[data-preset-id="pool"] .preset-domains') as HTMLTextAreaElement;
+            textarea.value = 'unsaved.org';
+            await selectPool('pool');
+
+            expect(document.querySelector('[data-preset-id="pool"] .preset-content')?.classList.contains('expanded')).toBe(true);
+            expect((document.querySelector('[data-preset-id="pool"] .preset-domains') as HTMLTextAreaElement).value).toBe('unsaved.org');
+        });
+
+        it('does not collapse or reset other presets after rerender', async () => {
+            mockHelpers.setLocalStorageData({ presets: [createPreset('first', 'First'), createPreset('second', 'Second')], proxies: [], proxyByDefault: false });
+            await Presets.init();
+            (document.querySelector('[data-preset-id="second"] .preset-expand-btn') as HTMLButtonElement).click();
+            (document.querySelector('[data-preset-id="second"] .preset-domains') as HTMLTextAreaElement).value = 'other.org';
+            await selectPool('first');
+
+            expect(document.querySelector('[data-preset-id="second"] .preset-content')?.classList.contains('expanded')).toBe(true);
+            expect((document.querySelector('[data-preset-id="second"] .preset-domains') as HTMLTextAreaElement).value).toBe('other.org');
+        });
+
+        it('saves country change with protocols after selecting public pool', async () => {
+            mockHelpers.setLocalStorageData({ presets: [createPreset('pool', 'Pool')], proxies: [], proxyByDefault: false });
+            await Presets.init();
+            await selectPool('pool');
+            const country = document.querySelector('[data-preset-id="pool"] .pool-country') as HTMLSelectElement;
+            country.value = 'ID';
+            country.dispatchEvent(new Event('change', { bubbles: true }));
+            await new Promise(resolve => setTimeout(resolve, 20));
+
+            const saved = (mockHelpers.getLocalStorageData().presets as any[]).find(preset => preset.id === 'pool');
+            expect(saved.publicPool).toEqual(expect.objectContaining({ protocols: ['socks5'], country: 'ID' }));
+        });
+
+        it('selecting Default then public pool again gives default config', async () => {
+            const preset = createPreset('pool', 'Pool');
+            preset.publicPool = { protocols: ['http'], country: 'US' };
+            mockHelpers.setLocalStorageData({ presets: [preset], proxies: [], proxyByDefault: false });
+            await Presets.init();
+            const select = document.querySelector('[data-preset-id="pool"] .proxy-select') as HTMLSelectElement;
+            select.value = '';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            await new Promise(resolve => setTimeout(resolve, 100));
+            await selectPool('pool');
+
+            const checked = [...document.querySelectorAll<HTMLInputElement>('[data-preset-id="pool"] [data-protocol]:checked')]
+                .map(input => input.dataset.protocol);
+            expect(checked).toEqual(['socks5']);
+        });
+    });
+
+    describe('presets pool block presence', () => {
+        it('does not create pool block for preset without publicPool', async () => {
+            mockHelpers.setLocalStorageData({ presets: [createPreset('pool', 'Pool')], proxies: [], proxyByDefault: false });
+            await Presets.init();
+            expect(document.querySelector('[data-preset-id="pool"] .preset-pool-config')).toBeNull();
+        });
+
+        it('removes pool block from DOM after selecting Default', async () => {
+            const preset = createPreset('pool', 'Pool');
+            preset.publicPool = { protocols: ['socks5'] };
+            mockHelpers.setLocalStorageData({ presets: [preset], proxies: [], proxyByDefault: false });
+            await Presets.init();
+            const select = document.querySelector('[data-preset-id="pool"] .proxy-select') as HTMLSelectElement;
+            select.value = '';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(document.querySelector('[data-preset-id="pool"] .preset-pool-config')).toBeNull();
+        });
+
+        it('selecting proxy does not call Storage.setPresetPublicPool', async () => {
+            const preset = createPreset('pool', 'Pool');
+            preset.publicPool = { protocols: ['socks5'] };
+            mockHelpers.setLocalStorageData({ presets: [preset], proxies: [{ id: 'proxy', name: 'Proxy', host: '127.0.0.1', port: 8080, type: 'http', isDefault: false }], proxyByDefault: false });
+            const { Storage } = await import('../../src/shared/storage');
+            const poolSpy = jest.spyOn(Storage, 'setPresetPublicPool');
+            const proxySpy = jest.spyOn(Storage, 'setPresetProxy');
+            await Presets.init();
+            const select = document.querySelector('[data-preset-id="pool"] .proxy-select') as HTMLSelectElement;
+            select.value = 'proxy';
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            await new Promise(resolve => setTimeout(resolve, 100));
+            expect(poolSpy).not.toHaveBeenCalled();
+            expect(proxySpy).toHaveBeenCalledTimes(1);
         });
     });
 

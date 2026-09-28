@@ -1479,39 +1479,12 @@ button.support-project {
   text-align: left;
 }
 
-/* Строка статуса: подпись слева, значение справа */
-.pool-status-row {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  font-size: 11px;
+/* Статус пула: кандидаты и живые */
+.pool-status {
+  font-size: 10px;
 }
 
-.pool-status-label {
-  color: var(--initial-color);
-  font-size: 11px;
-}
-
-.pool-status-value {
-  font-size: 11px;
-  font-weight: 500;
-  text-align: right;
-}
-
-/* Три различимых состояния статуса */
-.pool-status--checking {
-  color: var(--initial-color);
-  font-style: italic;
-  font-weight: 400;
-}
-
-.pool-status--ok {
-  color: var(--success-color);
-}
-
+/* Пул пуст: под фильтры не подошёл ни один живой прокси */
 .pool-status--empty {
   color: var(--error-color);
 }

@@ -274,6 +274,43 @@ const mockWebRequest = {
     },
 };
 
+// Мок chrome.alarms
+const alarmsData: Record<string, chrome.alarms.Alarm | undefined> = {};
+
+const mockAlarms = {
+    create: jest.fn((name: string, alarmInfo: chrome.alarms.AlarmCreateInfo) => {
+        alarmsData[name] = {
+            name,
+            scheduledTime: Date.now() + (alarmInfo.periodInMinutes ? alarmInfo.periodInMinutes * 60000 : 0),
+            periodInMinutes: alarmInfo.periodInMinutes,
+        };
+        return Promise.resolve();
+    }),
+    get: jest.fn((name: string) => {
+        return Promise.resolve(alarmsData[name]);
+    }),
+    getAll: jest.fn(() => {
+        return Promise.resolve(Object.values(alarmsData).filter(Boolean) as chrome.alarms.Alarm[]);
+    }),
+    clear: jest.fn((name: string) => {
+        delete alarmsData[name];
+        return Promise.resolve(true);
+    }),
+    clearAll: jest.fn(() => {
+        Object.keys(alarmsData).forEach(key => delete alarmsData[key]);
+        return Promise.resolve(true);
+    }),
+    onAlarm: {
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        hasListener: jest.fn(() => false),
+        hasListeners: jest.fn(() => false),
+        addRules: jest.fn(),
+        removeRules: jest.fn(),
+        getRules: jest.fn(),
+    },
+};
+
 // Полный мок chrome объекта
 const chromeMock = {
     storage: {
@@ -299,6 +336,7 @@ const chromeMock = {
     runtime: mockRuntime,
     i18n: mockI18n,
     webRequest: mockWebRequest,
+    alarms: mockAlarms,
 };
 
 // Присваиваем глобальному объекту
@@ -354,6 +392,7 @@ export const mockHelpers = {
         storageChangeListeners.length = 0;
         authRequiredListeners.length = 0;
         proxySettingsCallback = null;
+        Object.keys(alarmsData).forEach(key => delete alarmsData[key]);
     },
 
     // Триггер события onAuthRequired

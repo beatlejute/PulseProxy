@@ -11,11 +11,13 @@ import {
     showPublicProxiesModal,
     clearPublicProxiesCache,
     excludeAddedProxies,
+    normalizeProxies,
     PublicProxyItemCheckOptions,
 } from '../../src/popup/public-proxies-modal';
 import { checkProxyBeforeAdd } from '../../src/popup/proxy-form-modal';
 import { Storage } from '../../src/shared/storage';
 import { fetchWithFallback } from '../../src/shared/fetch-with-fallback';
+import { PublicProxyCatalog } from '../../src/shared/public-proxy-catalog';
 import { NormalizedPublicProxy, ProxyServer } from '../../src/types';
 
 jest.mock('../../src/shared/i18n', () => ({
@@ -540,5 +542,103 @@ describe('showPublicProxiesModal() — скрытие уже добавленн�
         await showPublicProxiesModal(jest.fn());
 
         expect(document.querySelectorAll('.public-proxy-item')).toHaveLength(2);
+    });
+});
+
+describe('public-proxies-modal refactored', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+        document.body.innerHTML = '';
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it('loads proxies via PublicProxyCatalog.get()', async () => {
+        const mockProxies = [
+            { protocol: 'http', ip: '1.2.3.4', port: 8080, score: 4.5, connectionType: 'residential', country: 'US' },
+            { protocol: 'https', ip: '5.6.7.8', port: 443, score: 4.0, connectionType: 'corporate', country: 'DE' },
+        ] as NormalizedPublicProxy[];
+
+        jest.spyOn(PublicProxyCatalog, 'get').mockResolvedValue(mockProxies);
+        (Storage.getPublicProxiesWarningDismissed as jest.Mock).mockResolvedValue(false);
+        (Storage.getPublicProxiesFiltersCollapsed as jest.Mock).mockResolvedValue(false);
+        (Storage.getProxies as jest.Mock).mockResolvedValue([]);
+        (Storage.getProxyCheckEnabled as jest.Mock).mockResolvedValue(false);
+
+        await showPublicProxiesModal(jest.fn());
+
+        expect(PublicProxyCatalog.get).toHaveBeenCalled();
+        const items = document.querySelectorAll('.public-proxy-item');
+        expect(items).toHaveLength(2);
+        expect(items[0].textContent).toContain('1.2.3.4:8080');
+        expect(items[1].textContent).toContain('5.6.7.8:443');
+    });
+
+    it('calls PublicProxyCatalog.get with forceRefresh after clearPublicProxiesCache()', async () => {
+        const mockProxies = [
+            { protocol: 'http', ip: '1.2.3.4', port: 8080, score: 4.5, connectionType: 'residential', country: 'US' },
+        ] as NormalizedPublicProxy[];
+
+        jest.spyOn(PublicProxyCatalog, 'get').mockResolvedValue(mockProxies);
+        (Storage.getPublicProxiesWarningDismissed as jest.Mock).mockResolvedValue(false);
+        (Storage.getPublicProxiesFiltersCollapsed as jest.Mock).mockResolvedValue(false);
+        (Storage.getProxies as jest.Mock).mockResolvedValue([]);
+        (Storage.getProxyCheckEnabled as jest.Mock).mockResolvedValue(false);
+
+        clearPublicProxiesCache();
+        await showPublicProxiesModal(jest.fn());
+
+        expect(PublicProxyCatalog.get).toHaveBeenCalledWith({ forceRefresh: true });
+    });
+
+    it('renders catalog from storage cache without fetch', async () => {
+        const mockProxies = [
+            { protocol: 'http', ip: '1.2.3.4', port: 8080, score: 4.5, connectionType: 'residential', country: 'US' },
+        ] as NormalizedPublicProxy[];
+
+        const now = Date.now();
+        (Storage.getPublicProxyCatalog as jest.Mock).mockResolvedValue({
+            proxies: mockProxies,
+            fetchedAt: now,
+        });
+        jest.spyOn(PublicProxyCatalog, 'get').mockResolvedValue(mockProxies);
+        (Storage.getPublicProxiesWarningDismissed as jest.Mock).mockResolvedValue(false);
+        (Storage.getPublicProxiesFiltersCollapsed as jest.Mock).mockResolvedValue(false);
+        (Storage.getProxies as jest.Mock).mockResolvedValue([]);
+        (Storage.getProxyCheckEnabled as jest.Mock).mockResolvedValue(false);
+
+        await showPublicProxiesModal(jest.fn());
+
+        expect(PublicProxyCatalog.get).toHaveBeenCalledWith(expect.objectContaining({ forceRefresh: false }));
+        expect(fetchWithFallback).not.toHaveBeenCalled();
+        const items = document.querySelectorAll('.public-proxy-item');
+        expect(items).toHaveLength(1);
+        expect(items[0].textContent).toContain('1.2.3.4:8080');
+    });
+
+    it('normalizeProxies is re-exported from public-proxy-catalog', () => {
+        // Verify that normalizeProxies exported from modal is a function
+        expect(typeof normalizeProxies).toBe('function');
+
+        // Test that it works correctly
+        const response = {
+            http: [{ ip: '1.2.3.4:8080', score: 4.5, type: 'Residential', country: 'US' }],
+            https: [],
+            socks4: [],
+            socks5: [],
+        };
+
+        const result = normalizeProxies(response);
+        expect(result).toHaveLength(1);
+        expect(result[0]).toEqual({
+            protocol: 'http',
+            ip: '1.2.3.4',
+            port: 8080,
+            score: 4.5,
+            connectionType: 'residential',
+            country: 'US',
+        });
     });
 });

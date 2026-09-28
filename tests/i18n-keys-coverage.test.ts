@@ -249,3 +249,65 @@ describe('i18n keys coverage - open in tab button', () => {
         });
     });
 });
+
+describe('i18n keys coverage - public pool preset', () => {
+    const LOCALES_DIR = join(__dirname, '..', '_locales');
+    const REQUIRED_KEYS = [
+        'presetProxyPublicPool',
+        'publicPoolHint',
+        'publicPoolProtocols',
+        'publicPoolStatus',
+        'publicPoolEmpty',
+        'publicPoolHttpHint',
+    ];
+
+    const EXPECTED_RU = {
+        presetProxyPublicPool: 'Публичный пул',
+        publicPoolHint: 'Каждый сайт получает свой случайный публичный прокси из каталога. Мёртвые прокси исключаются автоматически. Публичные прокси медленные и ненадёжные — не используйте для входа в аккаунты и оплаты.',
+        publicPoolProtocols: 'Протоколы',
+        publicPoolStatus: 'Кандидатов: $1 · живых: $2',
+        publicPoolEmpty: 'Нет живых прокси под эти фильтры',
+        publicPoolHttpHint: 'HTTP-прокси не открывают HTTPS-сайты',
+    };
+
+    it('should have all 6 public pool keys in all locales with non-empty message', () => {
+        const locales = readdirSync(LOCALES_DIR);
+
+        locales.forEach((locale) => {
+            const messagesPath = join(LOCALES_DIR, locale, 'messages.json');
+            const content = readFileSync(messagesPath, 'utf-8');
+            const messages = JSON.parse(content);
+
+            REQUIRED_KEYS.forEach((key) => {
+                expect(messages[key]).toBeDefined();
+                expect(messages[key].message).toBeDefined();
+                expect(messages[key].message).not.toBe('');
+            });
+        });
+    });
+
+    it('should have correct Russian translations for public pool keys', () => {
+        const ruPath = join(LOCALES_DIR, 'ru', 'messages.json');
+        const ruContent = readFileSync(ruPath, 'utf-8');
+        const ruMessages = JSON.parse(ruContent);
+
+        Object.entries(EXPECTED_RU).forEach(([key, expectedValue]) => {
+            expect(ruMessages[key].message).toBe(
+                expectedValue,
+                `Russian translation for "${key}" should be "${expectedValue}", got "${ruMessages[key].message}"`
+            );
+        });
+    });
+
+    it('publicPoolStatus should keep $1/$2 placeholders in every locale', () => {
+        const locales = readdirSync(LOCALES_DIR);
+
+        locales.forEach((locale) => {
+            const messagesPath = join(LOCALES_DIR, locale, 'messages.json');
+            const messages = JSON.parse(readFileSync(messagesPath, 'utf-8'));
+
+            expect(messages.publicPoolStatus.message).toContain('$1');
+            expect(messages.publicPoolStatus.message).toContain('$2');
+        });
+    });
+});

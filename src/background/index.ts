@@ -171,6 +171,15 @@ chrome.webRequest.onErrorOccurred.addListener(
         const currentState = await Storage.getCurrentState();
         if (currentState !== ProxyState.CONNECTED) return;
 
+        const route = ProxyManager.getRouteForUrl(details.url);
+        if (route === null) return;
+
+        if (route.kind === 'pool') {
+            updateTabBadge(details.tabId, details.url);
+            publicPoolScheduler.requestRecheck();
+            return; // не записывать errorProxy, не менять state на ERROR
+        }
+
         const proxyLabel = ProxyManager.getProxyForUrl(details.url);
         if (!proxyLabel) return;
 
@@ -379,7 +388,7 @@ async function updateTabBadge(tabId: number, url: string | undefined): Promise<v
         if (currentState === ProxyState.CONNECTED || currentState === ProxyState.ERROR) {
             const route = ProxyManager.getRouteForUrl(url);
             const isError = currentState === ProxyState.ERROR;
-            IconManager.setTabProxyBadge(tabId, route?.server ?? null, isError, route?.viaProxyAll ?? false);
+            IconManager.setTabProxyBadge(tabId, route, isError);
         } else {
             IconManager.setTabProxyBadge(tabId, null);
         }

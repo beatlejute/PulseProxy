@@ -631,31 +631,27 @@
     "description": "TODO: needs native translation"
   },
   "publicPoolHint": {
-    "message": "Direciona domínios para proxies diferentes do pool para estabilidade",
-    "description": "Public pool hint text"
+    "message": "Each site gets its own random public proxy from the catalog. Dead proxies are dropped automatically. Public proxies are slow and unreliable — do not use for logins or payments.",
+    "description": "TODO: needs native translation"
+  },
+  "publicPoolProtocols": {
+    "message": "Protocols",
+    "description": "TODO: needs native translation"
+  },
+  "publicPoolStatus": {
+    "message": "$1 candidates · $2 alive",
+    "description": "TODO: needs native translation"
+  },
+  "publicPoolEmpty": {
+    "message": "No live proxies match these filters",
+    "description": "TODO: needs native translation"
   },
   "publicPoolHttpHint": {
-    "message": "Proxies HTTP podem não suportar tráfego HTTPS",
-    "description": "HTTP proxy warning for public pool"
-  },
-  "poolStatusLabel": {
-    "message": "Status do pool:",
-    "description": "Pool status label prefix"
-  },
-  "poolStatusChecking": {
-    "message": "Verificando…",
-    "description": "Pool status checking text"
-  },
-  "poolStatusEmpty": {
-    "message": "Nenhum proxy disponível",
-    "description": "Pool status empty message"
-  },
-  "proxiesAvailable": {
-    "message": "proxies disponíveis",
-    "description": "Texto para quantidade de proxies disponíveis"
+    "message": "HTTP proxies can't open HTTPS sites",
+    "description": "TODO: needs native translation"
   },
   "presetProxyPublicPool": {
-    "message": "🌐 Pool público",
-    "description": "Label for public pool option in proxy selector"
+    "message": "Public pool",
+    "description": "TODO: needs native translation"
   }
 }

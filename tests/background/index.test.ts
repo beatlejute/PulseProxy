@@ -13,6 +13,7 @@ const mockProxyManager = {
     generateCheckPacScript: jest.fn().mockReturnValue('function FindProxyForURL(url, host) { return "PROXY test"; }'),
     generateBatchCheckPacScript: jest.fn().mockResolvedValue('function FindProxyForURL(url, host) { return "DIRECT"; }'),
     getRouteForUrl: jest.fn().mockReturnValue(null),
+    getProxyForUrl: jest.fn().mockReturnValue(null),
 };
 
 const mockIconManager = {
@@ -25,8 +26,11 @@ const mockStorage = {
     init: jest.fn().mockResolvedValue(undefined),
     onChange: jest.fn(),
     getCurrentState: jest.fn(),
+    setCurrentState: jest.fn().mockResolvedValue(undefined),
     getTargetState: jest.fn().mockResolvedValue('disconnected'),
     getActivePresets: jest.fn().mockResolvedValue([]),
+    getProxies: jest.fn().mockResolvedValue([]),
+    getPresets: jest.fn().mockResolvedValue([]),
 };
 
 // background/index.ts на верхнем уровне вызывает SyncService.registerLocalToCloudSync()
@@ -52,23 +56,112 @@ jest.mock('../../src/shared/storage', () => ({
     Storage: mockStorage
 }));
 
+const mockPublicPoolScheduler = {
+    sync: jest.fn(),
+    runCycle: jest.fn(),
+    requestRecheck: jest.fn(),
+};
+
+jest.mock('../../src/background/public-pool-scheduler', () => ({
+    PublicPoolScheduler: jest.fn(() => mockPublicPoolScheduler)
+}));
+
 // Import helper functions from the module under test
 let resetIsChecking: () => void;
 let getIsChecking: () => boolean;
 
 // Mock chrome API
 const mockMessageListeners: Array<(message: Record<string, unknown>, sender: unknown, sendResponse: unknown) => void> = [];
+const mockAlarmListeners: Array<(alarm: { name: string }) => void | Promise<void>> = [];
+const mockErrorOccurredListeners: Array<(details: any) => Promise<void>> = [];
+const registeredStorageCallbacks: Array<(changes: Record<string, unknown>, area: string) => void> = [];
 
-beforeAll(() => {
+// Capture initial call counts after module import
+let initialInitCalls = 0;
+let initialSyncCalls = 0;
+
+beforeAll(async () => {
     (global as unknown as Record<string, unknown>).chrome = {
         runtime: {
             onMessage: {
                 addListener: jest.fn((callback) => {
                     mockMessageListeners.push(callback);
                 })
+            },
+            onInstalled: {
+                addListener: jest.fn()
+            },
+            setUninstallURL: jest.fn(),
+            getManifest: jest.fn().mockReturnValue({ version: '1.0.0' })
+        },
+        alarms: {
+            onAlarm: {
+                addListener: jest.fn((callback) => {
+                    mockAlarmListeners.push(callback);
+                })
+            }
+        },
+        storage: {
+            local: {
+                set: jest.fn().mockResolvedValue(undefined),
+                get: jest.fn().mockResolvedValue({})
+            },
+            sync: {
+                get: jest.fn().mockResolvedValue({})
+            },
+            onChanged: {
+                addListener: jest.fn()
+            }
+        },
+        proxy: {
+            settings: {
+                set: jest.fn().mockImplementation((_details: unknown, callback?: () => void) => {
+                    if (callback) setTimeout(callback, 0);
+                })
+            }
+        },
+        tabs: {
+            query: jest.fn().mockResolvedValue([]),
+            get: jest.fn().mockResolvedValue({}),
+            onActivated: {
+                addListener: jest.fn()
+            }
+        },
+        webRequest: {
+            onErrorOccurred: {
+                addListener: jest.fn((callback) => {
+                    mockErrorOccurredListeners.push(callback);
+                })
+            },
+            onCompleted: {
+                addListener: jest.fn()
+            }
+        },
+        webNavigation: {
+            onCommitted: {
+                addListener: jest.fn()
             }
         }
     };
+
+    // Import the module to register all handlers
+    await import('../../src/background/index');
+
+    // Wait for init() to complete (it's called at module level)
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Capture initial call counts (before any test's beforeEach clears mocks)
+    initialInitCalls = (mockProxyManager.init as jest.Mock).mock.calls.length;
+    initialSyncCalls = (mockPublicPoolScheduler.sync as jest.Mock).mock.calls.length;
+
+    // Storage.onChange() вызывается на верхнем уровне модуля при импорте — захватываем
+    // зарегистрированные колбэки здесь, до того как per-test beforeEach (jest.clearAllMocks())
+    // очистит mock.calls. Иначе тесты, отфильтрованные `-t` на один describe (например
+    // "PublicPoolScheduler integration"), не увидят колбэк без побочного эффекта повторного
+    // импорта модуля в несвязанном describe('checkProxy...').
+    for (const [callback] of (mockStorage.onChange as jest.Mock).mock.calls) {
+        registeredStorageCallbacks.push(callback as (changes: Record<string, unknown>, area: string) => void);
+    }
 });
 
 describe('Background Script', () => {
@@ -77,10 +170,16 @@ describe('Background Script', () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockMessageListeners.length = 0;
-        
+
+        // Note: Do NOT clear registeredStorageCallbacks or mockAlarmListeners here
+        // They need to persist across tests as they contain the handlers registered during module import
+
         // Capture the storage change callback
         mockStorage.onChange.mockImplementation((callback: (changes: Record<string, unknown>, area: string) => void) => {
             storageChangeCallback = callback;
+            if (!registeredStorageCallbacks.includes(callback)) {
+                registeredStorageCallbacks.push(callback);
+            }
         });
     });
 
@@ -668,8 +767,9 @@ describe('Background Script', () => {
         describe('toggleProxy → обновление бейджей вкладок', () => {
             it('should refresh badges of all tabs after toggle completes', async () => {
                 const server = { id: 'p1', type: 'http', host: '1.2.3.4', port: 8080 };
+                const route = { kind: 'own', server, viaProxyAll: true };
                 (mockProxyManager.toggle as jest.Mock).mockResolvedValue(undefined);
-                (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue({ kind: 'own', server, viaProxyAll: true });
+                (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(route);
                 (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
 
                 const chromeGlobal = (global as unknown as { chrome: Record<string, unknown> }).chrome as Record<string, unknown>;
@@ -680,7 +780,7 @@ describe('Background Script', () => {
                 await jest.runAllTimersAsync();
 
                 expect(mockProxyManager.toggle).toHaveBeenCalled();
-                expect(mockIconManager.setTabProxyBadge).toHaveBeenCalledWith(7, server, false, true);
+                expect(mockIconManager.setTabProxyBadge).toHaveBeenCalledWith(7, route, false);
             });
 
             it('should clear badge when toggle turned routing off for the tab', async () => {
@@ -695,7 +795,7 @@ describe('Background Script', () => {
                 indexMessageHandler({ action: 'toggleProxy' }, {}, jest.fn());
                 await jest.runAllTimersAsync();
 
-                expect(mockIconManager.setTabProxyBadge).toHaveBeenCalledWith(9, null, false, false);
+                expect(mockIconManager.setTabProxyBadge).toHaveBeenCalledWith(9, null, false);
             });
         });
 
@@ -803,6 +903,149 @@ describe('Background Script', () => {
 
                 expect(singleResult).toBe('ok');
             });
+        });
+    });
+
+    describe('background index PublicPoolScheduler integration', () => {
+        beforeEach(() => {
+            // Only clear PublicPoolScheduler mock calls for other tests
+            mockPublicPoolScheduler.sync.mockClear();
+            mockPublicPoolScheduler.runCycle.mockClear();
+        });
+
+        it('calls publicPoolScheduler.sync() after ProxyManager.init() on startup', () => {
+            // Verify init and sync were called during module import
+            expect(initialInitCalls).toBeGreaterThanOrEqual(1);
+            expect(initialSyncCalls).toBeGreaterThanOrEqual(1);
+        });
+
+        it('calls publicPoolScheduler.sync() when local currentState changes', () => {
+            mockPublicPoolScheduler.sync.mockClear();
+            const handler = registeredStorageCallbacks[0];
+
+            handler({ [StorageKeys.CURRENT_STATE]: { newValue: ProxyState.CONNECTED } }, 'local');
+
+            expect(mockPublicPoolScheduler.sync).toHaveBeenCalled();
+        });
+
+        it('calls publicPoolScheduler.sync() when local presets change', () => {
+            mockPublicPoolScheduler.sync.mockClear();
+            const handler = registeredStorageCallbacks[0];
+
+            handler({ [StorageKeys.PRESETS]: { newValue: [] } }, 'local');
+
+            expect(mockPublicPoolScheduler.sync).toHaveBeenCalled();
+        });
+
+        it('calls publicPoolScheduler.sync() when sync presets change', async () => {
+            mockPublicPoolScheduler.sync.mockClear();
+            const handler = registeredStorageCallbacks[0];
+
+            handler({ [StorageKeys.PRESETS]: { newValue: [] } }, 'sync');
+            await Promise.resolve();
+
+            expect(mockPublicPoolScheduler.sync).toHaveBeenCalled();
+        });
+
+        it('routes public_pool_check alarm to publicPoolScheduler.runCycle()', async () => {
+            mockPublicPoolScheduler.runCycle.mockClear();
+            const alarmListener = mockAlarmListeners[0];
+
+            const result = alarmListener({ name: 'public_pool_check' });
+            if (result instanceof Promise) await result;
+
+            expect(mockPublicPoolScheduler.runCycle).toHaveBeenCalled();
+        });
+
+        it('ga4_heartbeat alarm keeps heartbeat branch and does not call runCycle', async () => {
+            mockPublicPoolScheduler.runCycle.mockClear();
+            const alarmListener = mockAlarmListeners[0];
+
+            const result = alarmListener({ name: 'ga4_heartbeat' });
+            if (result instanceof Promise) await result;
+
+            expect(mockPublicPoolScheduler.runCycle).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('onErrorOccurred pool vs own', () => {
+        beforeEach(() => {
+            jest.clearAllMocks();
+            (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
+            (chrome.storage.local.set as jest.Mock).mockResolvedValue(undefined);
+            (mockStorage.setCurrentState as jest.Mock).mockResolvedValue(undefined);
+        });
+
+        const getErrorHandler = () => mockErrorOccurredListeners[0];
+
+        it('pool URL error → requestRecheck called, state stays CONNECTED', async () => {
+            const route = { kind: 'pool', server: null, poolSize: 3, viaProxyAll: false };
+            (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(route);
+
+            await getErrorHandler()({ error: 'net::ERR_PROXY_CONNECTION_FAILED', url: 'http://example.com' });
+
+            expect(mockPublicPoolScheduler.requestRecheck).toHaveBeenCalled();
+        });
+
+        it('бейдж пула при сорвавшейся навигации: poolSize: 0 вызывает setTabProxyBadge с бейджем пустого пула', async () => {
+            const route = { kind: 'pool', server: null, poolSize: 0, viaProxyAll: false };
+            (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(route);
+
+            await getErrorHandler()({ error: 'net::ERR_PROXY_CONNECTION_FAILED', url: 'http://example.com', tabId: 5 });
+
+            expect(mockIconManager.setTabProxyBadge).toHaveBeenCalledWith(5, route, false);
+        });
+
+        it('pool URL error → errorProxy not set', async () => {
+            const route = { kind: 'pool', server: null, poolSize: 3, viaProxyAll: false };
+            (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(route);
+            (chrome.storage.local.set as jest.Mock).mockClear();
+
+            await getErrorHandler()({ error: 'net::ERR_PROXY_CONNECTION_FAILED', url: 'http://example.com' });
+
+            expect(chrome.storage.local.set).not.toHaveBeenCalled();
+        });
+
+        it('own URL error → state changes to ERROR', async () => {
+            const server = { id: 'proxy1', type: 'http', host: '1.2.3.4', port: 8080 };
+            const route = { kind: 'own', server, viaProxyAll: false };
+            (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(route);
+            (mockProxyManager.getProxyForUrl as jest.Mock).mockReturnValue('test-proxy-label');
+
+            await getErrorHandler()({ error: 'net::ERR_PROXY_CONNECTION_FAILED', url: 'http://example.com' });
+
+            expect((mockStorage.setCurrentState as jest.Mock)).toHaveBeenCalledWith(ProxyState.ERROR);
+        });
+
+        it('own URL error → errorProxy set', async () => {
+            const server = { id: 'proxy1', type: 'http', host: '1.2.3.4', port: 8080 };
+            const route = { kind: 'own', server, viaProxyAll: false };
+            (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(route);
+            (mockProxyManager.getProxyForUrl as jest.Mock).mockReturnValue('test-proxy-label');
+            (chrome.storage.local.set as jest.Mock).mockClear();
+
+            await getErrorHandler()({ error: 'net::ERR_PROXY_CONNECTION_FAILED', url: 'http://example.com' });
+
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    [StorageKeys.ERROR_PROXY]: 'test-proxy-label'
+                })
+            );
+        });
+
+        it('no-proxy-error event → both branches skip', async () => {
+            const server = { id: 'proxy1', type: 'http', host: '1.2.3.4', port: 8080 };
+            const route = { kind: 'own', server, viaProxyAll: false };
+            (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(route);
+            (mockProxyManager.getProxyForUrl as jest.Mock).mockReturnValue('test-proxy-label');
+            (chrome.storage.local.set as jest.Mock).mockClear();
+            mockPublicPoolScheduler.requestRecheck.mockClear();
+
+            // Error not in PROXY_ERRORS list
+            await getErrorHandler()({ error: 'net::ERR_ABORTED', url: 'http://example.com' });
+
+            expect(mockPublicPoolScheduler.requestRecheck).not.toHaveBeenCalled();
+            expect(chrome.storage.local.set).not.toHaveBeenCalled();
         });
     });
 });

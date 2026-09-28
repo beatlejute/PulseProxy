@@ -7,7 +7,6 @@ import { showPresetTypeDialog, showPresetTemplatesModal } from './preset-dialogs
 import { PresetDragController } from './preset-drag';
 import { createProxyDropdown, PresetProxySelection } from './preset-proxy-dropdown';
 import { createPublicPoolConfigBlock } from './preset-public-pool-config';
-import { publicPoolScheduler } from '../background/index';
 
 class PresetsService {
     private container: HTMLElement | null = null;
@@ -179,32 +178,42 @@ class PresetsService {
 
         if (!preset.isDefault) {
             const proxySelector = await createProxyDropdown(preset, proxies, async (selection: PresetProxySelection) => {
-                const poolConfigBlock = content.querySelector('.preset-pool-config') as HTMLElement | null;
                 if (selection.publicPool !== null) {
-                    if (poolConfigBlock) {
-                        poolConfigBlock.style.display = 'block';
-                    }
                     await Storage.setPresetPublicPool(preset.id, selection.publicPool);
                 } else {
-                    if (poolConfigBlock) {
-                        poolConfigBlock.style.display = 'none';
-                    }
-                    await Storage.setPresetPublicPool(preset.id, null);
                     await Storage.setPresetProxy(preset.id, selection.proxyId);
                 }
-                await publicPoolScheduler.sync();
+
+                if (!presetEl.parentElement) return;
+
+                const freshPreset = (await Storage.getPresets()).find(item => item.id === preset.id);
+                if (!freshPreset) return;
+
+                const freshProxies = await Storage.getProxies();
+                const replacement = await this.createPresetElement(freshPreset, freshProxies);
+                const oldContent = presetEl.querySelector('.preset-content');
+                const newContent = replacement.querySelector('.preset-content');
+                const oldTextarea = oldContent?.querySelector('.preset-domains') as HTMLTextAreaElement | null;
+                const newTextarea = newContent?.querySelector('.preset-domains') as HTMLTextAreaElement | null;
+
+                if (oldContent?.classList.contains('expanded')) {
+                    newContent?.classList.add('expanded');
+                    const newExpandButton = replacement.querySelector('.preset-expand-btn');
+                    newExpandButton?.classList.add('rotated');
+                    if (newExpandButton) newExpandButton.textContent = '▲';
+                }
+                if (oldTextarea && newTextarea) newTextarea.value = oldTextarea.value;
+
+                presetEl.replaceWith(replacement);
             });
             content.appendChild(proxySelector);
 
-            // Create pool config block always - it will be shown/hidden based on preset.publicPool
-            const poolConfigBlock = await createPublicPoolConfigBlock(preset, async (config) => {
-                await Storage.setPresetPublicPool(preset.id, config);
-                await publicPoolScheduler.sync();
-            });
-            // Set initial visibility based on preset.publicPool
-            poolConfigBlock.style.display = preset.publicPool ? 'block' : 'none';
-            // Insert pool config block after proxySelector but before textarea
-            content.insertBefore(poolConfigBlock, textarea);
+            if (preset.publicPool) {
+                const poolConfigBlock = await createPublicPoolConfigBlock(preset, async (config) => {
+                    await Storage.setPresetPublicPool(preset.id, config);
+                });
+                content.appendChild(poolConfigBlock);
+            }
         }
 
         content.appendChild(textarea);
@@ -343,14 +352,6 @@ class PresetsService {
     private async updatePresetProxy(presetId: string, proxyId: string | null): Promise<void> {
         await Storage.setPresetProxy(presetId, proxyId);
         console.log('Presets: Updated proxy for preset', presetId, 'to', proxyId);
-    }
-
-    private async updatePresetSelection(presetId: string, selection: PresetProxySelection): Promise<void> {
-        await Storage.updatePreset(presetId, {
-            proxyId: selection.proxyId,
-            publicPool: selection.publicPool,
-        });
-        console.log('Presets: Updated selection for preset', presetId, 'to', selection);
     }
 
     private async deletePreset(id: string): Promise<void> {

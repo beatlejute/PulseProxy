@@ -194,25 +194,73 @@ describe('icon-manager.ts - IconManagerService', () => {
             (chrome.action.setBadgeBackgroundColor as jest.Mock).mockReturnValue(Promise.resolve());
         });
 
-        it('should set badge with flag emoji when proxy name contains a flag', () => {
-            const proxy = { name: '🇺🇸 US Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+        const ownRoute = (server: unknown, viaProxyAll = false) => ({ kind: 'own', server, viaProxyAll });
+        const poolRoute = (poolSize: number = 3) => ({ kind: 'pool', server: null, poolSize, viaProxyAll: false });
 
-            IconManager.setTabProxyBadge(1, proxy);
+        describe('setTabProxyBadge pool', () => {
+            it('pool route poolSize>0 → badge 🌐 color #845EF7', () => {
+                const route = poolRoute(3);
+
+                IconManager.setTabProxyBadge(101, route);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 101, text: '🌐' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 101, color: '#845EF7' });
+            });
+
+            it('pool route poolSize=0 → badge ! color #FF6969', () => {
+                const route = poolRoute(0);
+
+                IconManager.setTabProxyBadge(102, route);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 102, text: '!' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 102, color: '#FF6969' });
+            });
+
+            it('pool route with isError=true → badge stays 🌐 color #845EF7', () => {
+                const route = poolRoute(3);
+
+                IconManager.setTabProxyBadge(103, route, true);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 103, text: '🌐' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 103, color: '#845EF7' });
+            });
+
+            it('null route → clears badge', () => {
+                IconManager.setTabProxyBadge(104, null);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 104, text: '' });
+                expect(chrome.action.setBadgeBackgroundColor).not.toHaveBeenCalled();
+            });
+
+            it('own route → old logic unchanged', () => {
+                const route = ownRoute({ name: '🇺🇸 US Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const });
+
+                IconManager.setTabProxyBadge(105, route);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 105, text: '🇺🇸' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 105, color: '#4CAF50' });
+            });
+        });
+
+        it('should set badge with flag emoji when proxy name contains a flag', () => {
+            const route = ownRoute({ name: '🇺🇸 US Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const });
+
+            IconManager.setTabProxyBadge(1, route);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 1, text: '🇺🇸' });
             expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 1, color: '#4CAF50' });
         });
 
         it('should set badge with checkmark when proxy name has no flag', () => {
-            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+            const route = ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const });
 
-            IconManager.setTabProxyBadge(2, proxy);
+            IconManager.setTabProxyBadge(2, route);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 2, text: '✓' });
             expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 2, color: '#4CAF50' });
         });
 
-        it('should clear badge when proxy is null', () => {
+        it('should clear badge when route is null', () => {
             IconManager.setTabProxyBadge(3, null);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 3, text: '' });
@@ -220,60 +268,60 @@ describe('icon-manager.ts - IconManagerService', () => {
         });
 
         it('should set badge text to "!" and color to red when isError is true', () => {
-            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+            const route = ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const });
 
-            IconManager.setTabProxyBadge(4, proxy, true);
+            IconManager.setTabProxyBadge(4, route, true);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 4, text: '!' });
             expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 4, color: '#FF6969' });
         });
 
         it('should use proxy custom color as badge background', () => {
-            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const, color: '#FF00FF' };
+            const route = ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const, color: '#FF00FF' });
 
-            IconManager.setTabProxyBadge(5, proxy);
+            IconManager.setTabProxyBadge(5, route);
 
             expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 5, color: '#FF00FF' });
         });
 
         it('should return checkmark when proxy has no name', () => {
-            const proxy = { host: '1.2.3.4', port: 8080, scheme: 'http' as const } as any;
+            const route = ownRoute({ host: '1.2.3.4', port: 8080, scheme: 'http' as const });
 
-            IconManager.setTabProxyBadge(6, proxy);
+            IconManager.setTabProxyBadge(6, route);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 6, text: '✓' });
         });
 
         it('should set badge text to "ALL" when tab is routed via proxy-all mode', () => {
-            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+            const route = ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const }, true);
 
-            IconManager.setTabProxyBadge(7, proxy, false, true);
+            IconManager.setTabProxyBadge(7, route);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 7, text: 'ALL' });
             expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 7, color: '#4CAF50' });
         });
 
         it('should prefer "ALL" over flag emoji in proxy-all mode', () => {
-            const proxy = { name: '🇺🇸 US Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+            const route = ownRoute({ name: '🇺🇸 US Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const }, true);
 
-            IconManager.setTabProxyBadge(8, proxy, false, true);
+            IconManager.setTabProxyBadge(8, route);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 8, text: 'ALL' });
         });
 
         it('should keep error badge "!" in proxy-all mode', () => {
-            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const };
+            const route = ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const }, true);
 
-            IconManager.setTabProxyBadge(9, proxy, true, true);
+            IconManager.setTabProxyBadge(9, route, true);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 9, text: '!' });
             expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 9, color: '#FF6969' });
         });
 
         it('should use proxy custom color for "ALL" badge background', () => {
-            const proxy = { name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const, color: '#FF00FF' };
+            const route = ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const, color: '#FF00FF' }, true);
 
-            IconManager.setTabProxyBadge(10, proxy, false, true);
+            IconManager.setTabProxyBadge(10, route);
 
             expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 10, text: 'ALL' });
             expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 10, color: '#FF00FF' });

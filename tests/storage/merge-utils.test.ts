@@ -342,6 +342,40 @@ describe('mergePresets()', () => {
         });
     });
 
+    describe('publicPool handling', () => {
+        it('should keep publicPool through merge', () => {
+            const preset = makePreset({
+                id: 'p1',
+                publicPool: { protocols: ['socks5'], country: 'US', minScore: 50 },
+                domains: ['a.com'],
+            });
+            const cloud = [preset];
+
+            const result = mergePresets(cloud, [], emptyProxyMerge());
+
+            expect(result.merged[0].publicPool).toEqual({ protocols: ['socks5'], country: 'US', minScore: 50 });
+        });
+
+        it('should take publicPool from the newer version', () => {
+            const cloud = [makePreset({
+                id: 'p1',
+                name: 'Work',
+                publicPool: { protocols: ['socks5'] },
+                updatedAt: 2000,
+            })];
+            const local = [makePreset({
+                id: 'p1',
+                name: 'Work',
+                publicPool: { protocols: ['http', 'https'] },
+                updatedAt: 1000,
+            })];
+
+            const result = mergePresets(cloud, local, emptyProxyMerge());
+
+            expect(result.merged[0].publicPool).toEqual({ protocols: ['socks5'] });
+        });
+    });
+
     it('should not mutate input arrays', () => {
         const cloud = [makePreset({ id: 'p1', domains: ['a.com'] })];
         const local = [makePreset({ id: 'p1', domains: ['b.com'], updatedAt: 2000 })];

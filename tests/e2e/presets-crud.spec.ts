@@ -278,6 +278,82 @@ async function updatePresetName(popup: Page, id: string, newName: string) {
     );
 }
 
+/**
+ * Значение опции публичного пула в селекте прокси пресета
+ * (src/popup/preset-proxy-dropdown.ts → PUBLIC_POOL_OPTION_VALUE).
+ */
+const PUBLIC_POOL_OPTION = '__public_pool__';
+
+/**
+ * Детерминированный каталог публичных прокси для сценариев пула (TC 4.13–4.16).
+ * Записи взяты из реального sources/proxys.json и приведены к виду
+ * normalizeProxies(): ip и port раздельно, connectionType в нижнем регистре.
+ */
+const POOL_CATALOG = [
+    { protocol: 'socks5', ip: '131.153.163.123', port: 20747, score: 4.5, connectionType: 'residential', country: 'US' },
+    { protocol: 'socks5', ip: '131.153.163.123', port: 23732, score: 4.5, connectionType: 'residential', country: 'US' },
+    { protocol: 'socks5', ip: '18.157.159.247', port: 10164, score: 5, connectionType: 'corporate', country: 'DE' },
+    { protocol: 'socks5', ip: '101.32.60.93', port: 1080, score: 3.5, connectionType: 'corporate', country: 'HK' },
+    { protocol: 'http', ip: '1.14.111.118', port: 8888, score: 4.5, connectionType: 'mobile', country: 'CN' },
+];
+
+/** Мёртвый член каталога: исключается из пула, остальные socks5 — живые */
+const POOL_DEAD_KEY = 'socks5://101.32.60.93:1080';
+
+/**
+ * Готовит окружение сценария пула в отдельном popup и возвращает id пресета.
+ *
+ * Сидировать нужно до открытия рабочего popup: язык читается при инициализации
+ * I18n, а каталог — при построении блока настроек пула. Каталог кладётся в кеш
+ * со свежим fetchedAt, поэтому сетевой запрос за sources/proxys.json не идёт.
+ */
+async function seedPoolScenario(
+    context: BrowserContext,
+    popupUrl: string,
+    presetName: string
+): Promise<string> {
+    const seedPopup = await openPopup(context, popupUrl);
+    await seedPopup.evaluate(
+        ({ catalog, deadKey }) => {
+            const now = Date.now();
+            const results: Record<string, { status: string; checkedAt: number }> = {};
+            catalog.forEach((proxy) => {
+                const key = `${proxy.protocol}://${proxy.ip}:${proxy.port}`;
+                results[key] = { status: key === deadKey ? 'dead' : 'alive', checkedAt: now };
+            });
+            return new Promise<void>(resolve => chrome.storage.local.set({
+                language: 'en',
+                publicProxyCatalog: { fetchedAt: now, proxies: catalog },
+                publicProxyCheckResults: results,
+            }, () => resolve()));
+        },
+        { catalog: POOL_CATALOG, deadKey: POOL_DEAD_KEY }
+    );
+    const presetId = await createPreset(seedPopup, presetName, ['example.com'], null);
+    await seedPopup.close();
+    return presetId;
+}
+
+/** Переключает popup на вкладку Presets и раскрывает пресет по id */
+async function expandPreset(popup: Page, presetId: string) {
+    await switchToPresetsTab(popup);
+    await waitForPresetsRender(popup, 1);
+    const presetEl = popup.locator(`.preset-item[data-preset-id="${presetId}"]`);
+    await expect(presetEl).toBeVisible();
+    const content = presetEl.locator('.preset-content');
+    if (!(await content.evaluate(el => el.classList.contains('expanded')))) {
+        await presetEl.locator('.preset-expand-btn').click();
+    }
+    await expect(content).toHaveClass(/expanded/);
+    return presetEl;
+}
+
+/** Блок настроек публичного пула внутри пресета */
+function poolConfigOf(popup: Page, presetId: string) {
+    return popup.locator(`.preset-item[data-preset-id="${presetId}"] .preset-pool-config`);
+}
+
+
 test.describe('Presets CRUD — создание, редактирование, drag-n-drop, удаление, валидация', () => {
     let context: BrowserContext;
     let popupUrl: string;
@@ -624,5 +700,137 @@ test.describe('Presets CRUD — создание, редактирование, 
         expect(preset.name).toBe('Empty Domains Preset');
 
         await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-4.12-empty-domains.png`) });
+    });
+
+    // TC 4.13: Выбор «Public pool» показывает блок настроек с дефолтом socks5
+    test('TC 4.13: выбор «Public pool» показывает блок настроек с дефолтом socks5', async () => {
+        const presetId = await seedPoolScenario(context, popupUrl, 'Public Pool Preset');
+        popup = await openPopup(context, popupUrl);
+        await popup.waitForLoadState('domcontentloaded');
+        const presetEl = await expandPreset(popup, presetId);
+
+        // Реальный UI: выбираем опцию публичного пула в селекте прокси пресета
+        const select = presetEl.locator('select.proxy-select');
+        await expect(select.locator(`option[value="${PUBLIC_POOL_OPTION}"]`)).toHaveCount(1);
+        await select.selectOption(PUBLIC_POOL_OPTION);
+
+        // Блок настроек появился в том же пресете
+        const poolConfig = poolConfigOf(popup, presetId);
+        await expect(poolConfig).toBeVisible();
+
+        // 4 чекбокса протоколов, отмечен только socks5
+        await expect(poolConfig.locator('input[data-protocol]')).toHaveCount(4);
+        for (const protocol of ['http', 'https', 'socks4', 'socks5']) {
+            const box = poolConfig.locator(`input[data-protocol="${protocol}"]`);
+            expect(await box.isChecked(), `checkbox ${protocol}`).toBe(protocol === 'socks5');
+        }
+
+        // Строка статуса пула: N кандидатов · M живых
+        // (фикстура POOL_CATALOG: 4 socks5-кандидата, один помечен dead)
+        const statusText = await poolConfig.locator('div.pool-status').textContent();
+        expect(statusText?.trim()).toMatch(/^\d+ candidates · \d+ alive$/);
+
+        // Data assertion: конфиг пула записан в storage, привязка к прокси снята
+        const preset = await getPresetById(popup, presetId);
+        expect(preset.publicPool).not.toBeNull();
+        expect(preset.publicPool.protocols).toEqual(['socks5']);
+        expect(preset.proxyId).toBeNull();
+
+        await saveScreenshot(popup, `${ARTIFACT_PREFIX}-4.13-public-pool-select.png`);
+    });
+
+    // TC 4.14: Настройки пула сохраняются после перезагрузки popup
+    test('TC 4.14: настройки пула сохраняются после перезагрузки popup', async () => {
+        const presetId = await seedPoolScenario(context, popupUrl, 'Pool Filters Preset');
+        popup = await openPopup(context, popupUrl);
+        await popup.waitForLoadState('domcontentloaded');
+        let presetEl = await expandPreset(popup, presetId);
+        await presetEl.locator('select.proxy-select').selectOption(PUBLIC_POOL_OPTION);
+
+        const poolConfig = poolConfigOf(popup, presetId);
+        await expect(poolConfig).toBeVisible();
+
+        // Меняем фильтры через реальные контролы блока
+        await poolConfig.locator('select.pool-country').selectOption('US');
+        await poolConfig.locator('select.pool-connection-type').selectOption('residential');
+        await poolConfig.locator('select.pool-min-score').selectOption('4.0');
+
+        // Значения дошли до storage до перезагрузки
+        await expect
+            .poll(async () => (await getPresetById(popup, presetId))?.publicPool?.minScore)
+            .toBe(4);
+
+        // Перезагружаем popup и повторно раскрываем пресет
+        await popup.close();
+        popup = await openPopup(context, popupUrl);
+        await popup.waitForLoadState('domcontentloaded');
+        presetEl = await expandPreset(popup, presetId);
+
+        // Контролы восстановлены из сохранённого конфига
+        const reopened = poolConfigOf(popup, presetId);
+        await expect(reopened).toBeVisible();
+        await expect(reopened.locator('select.pool-country')).toHaveValue('US');
+        await expect(reopened.locator('select.pool-connection-type')).toHaveValue('residential');
+        await expect(reopened.locator('select.pool-min-score')).toHaveValue('4.0');
+
+        // Data assertion: те же значения в storage
+        const preset = await getPresetById(popup, presetId);
+        expect(preset.publicPool.country).toBe('US');
+        expect(preset.publicPool.connectionType).toBe('residential');
+        expect(preset.publicPool.minScore).toBe(4);
+        expect(preset.publicPool.protocols).toEqual(['socks5']);
+
+        await saveScreenshot(popup, `${ARTIFACT_PREFIX}-4.14-pool-settings-persisted.png`);
+    });
+
+    // TC 4.15: Последний протокол нельзя снять
+    test('TC 4.15: последний протокол нельзя снять', async () => {
+        const presetId = await seedPoolScenario(context, popupUrl, 'Single Protocol Preset');
+        popup = await openPopup(context, popupUrl);
+        await popup.waitForLoadState('domcontentloaded');
+        const presetEl = await expandPreset(popup, presetId);
+        await presetEl.locator('select.proxy-select').selectOption(PUBLIC_POOL_OPTION);
+
+        const poolConfig = poolConfigOf(popup, presetId);
+        await expect(poolConfig).toBeVisible();
+
+        const socks5Box = poolConfig.locator('input[data-protocol="socks5"]');
+        expect(await socks5Box.isChecked()).toBe(true);
+
+        // Снимаем единственный отмеченный протокол через click (не uncheck:
+        // ожидаемое поведение — обработчик возвращает чекбокс в отмеченное состояние)
+        await socks5Box.click();
+        expect(await socks5Box.isChecked()).toBe(true);
+
+        // Data assertion: список протоколов в storage не опустел
+        const preset = await getPresetById(popup, presetId);
+        expect(preset.publicPool.protocols.length).toBeGreaterThan(0);
+        expect(preset.publicPool.protocols).toEqual(['socks5']);
+
+        await saveScreenshot(popup, `${ARTIFACT_PREFIX}-4.15-last-protocol-protected.png`);
+    });
+
+    // TC 4.16: Возврат к Default очищает publicPool
+    test('TC 4.16: возврат к Default очищает publicPool', async () => {
+        const presetId = await seedPoolScenario(context, popupUrl, 'Pool to Default Preset');
+        popup = await openPopup(context, popupUrl);
+        await popup.waitForLoadState('domcontentloaded');
+        let presetEl = await expandPreset(popup, presetId);
+        await presetEl.locator('select.proxy-select').selectOption(PUBLIC_POOL_OPTION);
+        await expect(poolConfigOf(popup, presetId)).toBeVisible();
+
+        // Возврат к опции по умолчанию (пустое значение в том же селекте)
+        presetEl = popup.locator(`.preset-item[data-preset-id="${presetId}"]`);
+        await presetEl.locator('select.proxy-select').selectOption('');
+
+        // Блок настроек пула исчез из DOM
+        await expect(poolConfigOf(popup, presetId)).toHaveCount(0);
+
+        // Data assertion: publicPool очищен в storage
+        await expect
+            .poll(async () => (await getPresetById(popup, presetId))?.publicPool)
+            .toBeNull();
+
+        await saveScreenshot(popup, `${ARTIFACT_PREFIX}-4.16-pool-to-default.png`);
     });
 });

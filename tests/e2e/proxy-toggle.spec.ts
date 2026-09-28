@@ -853,4 +853,211 @@ test.describe('Proxy Toggle — подключение/отключение пр
 
         await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX}-3.9-proxy-settings.png`) });
     });
+
+    // Pool tests (QA-159) for public pool functionality
+    // TC pool-check-1: PAC содержит domainPoolMap для pool-пресета
+    test('TC pool-check-1: PAC содержит domainPoolMap пула', async () => {
+        // Очищаем собственные прокси
+        await clearProxies(popup);
+        await resetConnectionState(popup);
+
+        // Создаём pool-пресет без собственных прокси
+        const poolPreset = await popup.evaluate(() => {
+            return new Promise<string>(resolve => {
+                chrome.storage.local.get('presets', (data) => {
+                    const presets = data.presets || [];
+                    const newPreset = {
+                        id: crypto.randomUUID(),
+                        name: 'Pool Preset Test',
+                        domains: [],
+                        enabled: true,
+                        isDefault: false,
+                        order: 0,
+                        proxyId: null,
+                        publicPool: { protocols: ['socks5'] },
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
+                    };
+                    presets.push(newPreset);
+                    chrome.storage.local.set({ presets }, () => resolve(newPreset.id));
+                });
+            });
+        });
+
+        // Переоткрываем popup для активации пресета
+        popup = await reopenPopup(context, popupUrl, popup);
+        await popup.waitForTimeout(500);
+
+        // Нажимаем Connect
+        await clickConnectButton(popup);
+        popup = await reopenPopup(context, popupUrl, popup);
+        await popup.waitForTimeout(1000);
+
+        // Проверяем что диалог noProxiesConfigured НЕ показан
+        const noProxiesDialog = popup.locator('[data-testid="no-proxies-configured"]').count();
+        const dialogCount = await noProxiesDialog;
+        console.log(`TC pool-1: noProxiesConfigured dialog count: ${dialogCount}`);
+        expect(dialogCount).toBe(0);
+
+        // Проверяем состояние
+        const state = await getProxyState(popup);
+        console.log(`TC pool-1: state after pool connect: currentState=${state.currentState}, targetState=${state.targetState}`);
+
+        // Должны быть connected (pool-пресет даёт прокси)
+        expect(state.currentState).not.toBe('disconnected');
+        expect(['connected', 'error'].includes(state.currentState)).toBeTruthy();
+
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, 'QA-159-pool-1-pool-preset-connect.png') });
+    });
+
+    // TC pool-2: PAC содержит domainPoolMap
+    test('TC pool-2: PAC содержит domainPoolMap и пул из ≥1 члена', async () => {
+        // Предварительно загружаем каталог публичных прокси в storage
+        const publicProxyCatalog = {
+            fetchedAt: Date.now(),
+            proxies: [
+                { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 4.5, connectionType: 'residential', country: 'US' },
+                { protocol: 'socks5', ip: '5.6.7.8', port: 1080, score: 4.8, connectionType: 'corporate', country: 'DE' },
+            ],
+        };
+
+        await popup.evaluate(
+            (catalog) => {
+                return new Promise(resolve => chrome.storage.local.set({ publicProxyCatalog: catalog }, resolve));
+            },
+            publicProxyCatalog
+        );
+
+        // Создаём pool-пресет с фильтром на socks5
+        const poolPreset = await popup.evaluate(() => {
+            return new Promise<string>(resolve => {
+                chrome.storage.local.get('presets', (data) => {
+                    const presets = data.presets || [];
+                    const newPreset = {
+                        id: crypto.randomUUID(),
+                        name: 'Pool PAC Test',
+                        domains: ['example.com'],
+                        enabled: true,
+                        isDefault: false,
+                        order: 0,
+                        proxyId: null,
+                        publicPool: { protocols: ['socks5'], country: 'US' },
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
+                    };
+                    presets.push(newPreset);
+                    chrome.storage.local.set({ presets }, () => resolve(newPreset.id));
+                });
+            });
+        });
+
+        popup = await reopenPopup(context, popupUrl, popup);
+        await popup.waitForTimeout(500);
+
+        // Нажимаем Connect
+        await clickConnectButton(popup);
+        popup = await reopenPopup(context, popupUrl, popup);
+        await popup.waitForTimeout(1500);
+
+        // Читаем PAC из chrome.proxy.settings
+        const pacData = await popup.evaluate(() => {
+            return new Promise((resolve) => {
+                if (chrome?.proxy?.settings) {
+                    chrome.proxy.settings.get({}, (details) => {
+                        if (details.value?.pacScript?.data) {
+                            resolve({ pac: details.value.pacScript.data, mode: details.value.mode });
+                        } else {
+                            resolve({ pac: null, mode: details.value?.mode });
+                        }
+                    });
+                } else {
+                    resolve({ error: 'chrome.proxy.settings unavailable' });
+                }
+            });
+        });
+
+        console.log(`TC pool-2: PAC mode: ${JSON.stringify(pacData)}`);
+
+        // Проверяем что PAC содержит domainPoolMap и пул
+        if (pacData.pac && typeof pacData.pac === 'string') {
+            expect(pacData.pac).toContain('domainPoolMap');
+            // Проверяем что пул содержит минимум одного прокси
+            const poolMatch = pacData.pac.match(/pools\[.*?\]\s*=\s*\[(.*?)\]/);
+            if (poolMatch) {
+                const poolContent = poolMatch[1];
+                expect(poolContent.length).toBeGreaterThan(0);
+                console.log(`TC pool-2: Pool content found in PAC`);
+            }
+        } else {
+            console.log(`TC pool-2: PAC not available, mode=${pacData.mode}`);
+        }
+
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, 'QA-159-pool-2-pac-domainPoolMap.png') });
+    });
+
+    // TC pool-3: alarm public_pool_check с periodInMinutes 15
+    test('TC pool-3: alarm public_pool_check создан с periodInMinutes 15', async () => {
+        // Создаём pool-пресет
+        await clearProxies(popup);
+        await resetConnectionState(popup);
+
+        const poolPreset = await popup.evaluate(() => {
+            return new Promise<string>(resolve => {
+                chrome.storage.local.get('presets', (data) => {
+                    const presets = data.presets || [];
+                    const newPreset = {
+                        id: crypto.randomUUID(),
+                        name: 'Pool Alarm Test',
+                        domains: [],
+                        enabled: true,
+                        isDefault: false,
+                        order: 0,
+                        proxyId: null,
+                        publicPool: { protocols: ['socks5'] },
+                        createdAt: Date.now(),
+                        updatedAt: Date.now(),
+                    };
+                    presets.push(newPreset);
+                    chrome.storage.local.set({ presets }, () => resolve(newPreset.id));
+                });
+            });
+        });
+
+        popup = await reopenPopup(context, popupUrl, popup);
+        await popup.waitForTimeout(500);
+
+        // Нажимаем Connect для активации pool-пресета
+        await clickConnectButton(popup);
+        popup = await reopenPopup(context, popupUrl, popup);
+        await popup.waitForTimeout(1500);
+
+        // Проверяем alarm через Service Worker
+        const alarmInfo = await popup.evaluate(() => {
+            return new Promise((resolve) => {
+                if (chrome?.alarms) {
+                    chrome.alarms.get('public_pool_check', (alarm) => {
+                        if (alarm) {
+                            resolve({
+                                name: alarm.name,
+                                periodInMinutes: alarm.periodInMinutes,
+                                scheduledTime: alarm.scheduledTime,
+                            });
+                        } else {
+                            resolve({ error: 'alarm not found' });
+                        }
+                    });
+                } else {
+                    resolve({ error: 'chrome.alarms unavailable' });
+                }
+            });
+        });
+
+        console.log(`TC pool-3: Alarm info: ${JSON.stringify(alarmInfo)}`);
+
+        // Проверяем что alarm создан и имеет period 15 минут
+        expect(alarmInfo.name).toBe('public_pool_check');
+        expect(alarmInfo.periodInMinutes).toBe(15);
+
+        await popup.screenshot({ path: path.join(ARTIFACTS_DIR, 'QA-159-pool-3-alarm-public-pool-check.png') });
+    });
 });

@@ -1325,6 +1325,60 @@ describe('storage.ts - StorageService', () => {
         });
     });
 
+    describe('PublicProxyCatalog storage', () => {
+        it('getPublicProxyCatalog returns undefined when not set', async () => {
+            mockHelpers.setLocalStorageData({});
+            const result = await Storage.getPublicProxyCatalog();
+            expect(result).toBeUndefined();
+        });
+
+        it('setPublicProxyCatalog persists data', async () => {
+            const catalog = { fetchedAt: 1000, proxies: [{ protocol: 'socks5' as const, ip: '1.1.1.1', port: 1080, score: 100, connectionType: 'direct', country: 'US' }] };
+            await Storage.setPublicProxyCatalog(catalog);
+            const data = mockHelpers.getLocalStorageData();
+            expect(data.publicProxyCatalog).toEqual(catalog);
+        });
+
+        it('getPublicProxyCatalog returns stored value', async () => {
+            const catalog = { fetchedAt: 2000, proxies: [{ protocol: 'http' as const, ip: '2.2.2.2', port: 8080, score: 50, connectionType: 'proxy', country: 'UK' }] };
+            mockHelpers.setLocalStorageData({ publicProxyCatalog: catalog });
+            const result = await Storage.getPublicProxyCatalog();
+            expect(result).toEqual(catalog);
+        });
+
+        it('getPublicProxyCatalog returns undefined for corrupted value - not object', async () => {
+            mockHelpers.setLocalStorageData({ publicProxyCatalog: 'not an object' });
+            const result = await Storage.getPublicProxyCatalog();
+            expect(result).toBeUndefined();
+        });
+
+        it('getPublicProxyCatalog returns undefined for corrupted value - fetchedAt not number', async () => {
+            mockHelpers.setLocalStorageData({ publicProxyCatalog: { fetchedAt: 'not a number', proxies: [] } });
+            const result = await Storage.getPublicProxyCatalog();
+            expect(result).toBeUndefined();
+        });
+
+        it('getPublicProxyCatalog returns undefined for corrupted value - proxies not array', async () => {
+            mockHelpers.setLocalStorageData({ publicProxyCatalog: { fetchedAt: 1000, proxies: 'not an array' } });
+            const result = await Storage.getPublicProxyCatalog();
+            expect(result).toBeUndefined();
+        });
+    });
+
+    describe('setPresetPublicPool', () => {
+        it('setPresetPublicPool stores config and clears proxyId', async () => {
+            const preset = { name: 'Public', domains: ['public.test'], enabled: true, isDefault: false, order: 0, proxyId: 'some-proxy-id' };
+            const added = await Storage.addPreset(preset);
+
+            const poolConfig = { protocols: ['socks5'], country: 'US', minScore: 50 };
+            await Storage.setPresetPublicPool(added.id, poolConfig);
+
+            const updated = await Storage.getPreset(added.id);
+            expect(updated?.publicPool).toEqual(poolConfig);
+            expect(updated?.proxyId).toBeNull();
+        });
+    });
+
     describe('PublicProxyCheckResults', () => {
         it('should return empty object when cache not set', async () => {
             mockHelpers.setLocalStorageData({});

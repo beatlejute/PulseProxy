@@ -730,6 +730,97 @@ describe('ImportExportService', () => {
         });
     });
 
+    describe('isValidPreset publicPool', () => {
+        const makeService = () => new ImportExportServiceConstructor(
+            MockStorageBackend as any,
+            MockPresetRepository as any,
+            MockProxyRepository as any,
+            MockSettingsRepository as any
+        );
+
+        it('accepts preset with valid publicPool config', () => {
+            const data = createValidExportData();
+            (data.data.presets[0] as any).publicPool = {
+                protocols: ['socks5'],
+                country: 'DE',
+                connectionType: 'residential',
+                minScore: 4
+            };
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(true);
+        });
+
+        it('accepts preset without publicPool field (optional)', () => {
+            const data = createValidExportData();
+            delete (data.data.presets[0] as any).publicPool;
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(true);
+        });
+
+        it('accepts preset with publicPool null', () => {
+            const data = createValidExportData();
+            (data.data.presets[0] as any).publicPool = null;
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(true);
+        });
+
+        it('rejects preset with publicPool.protocols empty array', () => {
+            const data = createValidExportData();
+            (data.data.presets[0] as any).publicPool = {
+                protocols: []
+            };
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidPresetStructure');
+        });
+
+        it('rejects preset with publicPool.protocols containing invalid value', () => {
+            const data = createValidExportData();
+            (data.data.presets[0] as any).publicPool = {
+                protocols: ['ftp']
+            };
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidPresetStructure');
+        });
+
+        it('rejects preset with publicPool.minScore not a finite number', () => {
+            const data = createValidExportData();
+            (data.data.presets[0] as any).publicPool = {
+                protocols: ['http'],
+                minScore: '4.5'
+            };
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidPresetStructure');
+        });
+
+        it('rejects preset with publicPool.minScore as null', () => {
+            const data = createValidExportData();
+            (data.data.presets[0] as any).publicPool = {
+                protocols: ['https'],
+                minScore: null
+            };
+
+            const result = makeService().validateImportData(JSON.stringify(data));
+
+            expect(result.valid).toBe(false);
+            expect(result.errors).toContain('invalidPresetStructure');
+        });
+    });
+
     describe('importAll() — defensive settings handling', () => {
         it('does not write theme/language when the imported file omits them', async () => {
             const exportData = createValidExportData();

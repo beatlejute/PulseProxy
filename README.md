@@ -6,7 +6,7 @@
 
 A Chrome/Chromium (Manifest V3) browser extension for easy proxy management: multiple proxy servers, per-domain presets, a catalog of public proxies, and settings sync.
 
-Current version: **1.4.0**
+Current version: **1.5.0**
 
 📖 [Privacy Policy](PRIVACY_POLICY.md) | 📝 [Changelog](CHANGELOG.md) | 🐛 [Report Issues](https://github.com/beatlejute/PulseProxy/issues)
 
@@ -26,7 +26,7 @@ Current version: **1.4.0**
 - **Domain Matching**: Exact (`example.com`) and wildcard subdomain (`*.example.com`) matching, with IDN/punycode support
 - **Proxy All Sites Mode**: Route all traffic through the proxy by default
 - **Ignore List**: Domains that always bypass the proxy
-- **Public Proxy Pool**: Bind a preset to a filtered subset of the built-in public proxies catalog instead of a single server
+- **Public Pool**: Bind a preset to a filtered subset of the built-in public proxies catalog instead of a single server — every site of the preset gets its own random live public proxy, with filters (protocols, country, connection type, minimum score) and a background check every 15 minutes. Public proxies are slow and unreliable — do not use them for logins or payments
 
 ### Public Proxy Pool
 
@@ -34,25 +34,27 @@ Current version: **1.4.0**
 
 A preset can be bound to a filtered subset of public proxies from the catalog rather than a single proxy server. Each site in the preset is routed through its own randomly selected live proxy — dead proxies are dropped automatically by background checks.
 
-Rendezvous hashing: each site is stably routed to one proxy from the pool. The same domain always resolves to the same proxy, so sessions and IP-bound tokens (e.g. `cf_clearance`) stay intact across page reloads.
+Rendezvous hashing: each site gets a stable chain of 3 proxies from the pool. Repeated requests to the same domain return the same chain, and Chrome falls through to the next proxy of the chain when one of them fails. `*.example.com` and `example.com` share one chain; when a proxy drops out of the pool, the chains of some domains are remapped.
+
+> Public proxies are free and shared — they are slow, unreliable, and insecure. Do not use them for logins or payments.
 
 #### How to configure
 
-1. Open the preset settings
-2. In the "Proxy" field, select "🌐 Public pool"
-3. Configure filters: protocols, country, connection type, minimum score
-4. Save — the pool activates automatically
+1. Go to the "Presets" tab and expand the preset
+2. In the "Proxy" field, select "🌐 Public pool" — the pool activates immediately, the filter block appears right below the selector
+3. Configure filters: protocols (default `socks5`), country, connection type, minimum score — every change is saved right away, the "Save" button of a preset applies only to its domain list
 
 #### Indication
 
-- Tab badge `🌐` — pool is active, N proxies in the pool
-- Badge `!` — pool is empty, traffic goes via DIRECT
+- Tab badge `🌐` — the pool is active and serves the current tab; the preset status line shows how many members the pool has (`N candidates · M alive`)
+- Badge `!` — the pool is empty, and requests of the pool sites are blocked: the connection to `127.0.0.1:9` fails instantly, the page shows `ERR_PROXY_CONNECTION_FAILED`, and your real IP never leaks — the routing fails closed and never falls back to an unproxied connection
 
 #### Limitations
 
 - Maximum 200 proxies in the pool
 - HTTP proxies cannot carry HTTPS traffic
 - The pool is rechecked every 15 minutes
+- While no live member is available, the sites of the preset stay unreachable
 
 ### Interface
 - **Per-tab Badge**: The toolbar icon shows whether the current tab goes through a proxy — a flag/checkmark in the proxy's color, `ALL` for the "proxy all sites" mode, and an error indicator on failure
@@ -135,7 +137,7 @@ After entering a proxy address, the extension verifies its availability (when "C
 2. Click "+ Add Preset" (or pick a ready-made template)
 3. Configure the preset:
    - Enter a name for the preset
-   - Select a proxy server
+   - Select a proxy server, or select `🌐 Public pool` to route the sites of the preset through a filtered set of the public proxies catalog (see [Public Proxy Pool](#public-proxy-pool))
    - Add domain rules (one per line)
 4. Use wildcards for subdomain matching: `*.example.com`
 
@@ -222,7 +224,7 @@ Code is written following TDD, SOLID, and DRY.
 | `webRequestAuthProvider` | Provide authentication credentials |
 | `webNavigation` | Detect which site a tab loads to show the per-tab badge |
 | `tabs` | Per-tab badges and opening the full-page view |
-| `alarms` | Periodic background tasks (heartbeat) |
+| `alarms` | Periodic background tasks: heartbeat and the public pool check |
 | `<all_urls>` | Apply proxy settings to all websites |
 | `https://www.google-analytics.com/*` | Send anonymous usage statistics |
 

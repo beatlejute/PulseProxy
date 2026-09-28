@@ -5,6 +5,7 @@ import {
     sortByLiveStatus,
     PublicProxyCheckSession,
 } from '../../src/popup/public-proxy-check';
+import * as queue from '../../src/shared/public-proxy-queue';
 import { StorageKeys } from '../../src/shared/constants';
 import { NormalizedPublicProxy, PublicProxyLiveStatus } from '../../src/types';
 
@@ -294,5 +295,13 @@ describe('public-proxy-check', () => {
             expect(checkedBatches[0].map(p => p.host)).toEqual(['3.3.3.3']);
             expect(statuses.get(publicProxyCacheKey(target))).toBe('alive');
         });
+    });
+});
+
+describe('public-proxy-check re-export', () => {
+    it('exports the same sortByLiveStatus, interleaveBySubnet and buildCheckQueue as src/shared/public-proxy-queue', () => {
+        expect(sortByLiveStatus).toBe(queue.sortByLiveStatus);
+        expect(interleaveBySubnet).toBe(queue.interleaveBySubnet);
+        expect(buildCheckQueue).toBe(queue.buildCheckQueue);
     });
 });

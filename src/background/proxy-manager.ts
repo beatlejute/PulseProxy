@@ -512,16 +512,16 @@ class ProxyManagerService {
 
         const { poolSizes } = await this.resolvePools(activePresets);
 
-        // Keep routing precedence consistent with PAC: ignore, pool, then own.
+// Keep routing precedence consistent with PAC: last preset wins between
+        // own and pool (order of Storage.getActivePresets()); isDefault stays DIRECT.
         const ownerOf = (preset: Preset): 'ignore' | 'own' | 'pool' =>
             preset.isDefault ? 'ignore' : preset.publicPool ? 'pool' : 'own';
-        const ownerRank = { own: 1, pool: 2, ignore: 3 } as const;
         const lastOwner = new Map<string, 'ignore' | 'own' | 'pool'>();
         for (const preset of activePresets) {
             for (const domain of preset.domains) {
                 const owner = ownerOf(preset);
                 const current = lastOwner.get(domain);
-                if (!current || ownerRank[owner] >= ownerRank[current]) {
+                if (!current || owner === 'ignore' || current !== 'ignore') {
                     lastOwner.set(domain, owner);
                 }
             }
@@ -661,17 +661,17 @@ class ProxyManagerService {
         // Собираем домены из Ignore List (isDefault пресет) - они всегда идут DIRECT
         const ignoreListDomains: string[] = [];
 
-        // Домен одновременно только в одной карте. Приоритет: Ignore List,
-        // публичный пул, затем собственный прокси.
+// Домен одновременно только в одной карте. Последний пресет побеждает:
+        // между own и pool решает порядок Storage.getActivePresets(); домен
+        // Ignore List (isDefault) остаётся DIRECT и не перебивается own/pool.
         const ownerOf = (preset: Preset): 'ignore' | 'own' | 'pool' =>
             preset.isDefault ? 'ignore' : preset.publicPool ? 'pool' : 'own';
-        const ownerRank = { own: 1, pool: 2, ignore: 3 } as const;
         const lastOwner = new Map<string, 'ignore' | 'own' | 'pool'>();
         for (const preset of activePresets) {
             for (const domain of preset.domains) {
                 const owner = ownerOf(preset);
                 const current = lastOwner.get(domain);
-                if (!current || ownerRank[owner] >= ownerRank[current]) {
+                if (!current || owner === 'ignore' || current !== 'ignore') {
                     lastOwner.set(domain, owner);
                 }
             }

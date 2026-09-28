@@ -13,6 +13,28 @@ const createPreset = (domains: string[], enabled = true, isDefault = false, id =
     updatedAt: 0
 });
 
+// Порядок пресетов задаёт поле order: getAll() ставит isDefault первым,
+// остальные сортирует по order. createPreset всегда order:0, поэтому
+// для тестов порядка pool → own нужен order > 0 у own-пресета.
+const createPresetWithOrder = (
+    domains: string[],
+    order: number,
+    enabled = true,
+    isDefault = false,
+    id = 'test-preset',
+    extra: Record<string, unknown> = {}
+) => ({
+    id,
+    name: 'Test',
+    domains,
+    enabled,
+    isDefault,
+    order,
+    createdAt: 0,
+    updatedAt: 0,
+    ...extra
+});
+
 const createProxy = (
     host: string,
     port: number,
@@ -205,6 +227,234 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
                 expect.any(Function)
             );
         });
+
+        it('connects without default proxy when a pool preset is active', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            const proxy2 = { protocol: 'socks5', ip: '5.6.7.8', port: 1081, score: 4, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxies: [],
+                presets: [{
+                    ...createPreset(['pool-site.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1, proxy2],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                    'socks5://5.6.7.8:1081': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            expect(setCall).toBeDefined();
+            expect(setCall[0].value.mode).toBe('pac_script');
+            const pacScript = setCall[0].value.pacScript.data;
+            expect(pacScript).toContain('pool-site.com');
+
+            const callback = setCall[1];
+            callback();
+
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                { currentState: 'connected' },
+                expect.any(Function)
+            );
+        });
+
+        it('stays disconnected without default proxy and without pool preset', async () => {
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxies: [],
+                presets: [createPreset(['own-site.com'], true, false, 'own-preset')],
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                { currentState: 'disconnected' },
+                expect.any(Function)
+            );
+            expect(chrome.proxy.settings.set).not.toHaveBeenCalled();
+        });
+
+        it('uses DIRECT fallback and skips DEFAULT_DOMAINS without default proxy', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxies: [],
+                presets: [{
+                    ...createPreset(['pool-site.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pacScript = setCall[0].value.pacScript.data;
+
+            expect(pacScript).toContain('DIRECT');
+        });
+
+        it('enable() without options increments ga4_activation_count', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+                ga4_activation_count: 5,
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const callback = setCall[1];
+            callback();
+
+            const calls = (chrome.storage.local.set as jest.Mock).mock.calls;
+            const gaCountCall = calls.find((call: any[]) =>
+                call[0] && typeof call[0] === 'object' && 'ga4_activation_count' in call[0]
+            );
+
+            expect(gaCountCall).toBeDefined();
+            expect(gaCountCall![0].ga4_activation_count).toBe(6);
+        });
+    });
+
+    describe('refreshIfConnected()', () => {
+        it('refreshIfConnected (silent) does not write ga4_activation_count', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+                ga4_activation_count: 5,
+                targetState: 'connected',
+                currentState: 'connected',
+            });
+
+            (ProxyManager as any).cachedPacScript = '__cached_pac__';
+
+            await ProxyManager.refreshIfConnected();
+
+            const calls = (chrome.storage.local.set as jest.Mock).mock.calls;
+            const gaCountCalls = calls.filter((call: any[]) =>
+                call[0] && typeof call[0] === 'object' && 'ga4_activation_count' in call[0]
+            );
+
+            expect(gaCountCalls.length).toBe(0);
+        });
+
+        it('refreshIfConnected (silent) does not send proxy_activated', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+                targetState: 'connected',
+                currentState: 'connected',
+            });
+
+            (ProxyManager as any).cachedPacScript = '__cached_pac__';
+
+            const trackEventSpy = jest.spyOn(require('../../src/shared/analytics'), 'trackEvent').mockImplementation(() => {});
+
+            await ProxyManager.refreshIfConnected();
+
+            const proxyActivatedCalls = trackEventSpy.mock.calls.filter((call: any[]) =>
+                call[0] === 'proxy_activated'
+            );
+
+            expect(proxyActivatedCalls.length).toBe(0);
+
+            trackEventSpy.mockRestore();
+        });
+
+        it('refreshIfConnected is a no-op when not connected', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 8080)],
+                migrationCompleted: true,
+                presets: [createPreset(['test.com'])],
+                targetState: 'disconnected',
+                currentState: 'disconnected',
+            });
+
+            await ProxyManager.refreshIfConnected();
+
+            expect(chrome.proxy.settings.set).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('PAC pool routing', () => {
+        const runPac = async (presets: any[]) => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets,
+                publicProxyCatalog: { fetchedAt: Date.now(), proxies: [proxy1] },
+                publicProxyCheckResults: { 'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() } },
+            });
+            await ProxyManager.enable();
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+            const execPac = new Function(pac + '; return { FindProxyForURL, domainProxyMap, domainPoolMap };');
+            return execPac() as { FindProxyForURL: (url: string, host: string) => string; domainProxyMap: Record<string, string>; domainPoolMap: Record<string, number> };
+        };
+
+        describe('own and pool preset order', () => {
+        it('pool preset after own preset: PAC returns pool members', async () => {
+            const { FindProxyForURL, domainProxyMap, domainPoolMap } = await runPac([
+                createPresetWithOrder(['conflict.com'], 0, true, false, 'own-preset'),
+                createPresetWithOrder(['conflict.com'], 1, true, false, 'pool-preset', { proxyId: null, publicPool: { protocols: ['socks5' as const] } }),
+            ]);
+
+            expect(FindProxyForURL('https://conflict.com/', 'conflict.com')).toBe('SOCKS5 1.2.3.4:1080');
+            expect(domainPoolMap['conflict.com']).toBeDefined();
+            expect(domainProxyMap['conflict.com']).toBeUndefined();
+        });
+
+        it('own preset after pool preset: PAC returns own proxy', async () => {
+            const { FindProxyForURL, domainProxyMap, domainPoolMap } = await runPac([
+                createPresetWithOrder(['conflict.com'], 1, true, false, 'own-preset'),
+                createPresetWithOrder(['conflict.com'], 0, true, false, 'pool-preset', { proxyId: null, publicPool: { protocols: ['socks5' as const] } }),
+            ]);
+
+            expect(FindProxyForURL('https://conflict.com/', 'conflict.com')).toBe('PROXY 10.0.0.1:3128');
+            expect(domainProxyMap['conflict.com']).toBe('PROXY 10.0.0.1:3128');
+            expect(domainPoolMap['conflict.com']).toBeUndefined();
+        });
+
+        it('domain of the isDefault preset stays DIRECT whatever own and pool order', async () => {
+            for (const presets of [
+                [
+                    createPresetWithOrder(['conflict.com'], 0, true, false, 'own-preset'),
+                    createPresetWithOrder(['conflict.com'], 1, true, true, 'ignore-list'),
+                    createPresetWithOrder(['conflict.com'], 2, true, false, 'pool-preset', { proxyId: null, publicPool: { protocols: ['socks5' as const] } }),
+                ],
+                [
+                    createPresetWithOrder(['conflict.com'], 0, true, false, 'pool-preset', { proxyId: null, publicPool: { protocols: ['socks5' as const] } }),
+                    createPresetWithOrder(['conflict.com'], 1, true, false, 'own-preset'),
+                    createPresetWithOrder(['conflict.com'], 2, true, true, 'ignore-list'),
+                ],
+            ]) {
+                mockHelpers.resetAllMocks();
+                const { FindProxyForURL } = await runPac(presets);
+                expect(FindProxyForURL('https://conflict.com/', 'conflict.com')).toBe('DIRECT');
+            }
+        });
+        });
     });
 
     describe('getRouteForUrl()', () => {
@@ -329,19 +579,15 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             expect(ProxyManager.getRouteForUrl('https://shared-domain.com/page')).toBeNull();
         });
 
-        it('should give pool route priority over own route when both match', async () => {
+        it('own and pool preset order: pool preset after own preset gives kind pool', async () => {
             const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
             mockHelpers.setLocalStorageData({
                 migrationCompleted: true,
                 proxyByDefault: false,
                 proxies: [createProxy('10.0.0.1', 3128)],
                 presets: [
-                    createPreset(['conflict.com'], true, false, 'own-preset'),
-                    {
-                        ...createPreset(['conflict.com'], true, false, 'pool-preset'),
-                        proxyId: null,
-                        publicPool: { protocols: ['socks5' as const] },
-                    },
+                    createPresetWithOrder(['conflict.com'], 0, true, false, 'own-preset'),
+                    createPresetWithOrder(['conflict.com'], 1, true, false, 'pool-preset', { proxyId: null, publicPool: { protocols: ['socks5' as const] } }),
                 ],
                 publicProxyCatalog: {
                     fetchedAt: Date.now(),
@@ -359,6 +605,64 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             expect(route).not.toBeNull();
             expect(route!.kind).toBe('pool');
             expect(route!.server).toBeNull();
+        });
+
+        it('own and pool preset order: own preset after pool preset gives kind own', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxyByDefault: false,
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [
+                    createPresetWithOrder(['conflict.com'], 1, true, false, 'own-preset'),
+                    createPresetWithOrder(['conflict.com'], 0, true, false, 'pool-preset', { proxyId: null, publicPool: { protocols: ['socks5' as const] } }),
+                ],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const route = ProxyManager.getRouteForUrl('https://conflict.com/page');
+
+            expect(route).not.toBeNull();
+            expect(route!.kind).toBe('own');
+            expect(route!.server).not.toBeNull();
+            expect(route!.server!.host).toBe('10.0.0.1');
+            expect(route!.viaProxyAll).toBe(false);
+        });
+
+        it('own and pool preset order: domain of the isDefault preset gives null route whatever own and pool order', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            const ownFirst = {
+                migrationCompleted: true,
+                proxyByDefault: false,
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [
+                    createPresetWithOrder(['conflict.com'], 0, true, false, 'own-preset'),
+                    createPresetWithOrder(['conflict.com'], 1, true, true, 'ignore-list'),
+                    createPresetWithOrder(['conflict.com'], 2, true, false, 'pool-preset', { proxyId: null, publicPool: { protocols: ['socks5' as const] } }),
+                ],
+                publicProxyCatalog: { fetchedAt: Date.now(), proxies: [proxy1] },
+                publicProxyCheckResults: { 'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() } },
+            };
+            const poolFirst = { ...ownFirst, presets: [
+                createPresetWithOrder(['conflict.com'], 0, true, false, 'pool-preset', { proxyId: null, publicPool: { protocols: ['socks5' as const] } }),
+                createPresetWithOrder(['conflict.com'], 1, true, false, 'own-preset'),
+                createPresetWithOrder(['conflict.com'], 2, true, true, 'ignore-list'),
+            ] };
+
+            for (const data of [ownFirst, poolFirst]) {
+                mockHelpers.resetAllMocks();
+                mockHelpers.setLocalStorageData(data);
+                await ProxyManager.enable();
+                expect(ProxyManager.getRouteForUrl('https://conflict.com/page')).toBeNull();
+            }
         });
     });
 
@@ -1907,6 +2211,124 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
 
             expect(hash1).not.toBe(hash2);
         });
+
+        it('pool signature change changes config hash and rebuilds PAC', async () => {
+            const proxies1 = [
+                { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' },
+                { protocol: 'socks5', ip: '2.3.4.5', port: 1080, score: 4, connectionType: 'residential', country: 'US' },
+            ];
+            const checkResults1: Record<string, { status: 'alive' | 'dead'; checkedAt: number }> = {};
+            proxies1.forEach(p => {
+                checkResults1[`socks5://${p.ip}:${p.port}`] = { status: 'alive', checkedAt: Date.now() };
+            });
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                proxyByDefault: false,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: proxies1,
+                },
+                publicProxyCheckResults: checkResults1,
+            });
+
+            await ProxyManager.enable();
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+
+            const proxies2 = [
+                { protocol: 'socks5', ip: '3.4.5.6', port: 1080, score: 6, connectionType: 'residential', country: 'US' },
+                { protocol: 'socks5', ip: '2.3.4.5', port: 1080, score: 4, connectionType: 'residential', country: 'US' },
+            ];
+            const checkResults2: Record<string, { status: 'alive' | 'dead'; checkedAt: number }> = {};
+            proxies2.forEach(p => {
+                checkResults2[`socks5://${p.ip}:${p.port}`] = { status: 'alive', checkedAt: Date.now() };
+            });
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                proxyByDefault: false,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: proxies2,
+                },
+                publicProxyCheckResults: checkResults2,
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.proxy.settings.set).toHaveBeenCalledTimes(1);
+        });
+
+        it('same pool members in another catalog order keep config hash', async () => {
+            const proxies = [
+                { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' },
+                { protocol: 'socks5', ip: '2.3.4.5', port: 1080, score: 4, connectionType: 'residential', country: 'US' },
+                { protocol: 'socks5', ip: '3.4.5.6', port: 1080, score: 6, connectionType: 'residential', country: 'US' },
+            ];
+            const checkResults: Record<string, { status: 'alive' | 'dead'; checkedAt: number }> = {};
+            proxies.forEach(p => {
+                checkResults[`socks5://${p.ip}:${p.port}`] = { status: 'alive', checkedAt: Date.now() };
+            });
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies,
+                },
+                publicProxyCheckResults: checkResults,
+            });
+
+            await ProxyManager.enable();
+            const setCall1 = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac1 = setCall1[0].value.pacScript.data;
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+
+            const reorderedProxies = [proxies[2], proxies[0], proxies[1]];
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: reorderedProxies,
+                },
+                publicProxyCheckResults: checkResults,
+            });
+
+            await ProxyManager.enable();
+
+            if ((chrome.proxy.settings.set as jest.Mock).mock.calls.length > 0) {
+                const setCall2 = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+                const pac2 = setCall2[0].value.pacScript.data;
+                expect(pac1).toBe(pac2);
+            } else {
+                expect((chrome.proxy.settings.set as jest.Mock).mock.calls.length).toBe(0);
+            }
+        });
     });
 
     describe('restoreAfterCheck()', () => {
@@ -2049,6 +2471,647 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             const temporaryCredentials = (ProxyManager as any).temporaryCredentials as Map<string, { username: string; password: string }>;
             expect(credentials.get('shared.host:3128')).toEqual({ username: 'main_user', password: 'main_pass' });
             expect(temporaryCredentials.get('shared.host:3128')).toEqual({ username: 'temp_user', password: 'temp_pass' });
+        });
+    });
+
+    describe('PAC pool routing', () => {
+        it('fnv1a("") returns FNV offset basis 0x811c9dc5', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { fnv1a };');
+            const { fnv1a } = execPac() as { fnv1a: (s: string) => number };
+
+            expect(fnv1a('')).toBe(0x811c9dc5);
+        });
+
+        it('fnv1a("foobar") returns reference value 0xbf9cf968', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { fnv1a };');
+            const { fnv1a } = execPac() as { fnv1a: (s: string) => number };
+
+            expect(fnv1a('foobar')).toBe(0xbf9cf968);
+        });
+
+        it('poolKey strips leading *. so *.example.com and example.com share a key', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { poolKey };');
+            const { poolKey } = execPac() as { poolKey: (domain: string) => string };
+
+            expect(poolKey('*.example.com')).toBe('example.com');
+            expect(poolKey('example.com')).toBe('example.com');
+        });
+
+        it('returns a chain of 3 pool members joined by "; " for a 10-member pool', async () => {
+            const proxies = Array.from({ length: 10 }, (_, i) => ({
+                protocol: 'socks5' as const,
+                ip: `${1 + i}.${2 + i}.${3 + i}.${4 + i}`,
+                port: 1080 + i,
+                score: 5 - (i % 3),
+                connectionType: 'residential' as const,
+                country: 'US'
+            }));
+
+            const checkResults: Record<string, { status: 'alive' | 'dead'; checkedAt: number }> = {};
+            proxies.forEach(p => {
+                checkResults[`socks5://${p.ip}:${p.port}`] = { status: 'alive', checkedAt: Date.now() };
+            });
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies,
+                },
+                publicProxyCheckResults: checkResults,
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { FindProxyForURL };');
+            const { FindProxyForURL } = execPac() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const result = FindProxyForURL('http://pool.example.com/', 'pool.example.com');
+            const parts = result.split('; ');
+            expect(parts.length).toBe(3);
+            parts.forEach(part => {
+                expect(part).toMatch(/^SOCKS5 \d+\.\d+\.\d+\.\d+:\d+$/);
+            });
+        });
+
+        it('returns the identical chain on repeated calls for the same host', async () => {
+            const proxies = Array.from({ length: 10 }, (_, i) => ({
+                protocol: 'socks5' as const,
+                ip: `${1 + i}.${2 + i}.${3 + i}.${4 + i}`,
+                port: 1080 + i,
+                score: 5 - (i % 3),
+                connectionType: 'residential' as const,
+                country: 'US'
+            }));
+
+            const checkResults: Record<string, { status: 'alive' | 'dead'; checkedAt: number }> = {};
+            proxies.forEach(p => {
+                checkResults[`socks5://${p.ip}:${p.port}`] = { status: 'alive', checkedAt: Date.now() };
+            });
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies,
+                },
+                publicProxyCheckResults: checkResults,
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { FindProxyForURL };');
+            const { FindProxyForURL } = execPac() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const result1 = FindProxyForURL('http://pool.example.com/', 'pool.example.com');
+            const result2 = FindProxyForURL('http://pool.example.com/', 'pool.example.com');
+
+            expect(result1).toBe(result2);
+        });
+
+        it('gives www.example.com and cdn.example.com the same chain for rule *.example.com', async () => {
+            const proxies = Array.from({ length: 10 }, (_, i) => ({
+                protocol: 'socks5' as const,
+                ip: `${1 + i}.${2 + i}.${3 + i}.${4 + i}`,
+                port: 1080 + i,
+                score: 5 - (i % 3),
+                connectionType: 'residential' as const,
+                country: 'US'
+            }));
+
+            const checkResults: Record<string, { status: 'alive' | 'dead'; checkedAt: number }> = {};
+            proxies.forEach(p => {
+                checkResults[`socks5://${p.ip}:${p.port}`] = { status: 'alive', checkedAt: Date.now() };
+            });
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['*.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies,
+                },
+                publicProxyCheckResults: checkResults,
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { FindProxyForURL };');
+            const { FindProxyForURL } = execPac() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const result1 = FindProxyForURL('http://www.example.com/', 'www.example.com');
+            const result2 = FindProxyForURL('http://cdn.example.com/', 'cdn.example.com');
+
+            expect(result1).toBe(result2);
+        });
+
+        it('gives at least 2 distinct chains across 10 domains', async () => {
+            const proxies = Array.from({ length: 10 }, (_, i) => ({
+                protocol: 'socks5' as const,
+                ip: `${1 + i}.${2 + i}.${3 + i}.${4 + i}`,
+                port: 1080 + i,
+                score: 5 - (i % 3),
+                connectionType: 'residential' as const,
+                country: 'US'
+            }));
+
+            const checkResults: Record<string, { status: 'alive' | 'dead'; checkedAt: number }> = {};
+            proxies.forEach(p => {
+                checkResults[`socks5://${p.ip}:${p.port}`] = { status: 'alive', checkedAt: Date.now() };
+            });
+
+            const domains = Array.from({ length: 10 }, (_, i) => `d${i}.example.com`);
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(domains, true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies,
+                },
+                publicProxyCheckResults: checkResults,
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { FindProxyForURL };');
+            const { FindProxyForURL } = execPac() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const chains = domains.map(d => FindProxyForURL(`http://${d}/`, d));
+            const distinctChains = new Set(chains);
+
+            expect(distinctChains.size).toBeGreaterThanOrEqual(2);
+        });
+
+        it('removing a member changes only chains where it was in top-3', async () => {
+            const proxies = Array.from({ length: 10 }, (_, i) => ({
+                protocol: 'socks5' as const,
+                ip: `${1 + i}.${2 + i}.${3 + i}.${4 + i}`,
+                port: 1080 + i,
+                score: 5 - (i % 3),
+                connectionType: 'residential' as const,
+                country: 'US'
+            }));
+
+            const checkResults: Record<string, { status: 'alive' | 'dead'; checkedAt: number }> = {};
+            proxies.forEach(p => {
+                checkResults[`socks5://${p.ip}:${p.port}`] = { status: 'alive', checkedAt: Date.now() };
+            });
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies,
+                },
+                publicProxyCheckResults: checkResults,
+            });
+
+            await ProxyManager.enable();
+
+            const setCall1 = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac1 = setCall1[0].value.pacScript.data;
+
+            const execPac1 = new Function(pac1 + '; return { FindProxyForURL };');
+            const { FindProxyForURL: FindProxyForURL1 } = execPac1() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const result1Before = FindProxyForURL1('http://pool.example.com/', 'pool.example.com');
+
+            (chrome.proxy.settings.set as jest.Mock).mockClear();
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: proxies.slice(1),
+                },
+                publicProxyCheckResults: Object.fromEntries(
+                    Object.entries(checkResults).filter(([key]) => !key.includes('1.2.3.4'))
+                ),
+            });
+
+            await ProxyManager.enable();
+
+            const setCall2 = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac2 = setCall2[0].value.pacScript.data;
+
+            const execPac2 = new Function(pac2 + '; return { FindProxyForURL };');
+            const { FindProxyForURL: FindProxyForURL2 } = execPac2() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const result1After = FindProxyForURL2('http://pool.example.com/', 'pool.example.com');
+
+            expect(result1Before).not.toBe(result1After);
+        });
+
+        it('returns PROXY 127.0.0.1:9 for an empty pool', async () => {
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [],
+                },
+                publicProxyCheckResults: {},
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { FindProxyForURL };');
+            const { FindProxyForURL } = execPac() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const result = FindProxyForURL('http://pool.example.com/', 'pool.example.com');
+
+            expect(result).toBe('PROXY 127.0.0.1:9');
+        });
+
+        it('test-rule of batch check is matched before pool rules', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['pool.example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const testProxy = { type: 'http', host: '127.0.0.1', port: 9999 };
+            const testId = 'test-batch-rule-123';
+            const testRulePac = await (ProxyManager as any).generateBatchCheckPacScript([
+                { proxy: testProxy, testId },
+            ]);
+
+            const execPac = new Function(testRulePac + '; return { FindProxyForURL };');
+            const { FindProxyForURL } = execPac() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const testUrl = `http://example.com/?_pulse_check=${testId}`;
+            const result = FindProxyForURL(testUrl, 'example.com');
+
+            expect(result).toContain('127.0.0.1:9999');
+        });
+
+        it('ignore list domain returns DIRECT even when listed in a pool preset', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [
+                    {
+                        ...createPreset(['ignored.example.com'], true, true, 'ignore-preset'),
+                        isDefault: true,
+                    },
+                    {
+                        ...createPreset(['ignored.example.com', 'pool.example.com'], true, false, 'pool-preset'),
+                        proxyId: null,
+                        publicPool: { protocols: ['socks5' as const] },
+                    },
+                ],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            const execPac = new Function(pac + '; return { FindProxyForURL };');
+            const { FindProxyForURL } = execPac() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const result = FindProxyForURL('http://ignored.example.com/', 'ignored.example.com');
+
+            expect(result).toBe('DIRECT');
+        });
+
+        it('IDN pool domain is written to domainPoolMap as punycode and PAC stays ASCII', async () => {
+            const proxy1 = { protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' };
+            const idnDomain = '日本.jp';
+            const punycodeDomain = 'xn--wgv71a.jp';
+
+            mockHelpers.setLocalStorageData({
+                proxies: [createProxy('10.0.0.1', 3128)],
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset([idnDomain], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [proxy1],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            expect(pac).toMatch(/^[\x00-\x7F]*$/);
+            expect(pac).toContain(`"${punycodeDomain}"`);
+            expect(pac).not.toContain(idnDomain);
+
+            const execPac = new Function(pac + '; return { FindProxyForURL };');
+            const { FindProxyForURL } = execPac() as { FindProxyForURL: (url: string, host: string) => string };
+
+            const result = FindProxyForURL(`http://${punycodeDomain}/`, punycodeDomain);
+            expect(result).toContain('SOCKS5 1.2.3.4:1080');
+        });
+    });
+
+    describe('enable()', () => {
+        it('connects without default proxy when a pool preset is active', async () => {
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [{ protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' }],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.proxy.settings.set).toHaveBeenCalled();
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                { currentState: 'connected' },
+                expect.any(Function)
+            );
+        });
+
+        it('stays disconnected without default proxy and without pool preset', async () => {
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                presets: [createPreset(['example.com'], true, true)],
+            });
+
+            await ProxyManager.enable();
+
+            expect(chrome.storage.local.set).toHaveBeenCalledWith(
+                { currentState: 'disconnected' },
+                expect.any(Function)
+            );
+            expect(chrome.proxy.settings.set).not.toHaveBeenCalled();
+        });
+
+        it('uses DIRECT fallback and skips DEFAULT_DOMAINS without default proxy', async () => {
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                presets: [{
+                    ...createPreset(['example.com'], true, false, 'pool-preset'),
+                    proxyId: null,
+                    publicPool: { protocols: ['socks5' as const] },
+                }],
+                publicProxyCatalog: {
+                    fetchedAt: Date.now(),
+                    proxies: [{ protocol: 'socks5', ip: '1.2.3.4', port: 1080, score: 5, connectionType: 'residential', country: 'US' }],
+                },
+                publicProxyCheckResults: {
+                    'socks5://1.2.3.4:1080': { status: 'alive', checkedAt: Date.now() },
+                },
+            });
+
+            await ProxyManager.enable();
+
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+
+            expect(pac).toContain('DIRECT');
+            expect(pac).not.toContain('google.com');
+        });
+
+        it('enable() without options increments ga4_activation_count', async () => {
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [createPreset(['example.com'], true, true)],
+                ga4_activation_count: 0,
+            });
+
+            await ProxyManager.enable();
+
+            const calls = (chrome.storage.local.set as jest.Mock).mock.calls;
+            const ga4CallFound = calls.some(call =>
+                call[0]?.ga4_activation_count !== undefined && call[0].ga4_activation_count > 0
+            );
+
+            expect(ga4CallFound).toBe(true);
+        });
+    });
+
+    describe('refreshIfConnected()', () => {
+        it('refreshIfConnected (silent) does not write ga4_activation_count', async () => {
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [createPreset(['example.com'], true, true)],
+                currentState: 'connected',
+                ga4_activation_count: 0,
+            });
+
+            await ProxyManager.init();
+            jest.advanceTimersByTime(100);
+
+            const ga4CallsBefore = (chrome.storage.local.set as jest.Mock).mock.calls.filter(
+                call => call[0]?.ga4_activation_count !== undefined
+            ).length;
+
+            await (ProxyManager as any).refreshIfConnected();
+
+            const ga4CallsAfter = (chrome.storage.local.set as jest.Mock).mock.calls.filter(
+                call => call[0]?.ga4_activation_count !== undefined
+            ).length;
+
+            expect(ga4CallsAfter).toBe(ga4CallsBefore);
+        });
+
+        it('refreshIfConnected (silent) does not send proxy_activated', async () => {
+            const mockTrackEvent = jest.fn();
+            jest.mock('../../src/shared/analytics', () => ({
+                trackEvent: mockTrackEvent,
+            }));
+
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [createPreset(['example.com'], true, true)],
+                currentState: 'connected',
+            });
+
+            await ProxyManager.init();
+            jest.advanceTimersByTime(100);
+
+            await (ProxyManager as any).refreshIfConnected();
+
+            expect(mockTrackEvent).not.toHaveBeenCalledWith(
+                'proxy_activated',
+                expect.any(Object)
+            );
+        });
+
+        it('refreshIfConnected is a no-op when not connected', async () => {
+            mockHelpers.setLocalStorageData({
+                migrationCompleted: true,
+                proxies: [createProxy('10.0.0.1', 3128)],
+                presets: [createPreset(['example.com'], true, true)],
+                currentState: 'disconnected',
+            });
+
+            const setCallsBefore = (chrome.proxy.settings.set as jest.Mock).mock.calls.length;
+
+            await (ProxyManager as any).refreshIfConnected();
+
+            const setCallsAfter = (chrome.proxy.settings.set as jest.Mock).mock.calls.length;
+
+            expect(setCallsAfter).toBe(setCallsBefore);
         });
     });
 });

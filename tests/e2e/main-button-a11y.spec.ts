@@ -371,8 +371,8 @@ test.describe('Main Button A11y — aria-label локализация', () => {
         await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX_127}-127.8-aria-label-ru-error.png`) });
     });
 
-    // TC 127.9-127.12: aria-label для язык de (Немецкий — fallback на английский)
-    test('TC 127.9: aria-label="Proxy on" при language=de и состоянии connected (fallback)', async () => {
+    // TC 127.9-127.12: aria-label для язык de (Немецкий — реальный перевод, _locales/de/messages.json)
+    test('TC 127.9: aria-label="Proxy aktiviert" при language=de и состоянии connected', async () => {
         popup = await openPopup(context, popupUrl);
         await popup.waitForLoadState('domcontentloaded');
         await popup.waitForTimeout(500);
@@ -387,13 +387,13 @@ test.describe('Main Button A11y — aria-label локализация', () => {
         const mainButton = popup.locator('#main-button');
         const ariaLabel = await mainButton.getAttribute('aria-label');
 
-        // Ожидаем fallback на английский (заглушку из messages.json)
-        expect(ariaLabel).toBe('Proxy on');
+        // Немецкая локализация (ariaProxyOn из _locales/de/messages.json)
+        expect(ariaLabel).toBe('Proxy aktiviert');
 
         await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX_127}-127.9-aria-label-de-connected.png`) });
     });
 
-    test('TC 127.10: aria-label="Proxy off" при language=de и состоянии disconnected (fallback)', async () => {
+    test('TC 127.10: aria-label="Proxy deaktiviert" при language=de и состоянии disconnected', async () => {
         popup = await openPopup(context, popupUrl);
         await popup.waitForLoadState('domcontentloaded');
         await popup.waitForTimeout(500);
@@ -408,12 +408,13 @@ test.describe('Main Button A11y — aria-label локализация', () => {
         const mainButton = popup.locator('#main-button');
         const ariaLabel = await mainButton.getAttribute('aria-label');
 
-        expect(ariaLabel).toBe('Proxy off');
+        // Немецкая локализация (ariaProxyOff из _locales/de/messages.json)
+        expect(ariaLabel).toBe('Proxy deaktiviert');
 
         await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX_127}-127.10-aria-label-de-disconnected.png`) });
     });
 
-    test('TC 127.11: aria-label="Connecting" при language=de и состоянии connecting (fallback)', async () => {
+    test('TC 127.11: aria-label="Verbindung wird hergestellt" при language=de и состоянии connecting', async () => {
         popup = await openPopup(context, popupUrl);
         await popup.waitForLoadState('domcontentloaded');
         await popup.waitForTimeout(500);
@@ -428,12 +429,13 @@ test.describe('Main Button A11y — aria-label локализация', () => {
         const mainButton = popup.locator('#main-button');
         const ariaLabel = await mainButton.getAttribute('aria-label');
 
-        expect(ariaLabel).toBe('Connecting');
+        // Немецкая локализация (ariaProxyConnecting из _locales/de/messages.json)
+        expect(ariaLabel).toBe('Verbindung wird hergestellt');
 
         await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX_127}-127.11-aria-label-de-connecting.png`) });
     });
 
-    test('TC 127.12: aria-label="Connection error" при language=de и состоянии error (fallback)', async () => {
+    test('TC 127.12: aria-label="Verbindungsfehler" при language=de и состоянии error', async () => {
         popup = await openPopup(context, popupUrl);
         await popup.waitForLoadState('domcontentloaded');
         await popup.waitForTimeout(500);
@@ -448,7 +450,8 @@ test.describe('Main Button A11y — aria-label локализация', () => {
         const mainButton = popup.locator('#main-button');
         const ariaLabel = await mainButton.getAttribute('aria-label');
 
-        expect(ariaLabel).toBe('Connection error');
+        // Немецкая локализация (ariaProxyError из _locales/de/messages.json)
+        expect(ariaLabel).toBe('Verbindungsfehler');
 
         await popup.screenshot({ path: path.join(ARTIFACTS_DIR, `${ARTIFACT_PREFIX_127}-127.12-aria-label-de-error.png`) });
     });

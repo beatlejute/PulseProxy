@@ -210,47 +210,58 @@ test.describe('Settings — popup configuration', () => {
     });
 
     test('sync: toggle persists in storage', async () => {
+        // Детерминированное начальное состояние: синхронизация выключена.
+        // Пересоздаём попап, чтобы чекбокс инициализировался от нового значения в storage.
+        await popup.evaluate(() =>
+            new Promise<void>(resolve => chrome.storage.local.set({ syncEnabled: false }, () => resolve()))
+        );
+        await popup.close();
+        popup = await openPopup(context, popupUrl);
+        await dismissModalIfPresent(popup);
+        await openSettingsTab(popup);
+
         const syncToggle = popup.locator('#sync-toggle');
         await expect(syncToggle).toBeVisible();
+        expect(await syncToggle.isChecked()).toBe(false);
 
-        const initial = await syncToggle.isChecked();
-
-        // Toggle to opposite state — this triggers a confirmation dialog
+        // Включаем синхронизацию — сначала диалог подтверждения
         await syncToggle.click();
-        await popup.waitForTimeout(500);
-
-        // Handle the confirmation dialog
         const confirmBtn = popup.locator('.modal-footer .btn-primary');
-        if (await confirmBtn.isVisible().catch(() => false)) {
-            await confirmBtn.click();
-            await popup.waitForTimeout(500);
-        }
+        await expect(confirmBtn).toBeVisible({ timeout: 10000 });
+        await confirmBtn.click();
 
-        const afterFirstToggle = await popup.evaluate(() =>
+        // После включения settings.ts показывает информационный алерт со статистикой
+        // синхронизации (Storage.setSyncEnabled → showAlert в src/popup/settings.ts ~107-134).
+        // Не закрыв его, второй клик по тумблеру блокируется оверлеем — закрываем через OK.
+        const statsAlertOkBtn = popup.locator('.modal-footer .btn-primary');
+        await expect(statsAlertOkBtn).toBeVisible({ timeout: 10000 });
+        await statsAlertOkBtn.click();
+        await expect(popup.locator('.modal-overlay')).toHaveCount(0);
+
+        const afterEnable = await popup.evaluate(() =>
             new Promise<{ syncEnabled?: boolean }>(resolve =>
                 chrome.storage.local.get(['syncEnabled'], resolve as any)
             )
         );
-        expect(afterFirstToggle.syncEnabled).toBe(!initial);
+        expect(afterEnable.syncEnabled).toBe(true);
 
-        // Toggle back
+        // Выключаем синхронизацию обратно
         await syncToggle.click();
-        await popup.waitForTimeout(500);
 
-        // Handle the confirmation dialog again
+        // При выключении показывается только диалог подтверждения (см. settings.ts:
+        // showAlert со статистикой вызывается только при enabled && stats), второго
+        // алерта нет.
         const confirmBtn2 = popup.locator('.modal-footer .btn-primary');
-        if (await confirmBtn2.isVisible().catch(() => false)) {
-            await confirmBtn2.click();
-            await popup.waitForTimeout(500);
-        }
-        await popup.waitForTimeout(500);
+        await expect(confirmBtn2).toBeVisible({ timeout: 10000 });
+        await confirmBtn2.click();
+        await expect(popup.locator('.modal-overlay')).toHaveCount(0);
 
-        const afterSecondToggle = await popup.evaluate(() =>
+        const afterDisable = await popup.evaluate(() =>
             new Promise<{ syncEnabled?: boolean }>(resolve =>
                 chrome.storage.local.get(['syncEnabled'], resolve as any)
             )
         );
-        expect(afterSecondToggle.syncEnabled).toBe(initial);
+        expect(afterDisable.syncEnabled).toBe(false);
     });
 
     test('proxy all sites: button toggles proxyByDefault in storage', async () => {

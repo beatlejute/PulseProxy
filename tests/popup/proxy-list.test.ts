@@ -4,6 +4,11 @@
 
 import { mockHelpers } from '../mocks/chrome-api';
 
+// Локальное состояние кеша каталога публичных прокси для мока Storage.
+// Имя должно начинаться с "mock", иначе jest не даст сослаться на переменную
+// из хойстнутой фабрики jest.mock().
+let mockPublicProxyCatalogCache: { fetchedAt: number; proxies: unknown[] } | null = null;
+
 // Mock для модулей
 jest.mock('../../src/shared/storage', () => ({
     Storage: {
@@ -18,6 +23,14 @@ jest.mock('../../src/shared/storage', () => ({
         getPublicProxiesFiltersCollapsed: jest.fn().mockResolvedValue(false),
         setPublicProxiesFiltersCollapsed: jest.fn().mockResolvedValue(undefined),
         getPublicProxyCheckResults: jest.fn().mockResolvedValue({}),
+        // Каталог публичных прокси (PLAN-017): PublicProxyCatalog.get() читает/пишет
+        // его через эти методы. Реализация с состоянием, чтобы второе открытие
+        // модалки в рамках одного теста видело кеш, записанный первым.
+        getPublicProxyCatalog: jest.fn(() => Promise.resolve(mockPublicProxyCatalogCache)),
+        setPublicProxyCatalog: jest.fn((cache: { fetchedAt: number; proxies: unknown[] }) => {
+            mockPublicProxyCatalogCache = cache;
+            return Promise.resolve(undefined);
+        }),
     },
 }));
 
@@ -79,6 +92,10 @@ describe('proxy-list.ts - ProxyListService', () => {
 
         // Сбрасываем моки
         jest.clearAllMocks();
+
+        // Сбрасываем кеш каталога публичных прокси — каждый тест начинает
+        // с пустого/отсутствующего кеша (путь через реальный fetch).
+        mockPublicProxyCatalogCache = null;
 
         // Устанавливаем значения по умолчанию для моков
         (Storage.getProxies as jest.Mock).mockResolvedValue([]);

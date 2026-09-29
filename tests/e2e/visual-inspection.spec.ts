@@ -74,55 +74,75 @@ async function waitForPopupReady(popup: Page): Promise<void> {
     await popup.waitForTimeout(1000);
 }
 
-async function setupFixtureData(context: BrowserContext, popupUrl: string): Promise<void> {
-    // Создаём 2 прокси + 1 пресет для стабильных baseline'ов
+// Фикстура для visual regression: всё, что попадает на скриншоты, задаётся явно,
+// чтобы baseline не зависел от порядка тестов и состояния профиля
+const FIXTURE_TIMESTAMP = Date.UTC(2026, 0, 1);
+
+const FIXTURE_PROXIES = [
+    {
+        id: 'fixture-proxy-1',
+        type: 'http',
+        host: 'proxy1.example.com',
+        port: 8080,
+        name: 'Fixture Proxy 1',
+        color: '#FF5733',
+        isDefault: true,
+        createdAt: FIXTURE_TIMESTAMP,
+        updatedAt: FIXTURE_TIMESTAMP,
+    },
+    {
+        id: 'fixture-proxy-2',
+        type: 'socks5',
+        host: 'proxy2.example.com',
+        port: 1080,
+        username: 'user',
+        password: 'pass',
+        name: 'Fixture Proxy 2',
+        color: '#33FF57',
+        isDefault: false,
+        createdAt: FIXTURE_TIMESTAMP,
+        updatedAt: FIXTURE_TIMESTAMP,
+    },
+];
+
+const FIXTURE_PRESETS = [
+    {
+        id: 'fixture-preset-1',
+        name: 'Fixture Preset',
+        domains: ['example.com', '*.google.com'],
+        enabled: true,
+        isDefault: false,
+        order: 0,
+        proxyId: 'fixture-proxy-1',
+        publicPool: null,
+        createdAt: FIXTURE_TIMESTAMP,
+        updatedAt: FIXTURE_TIMESTAMP,
+    },
+];
+
+async function setupFixtureData(context: BrowserContext, popupUrl: string, theme: 'light' | 'dark' = 'light'): Promise<void> {
+    // 2 прокси + 1 пресет и фиксированные настройки для стабильных baseline'ов
     const fixturePopup = await openPopup(context, popupUrl);
     await waitForPopupReady(fixturePopup);
-    
-    await fixturePopup.evaluate(() => {
+
+    await fixturePopup.evaluate(({ proxies, presets, theme }) => {
         return new Promise<void>(resolve => {
-            const proxies = [
-                {
-                    id: 'fixture-proxy-1',
-                    type: 'http',
-                    host: 'proxy1.example.com',
-                    port: 8080,
-                    name: 'Fixture Proxy 1',
-                    color: '#FF5733',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                },
-                {
-                    id: 'fixture-proxy-2',
-                    type: 'socks5',
-                    host: 'proxy2.example.com',
-                    port: 1080,
-                    username: 'user',
-                    password: 'pass',
-                    name: 'Fixture Proxy 2',
-                    color: '#33FF57',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                }
-            ];
-            
-            const presets = [
-                {
-                    id: 'fixture-preset-1',
-                    name: 'Fixture Preset',
-                    domains: ['example.com', '*.google.com'],
-                    enabled: true,
-                    order: 0,
-                    proxyId: 'fixture-proxy-1',
-                    createdAt: Date.now(),
-                    updatedAt: Date.now(),
-                }
-            ];
-            
-            chrome.storage.local.set({ proxies, presets }, () => resolve());
+            chrome.storage.local.set({
+                proxies,
+                presets,
+                theme,
+                language: 'en',
+                proxyByDefault: true,
+                proxyCheckEnabled: true,
+                syncEnabled: false,
+                targetState: 'disconnected',
+                migrationCompleted: true,
+            }, () => {
+                chrome.storage.local.remove(['errorProxy'], () => resolve());
+            });
         });
-    });
-    
+    }, { proxies: FIXTURE_PROXIES, presets: FIXTURE_PRESETS, theme });
+
     await fixturePopup.waitForTimeout(500);
     await fixturePopup.close();
 }
@@ -750,10 +770,11 @@ test.describe('Visual UI Inspection — all tabs, themes, modals', () => {
 
     test('TC 9.21: Visual regression — вкладки × темы (proxy/presets/settings × light/dark)', async () => {
         test.setTimeout(60000);
-        // Setup fixture data: 2 proxies + 1 preset
-        await setupFixtureData(context, popupUrl);
 
         for (const theme of ['light', 'dark'] as const) {
+            // Setup fixture data: 2 proxies + 1 preset
+            await setupFixtureData(context, popupUrl, theme);
+
             for (const tab of ['proxy', 'presets', 'settings'] as const) {
                 popup = await openPopup(context, popupUrl);
                 await waitForPopupReady(popup);
@@ -764,6 +785,8 @@ test.describe('Visual UI Inspection — all tabs, themes, modals', () => {
 
                 await expect(popup).toHaveScreenshot(`${tab}-${theme}.png`, {
                     maxDiffPixelRatio: 0.01,
+                    // Версия меняется каждый релиз — не часть вёрстки
+                    mask: tab === 'settings' ? [popup.locator('#version-number')] : [],
                 });
 
                 await popup.close();
@@ -772,10 +795,12 @@ test.describe('Visual UI Inspection — all tabs, themes, modals', () => {
     });
 
     test('TC 9.22: Visual regression — модалки × темы (add-proxy/public-proxy-search/add-preset × light/dark)', async () => {
-        // Setup fixture data: 2 proxies + 1 preset
-        await setupFixtureData(context, popupUrl);
-        
+        test.setTimeout(60000);
         for (const theme of ['light', 'dark'] as const) {
+            // Setup fixture data: 2 proxies + 1 preset — заново на каждую тему,
+            // иначе dark-проход видит пресет, созданный light-проходом
+            await setupFixtureData(context, popupUrl, theme);
+
             // Add Proxy Modal
             popup = await openPopup(context, popupUrl);
             await waitForPopupReady(popup);
@@ -823,32 +848,35 @@ test.describe('Visual UI Inspection — all tabs, themes, modals', () => {
     });
 
     test('TC 9.23: Baseline на фиксированном наборе данных (2 прокси, 1 пресет)', async () => {
-        // Этот тест документирует что baseline'ы создаются на фикстуре
-        // Сам тест — просто подтверждение что фикстура корректна
+        // Фикстура, на которой снимаются baseline'ы 9.21/9.22: в storage ровно
+        // 2 прокси и 1 пресет, и именно они отрисованы в popup
+        await setupFixtureData(context, popupUrl);
+
         popup = await openPopup(context, popupUrl);
         await waitForPopupReady(popup);
         await dismissModalIfPresent(popup);
         await setThemeViaStorage(popup, 'light');
 
-        // Проверяем что fixture data загружена
-        const proxies = await popup.evaluate(() => {
-            return new Promise<any[]>(resolve => {
-                chrome.storage.local.get(['proxies'], (result: any) => {
-                    resolve(result.proxies || []);
+        const stored = await popup.evaluate(() => {
+            return new Promise<any>(resolve => {
+                chrome.storage.local.get(['proxies', 'presets', 'language', 'proxyByDefault', 'syncEnabled'], (result: any) => {
+                    resolve(result);
                 });
             });
         });
 
-        const presets = await popup.evaluate(() => {
-            return new Promise<any[]>(resolve => {
-                chrome.storage.local.get(['presets'], (result: any) => {
-                    resolve(result.presets || []);
-                });
-            });
-        });
+        expect(stored.proxies.map((p: any) => p.id)).toEqual(['fixture-proxy-1', 'fixture-proxy-2']);
+        expect(stored.presets.map((p: any) => p.id)).toEqual(['fixture-preset-1']);
+        expect(stored.language).toBe('en');
+        expect(stored.proxyByDefault).toBe(true);
+        expect(stored.syncEnabled).toBe(false);
 
-        expect(proxies.length).toBeGreaterThanOrEqual(2);
-        expect(presets.length).toBeGreaterThanOrEqual(1);
+        await switchTab(popup, 'proxy');
+        await expect(popup.locator('#proxy-list-container .proxy-name')).toHaveText(['Fixture Proxy 1', 'Fixture Proxy 2 🔐']);
+
+        await switchTab(popup, 'presets');
+        await expect(popup.locator('#presets-list .preset-item')).toHaveCount(1);
+        await expect(popup.locator('#presets-list .preset-name')).toHaveText(['Fixture Preset']);
 
         await popup.close();
     });

@@ -35,13 +35,12 @@ test.describe('Edge-cases и stress-сценарии', () => {
         await context?.close();
     });
 
-    /** Load data into chrome.storage.sync, then open popup */
+    /** Seed chrome.storage.local (the popup's source of truth; sync is opt-in), then open popup */
     async function setupAndOpen(storageData: Record<string, unknown>): Promise<Page> {
         const page = await openPopup(context, extensionUrl);
-        await page.evaluate((data) => chrome.storage.sync.set(data), storageData);
+        await page.evaluate((data) => chrome.storage.local.set(data), storageData);
         // Reload so popup re-reads storage
-        await page.reload();
-        await page.waitForLoadState('domcontentloaded');
+        await page.reload({ waitUntil: 'networkidle' });
         await page.waitForTimeout(500);
         return page;
     }
@@ -277,7 +276,9 @@ test.describe('Edge-cases и stress-сценарии', () => {
 
         // Proxy should still be there (persisted in storage)
         const items = await page2.$$('.proxy-item');
-        expect(items.length).toBeGreaterThanOrEqual(1);
+        expect(items.length).toBe(1);
+        const details = await page2.$eval('.proxy-details', el => el.textContent ?? '');
+        expect(details).toContain('192.168.1.1');
 
         await page2.close();
     });
@@ -300,16 +301,34 @@ test.describe('Edge-cases и stress-сценарии', () => {
         await page.click('[data-tab="proxy"]');
         await page.waitForTimeout(500);
         const proxiesBefore = await page.$$eval('.proxy-item', items => items.length);
+        expect(proxiesBefore).toBe(1);
 
-        // Reload popup (simulates SW restart recovery)
+        // Останавливаем service worker расширения через CDP — реальный перезапуск SW
+        const swScope = extensionUrl.replace('popup.html', '');
+        let swStatus = '';
+        let sawStopped = false;
+        const cdp = await context.newCDPSession(page);
+        cdp.on('ServiceWorker.workerVersionUpdated', (e) => {
+            const version = e.versions.find(v => v.scriptURL.startsWith(swScope));
+            if (!version) return;
+            swStatus = version.runningStatus;
+            if (swStatus === 'stopped') sawStopped = true;
+        });
+        await cdp.send('ServiceWorker.enable');
+        await cdp.send('ServiceWorker.stopAllWorkers');
+        await expect.poll(() => sawStopped, { message: 'SW was not stopped' }).toBe(true);
+
+        // Reopen popup — SW поднимается заново
         await page.goto(extensionUrl);
         await page.waitForLoadState('domcontentloaded');
+        await expect.poll(() => swStatus, { message: 'SW was not restarted' }).toBe('running');
+        await cdp.detach();
         await page.waitForTimeout(500);
 
         await page.click('[data-tab="proxy"]');
         await page.waitForTimeout(500);
         const proxiesAfter = await page.$$eval('.proxy-item', items => items.length);
-        expect(proxiesAfter).toBeGreaterThanOrEqual(proxiesBefore);
+        expect(proxiesAfter).toBe(proxiesBefore);
 
         await page.close();
     });
@@ -318,7 +337,7 @@ test.describe('Edge-cases и stress-сценарии', () => {
     test('TC 10.8: не должен создавать конфликтов при двух открытых popup', async () => {
         // Seed data
         const seedPage = await openPopup(context, extensionUrl);
-        await seedPage.evaluate((data) => chrome.storage.sync.set(data), {
+        await seedPage.evaluate((data) => chrome.storage.local.set(data), {
             proxies: [{
                 id: 'concurrent-test',
                 host: '1.2.3.4',
@@ -346,6 +365,13 @@ test.describe('Edge-cases и stress-сценарии', () => {
         await page2.waitForTimeout(500);
 
         expect(errors.length).toBe(0);
+
+        // Оба popup видят одни и те же засеянные данные
+        for (const p of [page1, page2]) {
+            const details = await p.$$eval('.proxy-details', els => els.map(el => el.textContent ?? ''));
+            expect(details).toHaveLength(1);
+            expect(details[0]).toContain('1.2.3.4');
+        }
 
         await page2.close();
         await page1.close();

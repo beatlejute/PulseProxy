@@ -57,24 +57,75 @@ async function openSettingsTab(popup: Page): Promise<void> {
     await popup.waitForTimeout(500);
 }
 
-/** Read all keys from chrome.storage.sync */
-async function readSyncStorage(page: Page): Promise<Record<string, unknown>> {
+/** Keys that export/import carries (data.* in the export JSON) */
+const EXPORTED_KEYS = ['proxies', 'presets', 'theme', 'language', 'proxyByDefault', 'proxyCheckEnabled'];
+
+/**
+ * Read all keys from chrome.storage.local — the popup's source of truth
+ * (cloud sync is opt-in, sync → local is copied only when syncEnabled is true)
+ */
+async function readStorage(page: Page): Promise<Record<string, unknown>> {
     return page.evaluate(() =>
-        new Promise(resolve => chrome.storage.sync.get(null, resolve))
+        new Promise(resolve => chrome.storage.local.get(null, resolve))
     );
 }
 
-/** Seed chrome.storage.sync */
-async function seedStorageSync(page: Page, data: Record<string, unknown>): Promise<void> {
-    await page.evaluate((d) => chrome.storage.sync.set(d), data);
+/** Seed chrome.storage.local */
+async function seedStorage(page: Page, data: Record<string, unknown>): Promise<void> {
+    await page.evaluate((d) => chrome.storage.local.set(d), data);
     const expectedKeys = Object.keys(data);
     await expect.poll(
         async () => {
-            const stored = await readSyncStorage(page);
+            const stored = await readStorage(page);
             return expectedKeys.every(k => k in stored);
         },
-        { timeout: 5000, message: 'storage.sync did not reflect seeded keys in time' }
+        { timeout: 5000, message: 'storage.local did not reflect seeded keys in time' }
     ).toBe(true);
+}
+
+/**
+ * Click the real #export-button and capture the JSON payload and filename.
+ * Intercepts URL.createObjectURL so that when handleExport() creates a Blob and
+ * triggers a download via <a download>, we get the exact JSON that would be saved.
+ */
+async function captureExport(page: Page): Promise<{ json: string; filename: string | null }> {
+    await page.evaluate(() => {
+        (window as unknown as { __capturedExport: string | null }).__capturedExport = null;
+        (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename = null;
+        const origCreate = URL.createObjectURL.bind(URL);
+        URL.createObjectURL = function (obj: Blob | MediaSource): string {
+            if (obj instanceof Blob && obj.type === 'application/json') {
+                obj.text().then((text) => {
+                    (window as unknown as { __capturedExport: string | null }).__capturedExport = text;
+                });
+            }
+            return origCreate(obj);
+        };
+        // Capture filename from the anchor `download` attribute used by handleExport().
+        const origAppend = document.body.appendChild.bind(document.body);
+        (document.body as HTMLElement).appendChild = function <T extends Node>(node: T): T {
+            if (node instanceof HTMLAnchorElement && node.download) {
+                (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename = node.download;
+            }
+            return origAppend(node) as T;
+        };
+    });
+
+    // Invokes Settings.handleExport() → Storage.exportAllData() → download via <a download>.
+    await page.locator('#export-button').click();
+
+    await expect.poll(
+        async () => page.evaluate(() => (window as unknown as { __capturedExport: string | null }).__capturedExport),
+        { timeout: 5000, message: 'Export was not triggered (URL.createObjectURL did not receive a JSON Blob)' }
+    ).not.toBeNull();
+
+    const json = await page.evaluate(
+        () => (window as unknown as { __capturedExport: string | null }).__capturedExport
+    );
+    const filename = await page.evaluate(
+        () => (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename
+    );
+    return { json: json as string, filename };
 }
 
 /**
@@ -146,12 +197,12 @@ test.describe('Import/Export — configuration (JSON)', () => {
         const page = await openPopup(context, popupUrl);
         await dismissModalIfPresent(page);
 
-        // Clear storage to ensure test data isolation (removes extension defaults like "default-custom-preset")
-        await page.evaluate(() => new Promise<void>(resolve => chrome.storage.sync.clear(() => resolve())));
+        // Remove exported data keys to ensure test data isolation (drops extension defaults like "default-custom-preset")
+        await page.evaluate((keys) => chrome.storage.local.remove(keys), EXPORTED_KEYS);
         await page.waitForTimeout(500);
 
         // Seed data
-        await seedStorageSync(page, {
+        await seedStorage(page, {
             proxies: [
                 {
                     id: 'exp-proxy-1',
@@ -186,53 +237,12 @@ test.describe('Import/Export — configuration (JSON)', () => {
         await expect(page.locator('#import-button')).toBeVisible();
         await expect(page.locator('#import-file-input')).toHaveAttribute('accept', '.json');
 
-        // Install an in-page interceptor for URL.createObjectURL so that when the real
-        // handleExport() creates a Blob and triggers a download via <a download>, we
-        // capture the exact JSON payload that would be saved to disk.
-        await page.evaluate(() => {
-            (window as unknown as { __capturedExport: string | null }).__capturedExport = null;
-            (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename = null;
-            const origCreate = URL.createObjectURL.bind(URL);
-            URL.createObjectURL = function (obj: Blob | MediaSource): string {
-                if (obj instanceof Blob && obj.type === 'application/json') {
-                    obj.text().then((text) => {
-                        (window as unknown as { __capturedExport: string | null }).__capturedExport = text;
-                    });
-                }
-                return origCreate(obj);
-            };
-            // Capture filename from the anchor `download` attribute used by handleExport().
-            const origAppend = document.body.appendChild.bind(document.body);
-            (document.body as HTMLElement).appendChild = function <T extends Node>(node: T): T {
-                if (node instanceof HTMLAnchorElement && node.download) {
-                    (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename = node.download;
-                }
-                return origAppend(node) as T;
-            };
-        });
-
-        // Click the real export button — this invokes Settings.handleExport() which
-        // calls Storage.exportAllData() and triggers a download via <a download>.
-        await page.locator('#export-button').click();
-
-        // Wait for the JSON payload to be captured.
-        await expect.poll(
-            async () => page.evaluate(() => (window as unknown as { __capturedExport: string | null }).__capturedExport),
-            { timeout: 5000, message: 'Export was not triggered (URL.createObjectURL did not receive a JSON Blob)' }
-        ).not.toBeNull();
-
-        const capturedJson = await page.evaluate(
-            () => (window as unknown as { __capturedExport: string | null }).__capturedExport
-        );
-        const capturedFilename = await page.evaluate(
-            () => (window as unknown as { __capturedExportFilename: string | null }).__capturedExportFilename
-        );
-
-        expect(capturedJson).not.toBeNull();
-        const exportData = JSON.parse(capturedJson as string);
+        // Click the real export button and capture the JSON payload that would be saved to disk.
+        const { json: capturedJson, filename: capturedFilename } = await captureExport(page);
+        const exportData = JSON.parse(capturedJson);
 
         // Save exported JSON as evidence
-        fs.writeFileSync(path.join(ARTIFACTS_DIR, 'tc-7.1-export.json'), capturedJson as string, 'utf-8');
+        fs.writeFileSync(path.join(ARTIFACTS_DIR, 'tc-7.1-export.json'), capturedJson, 'utf-8');
 
         // Validate structure
         expect(exportData.version).toBe(EXPORT_FORMAT_VERSION);
@@ -242,11 +252,12 @@ test.describe('Import/Export — configuration (JSON)', () => {
         expect(typeof exportData.data.theme).toBe('string');
         expect(typeof exportData.data.language).toBe('string');
 
+        // Exactly the seeded data — defaults were removed before seeding
         const proxyIds = exportData.data.proxies.map((p: any) => p.id);
-        expect(proxyIds).toContain('exp-proxy-1');
+        expect(proxyIds).toEqual(['exp-proxy-1']);
 
         const presetIds = exportData.data.presets.map((p: any) => p.id);
-        expect(presetIds).toContain('exp-preset-1');
+        expect(presetIds).toEqual(['exp-preset-1']);
 
         // Filename sanity: handleExport() uses `pulseproxy-settings-YYYY-MM-DD.json`
         expect(capturedFilename).toMatch(/^pulseproxy-settings-\d{4}-\d{2}-\d{2}\.json$/);
@@ -260,7 +271,7 @@ test.describe('Import/Export — configuration (JSON)', () => {
         const page = await openPopup(context, popupUrl);
         await dismissModalIfPresent(page);
 
-        await seedStorageSync(page, {
+        await seedStorage(page, {
             proxies: [{
                 id: 'struct-proxy', host: '10.0.0.1', port: 3128, type: 'socks5',
                 isDefault: true, name: 'Struct Test', createdAt: Date.now(), updatedAt: Date.now(),
@@ -274,21 +285,22 @@ test.describe('Import/Export — configuration (JSON)', () => {
         });
 
         await openSettingsTab(page);
-        const syncStorage = await readSyncStorage(page);
+        const { json } = await captureExport(page);
+        const exported = JSON.parse(json).data;
 
-        expect(syncStorage.proxies).toBeDefined();
-        expect(syncStorage.presets).toBeDefined();
-        expect(syncStorage.theme).toBe('dark');
-        expect(syncStorage.language).toBe('ru');
-        expect(syncStorage.proxyByDefault).toBe(true);
-        expect(syncStorage.proxyCheckEnabled).toBe(true);
+        expect(exported.proxies).toBeDefined();
+        expect(exported.presets).toBeDefined();
+        expect(exported.theme).toBe('dark');
+        expect(exported.language).toBe('ru');
+        expect(exported.proxyByDefault).toBe(true);
+        expect(exported.proxyCheckEnabled).toBe(true);
 
-        const proxy = (syncStorage.proxies as any[]).find((p: any) => p.id === 'struct-proxy');
+        const proxy = (exported.proxies as any[]).find((p: any) => p.id === 'struct-proxy');
         expect(proxy).toBeDefined();
         expect(proxy.host).toBe('10.0.0.1');
         expect(proxy.port).toBe(3128);
 
-        const preset = (syncStorage.presets as any[]).find((p: any) => p.id === 'struct-preset');
+        const preset = (exported.presets as any[]).find((p: any) => p.id === 'struct-preset');
         expect(preset).toBeDefined();
         expect(preset.domains).toContain('struct.example.com');
 
@@ -302,7 +314,7 @@ test.describe('Import/Export — configuration (JSON)', () => {
         await dismissModalIfPresent(page);
 
         // Step 1: Seed data
-        await seedStorageSync(page, {
+        await seedStorage(page, {
             proxies: [{
                 id: 'restore-proxy', host: '172.16.0.1', port: 9090, type: 'http',
                 isDefault: false, name: 'Restore Test Proxy', createdAt: Date.now(), updatedAt: Date.now(),
@@ -315,65 +327,49 @@ test.describe('Import/Export — configuration (JSON)', () => {
             theme: 'dark', language: 'de', proxyByDefault: true, proxyCheckEnabled: false,
         });
 
-        // Step 2: Export
-        const syncBefore = await readSyncStorage(page);
-        const exportData = {
-            version: EXPORT_FORMAT_VERSION,
-            exportedAt: new Date().toISOString(),
-            data: {
-                proxies: (syncBefore.proxies as any[]) || [],
-                presets: (syncBefore.presets as any[]) || [],
-                theme: (syncBefore.theme as string) || 'light',
-                language: (syncBefore.language as string) || 'en',
-                proxyByDefault: (syncBefore.proxyByDefault as boolean) ?? false,
-                proxyCheckEnabled: (syncBefore.proxyCheckEnabled as boolean) ?? true,
-            },
-        };
+        // Step 2: Export via the real #export-button
+        await openSettingsTab(page);
+        const { json: exportJson } = await captureExport(page);
+        const exportData = JSON.parse(exportJson);
 
         expect(exportData.data.proxies.some((p: any) => p.id === 'restore-proxy')).toBe(true);
         expect(exportData.data.presets.some((p: any) => p.id === 'restore-preset')).toBe(true);
 
-        // Step 3: Delete data (remove keys from sync)
-        await page.evaluate(() =>
-            new Promise<void>(resolve => {
-                chrome.storage.sync.remove('proxies', () => {
-                    chrome.storage.sync.remove('presets', () => {
-                        chrome.storage.sync.remove('theme', () => {
-                            chrome.storage.sync.remove('language', () => {
-                                chrome.storage.sync.remove('proxyByDefault', () => {
-                                    chrome.storage.sync.remove('proxyCheckEnabled', resolve);
-                                });
-                            });
-                        });
-                    });
-                });
-            })
-        );
+        // Step 3: Delete data
+        await page.evaluate((keys) => chrome.storage.local.remove(keys), EXPORTED_KEYS);
         await page.waitForTimeout(500);
 
-        const syncAfter = await readSyncStorage(page);
-        expect(syncAfter.proxies).toBeUndefined();
-        expect(syncAfter.presets).toBeUndefined();
+        const storageAfterDelete = await readStorage(page);
+        expect(storageAfterDelete.proxies).toBeUndefined();
+        expect(storageAfterDelete.presets).toBeUndefined();
 
-        // Step 4: Import — write export data back
-        await seedStorageSync(page, {
-            proxies: exportData.data.proxies,
-            presets: exportData.data.presets,
-            theme: exportData.data.theme,
-            language: exportData.data.language,
-            proxyByDefault: exportData.data.proxyByDefault,
-            proxyCheckEnabled: exportData.data.proxyCheckEnabled,
+        // Step 4: Import via the real #import-file-input → confirm → success alert → popup reload
+        await page.locator('#import-file-input').setInputFiles({
+            name: 'pulseproxy-settings.json',
+            mimeType: 'application/json',
+            buffer: Buffer.from(exportJson, 'utf-8'),
         });
+        const confirmOk = page.locator('.modal-overlay .modal-footer .btn-primary');
+        await expect(confirmOk).toBeVisible({ timeout: 5000 });
+        await confirmOk.click();
+        const alertOk = page.locator('.modal-overlay .modal-footer .btn-primary');
+        await expect(alertOk).toBeVisible({ timeout: 5000 });
+        await Promise.all([
+            page.waitForEvent('load'),
+            alertOk.click(),
+        ]);
 
         // Step 5: Verify restoration
-        const syncAfterImport = await readSyncStorage(page);
-        const restoredProxies = (syncAfterImport.proxies as any[]) || [];
-        const restoredPresets = (syncAfterImport.presets as any[]) || [];
+        const storageAfterImport = await readStorage(page);
+        const restoredProxies = (storageAfterImport.proxies as any[]) || [];
+        const restoredPresets = (storageAfterImport.presets as any[]) || [];
 
         expect(restoredProxies.some((p: any) => p.id === 'restore-proxy')).toBe(true);
         expect(restoredPresets.some((p: any) => p.id === 'restore-preset')).toBe(true);
-        expect(syncAfterImport.theme).toBe('dark');
-        expect(syncAfterImport.language).toBe('de');
+        expect(storageAfterImport.theme).toBe('dark');
+        expect(storageAfterImport.language).toBe('de');
+        expect(storageAfterImport.proxyByDefault).toBe(true);
+        expect(storageAfterImport.proxyCheckEnabled).toBe(false);
 
         console.log('TC 7.3: PASS');
         await page.close();

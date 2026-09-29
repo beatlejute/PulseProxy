@@ -74,6 +74,7 @@ let getIsChecking: () => boolean;
 const mockMessageListeners: Array<(message: Record<string, unknown>, sender: unknown, sendResponse: unknown) => void> = [];
 const mockAlarmListeners: Array<(alarm: { name: string }) => void | Promise<void>> = [];
 const mockErrorOccurredListeners: Array<(details: any) => Promise<void>> = [];
+const mockTabsUpdatedListeners: Array<(tabId: number, changeInfo: Record<string, unknown>, tab: Record<string, unknown>) => void> = [];
 const registeredStorageCallbacks: Array<(changes: Record<string, unknown>, area: string) => void> = [];
 
 // Capture initial call counts after module import
@@ -125,6 +126,12 @@ beforeAll(async () => {
             get: jest.fn().mockResolvedValue({}),
             onActivated: {
                 addListener: jest.fn()
+            },
+            onUpdated: {
+                addListener: jest.fn((callback) => {
+                    mockTabsUpdatedListeners.push(callback);
+                }),
+                removeListener: jest.fn()
             }
         },
         webRequest: {
@@ -381,6 +388,12 @@ describe('Background Script', () => {
                 get: jest.fn().mockResolvedValue({ url: 'http://example.com' }),
                 query: jest.fn().mockResolvedValue([]),
                 onActivated: { addListener: jest.fn(), removeListener: jest.fn() },
+                onUpdated: {
+                    addListener: jest.fn((callback) => {
+                        mockTabsUpdatedListeners.push(callback);
+                    }),
+                    removeListener: jest.fn()
+                },
             };
             chromeGlobal.alarms = {
                 create: jest.fn(),
@@ -1046,6 +1059,65 @@ describe('Background Script', () => {
 
             expect(mockPublicPoolScheduler.requestRecheck).not.toHaveBeenCalled();
             expect(chrome.storage.local.set).not.toHaveBeenCalled();
+        });
+    });
+
+    // Chrome сбрасывает per-tab бейдж при старте навигации, даже сорвавшейся —
+    // бейдж, выставленный onErrorOccurred, может быть стёрт этим сбросом без
+    // наблюдаемого события между ними. onErrorOccurred (pool-ветка) регистрирует
+    // одноразовый tabs.onUpdated(status: 'complete'), который перевыставляет бейдж
+    // после того, как попытка навигации уже осела, и сам себя снимает (FIX-032).
+    describe('reapplyTabBadgeOnNextComplete: перевыставление бейджа после сброса Chrome', () => {
+        beforeEach(() => {
+            jest.clearAllMocks();
+            mockTabsUpdatedListeners.length = 0;
+            (mockStorage.getCurrentState as jest.Mock).mockResolvedValue(ProxyState.CONNECTED);
+        });
+
+        const triggerPoolError = async (tabId: number, url: string, poolSize: number) => {
+            const route = { kind: 'pool', server: null, poolSize, viaProxyAll: false };
+            (mockProxyManager.getRouteForUrl as jest.Mock).mockReturnValue(route);
+            await mockErrorOccurredListeners[0]({ error: 'net::ERR_PROXY_CONNECTION_FAILED', url, tabId });
+            return route;
+        };
+
+        it('регистрирует одноразовый onUpdated-слушатель после ошибки pool-маршрута', async () => {
+            await triggerPoolError(7, 'https://en.wikipedia.org/', 0);
+
+            expect(mockTabsUpdatedListeners.length).toBe(1);
+        });
+
+        it('status: complete для того же tabId → пересчитывает бейдж и снимает слушатель', async () => {
+            const route = await triggerPoolError(7, 'https://en.wikipedia.org/', 0);
+            (mockIconManager.setTabProxyBadge as jest.Mock).mockClear();
+            const handler = mockTabsUpdatedListeners[mockTabsUpdatedListeners.length - 1];
+
+            await handler(7, { status: 'complete' }, { url: 'https://en.wikipedia.org/' });
+
+            expect(mockIconManager.setTabProxyBadge).toHaveBeenCalledWith(7, route, false);
+            expect(chrome.tabs.onUpdated.removeListener).toHaveBeenCalledWith(handler);
+        });
+
+        it('status: loading → бейдж не трогает и слушатель не снимает', async () => {
+            await triggerPoolError(7, 'https://en.wikipedia.org/', 0);
+            (mockIconManager.setTabProxyBadge as jest.Mock).mockClear();
+            const handler = mockTabsUpdatedListeners[mockTabsUpdatedListeners.length - 1];
+
+            await handler(7, { status: 'loading' }, { url: 'https://en.wikipedia.org/' });
+
+            expect(mockIconManager.setTabProxyBadge).not.toHaveBeenCalled();
+            expect(chrome.tabs.onUpdated.removeListener).not.toHaveBeenCalled();
+        });
+
+        it('status: complete для другого tabId → игнорируется', async () => {
+            await triggerPoolError(7, 'https://en.wikipedia.org/', 0);
+            (mockIconManager.setTabProxyBadge as jest.Mock).mockClear();
+            const handler = mockTabsUpdatedListeners[mockTabsUpdatedListeners.length - 1];
+
+            await handler(999, { status: 'complete' }, { url: 'https://example.com/' });
+
+            expect(mockIconManager.setTabProxyBadge).not.toHaveBeenCalled();
+            expect(chrome.tabs.onUpdated.removeListener).not.toHaveBeenCalled();
         });
     });
 });

@@ -145,6 +145,13 @@ test.describe('Badge pool verification (QA-152)', () => {
     });
 
     test('verify pool badge scenarios', async () => {
+        // The scenario needs ~14s of fixed settle waits plus two real page loads through
+        // the local SOCKS5 relay (en.wikipedia.org, example.com), so a green run lands at
+        // ~25s — inside Playwright's 30s default only until the network is slow, which made
+        // the check flaky (3 of 4 runs timed out, FIX-032 review). Budget matches the other
+        // network-bound specs in tests/e2e/.
+        test.setTimeout(120000);
+
         const popup = await openPopup(context, popupUrl);
 
         // Record the webNavigation event trace: it shows whether a proxied navigation

@@ -176,6 +176,7 @@ chrome.webRequest.onErrorOccurred.addListener(
 
         if (route.kind === 'pool') {
             updateTabBadge(details.tabId, details.url);
+            reapplyTabBadgeOnNextComplete(details.tabId, details.url);
             publicPoolScheduler.requestRecheck();
             return; // не записывать errorProxy, не менять state на ERROR
         }
@@ -416,6 +417,23 @@ chrome.webNavigation.onCommitted.addListener((details) => {
     if (details.frameId !== 0) return;
     updateTabBadge(details.tabId, details.url);
 });
+
+// Chrome clears per-tab action state (badge text/color) when a tab starts a new
+// navigation attempt — including one that fails before onCommitted ever fires (e.g.
+// a proxy CONNECT refusal to a pool member). The badge set in onErrorOccurred's pool
+// branch can be wiped by that internal reset with no observable webNavigation event
+// in between. tabs.onUpdated(status: 'complete') fires once the attempt has settled,
+// after which no further reset happens, so re-applying the badge there makes it stick.
+// Scoped to a one-shot listener for the specific tab/url instead of a permanent
+// global listener, so it only does work right after a pool-route navigation error.
+function reapplyTabBadgeOnNextComplete(tabId: number, url: string | undefined): void {
+    const handler = (updatedTabId: number, changeInfo: chrome.tabs.OnUpdatedInfo) => {
+        if (updatedTabId !== tabId || changeInfo.status !== 'complete') return;
+        chrome.tabs.onUpdated.removeListener(handler);
+        updateTabBadge(tabId, url);
+    };
+    chrome.tabs.onUpdated.addListener(handler);
+}
 
 // Update badge when active tab changes
 chrome.tabs.onActivated.addListener(async (activeInfo) => {

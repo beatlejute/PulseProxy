@@ -15,8 +15,12 @@ export async function launchExtension(): Promise<{
     popupUrl: string;
 }> {
     const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pw-ext-'));
+    // Без окна: новый headless полного Chromium (channel 'chromium') грузит расширения,
+    // а chromium-headless-shell, который Playwright берёт по умолчанию, — нет.
+    // Окно для отладки — HEADED=1.
     const context = await chromium.launchPersistentContext(userDataDir, {
-        headless: false,
+        channel: 'chromium',
+        headless: process.env.HEADED !== '1',
         args: [
             `--disable-extensions-except=${EXTENSION_PATH}`,
             `--load-extension=${EXTENSION_PATH}`,

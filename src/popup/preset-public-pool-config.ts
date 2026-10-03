@@ -4,6 +4,7 @@ import { createElementFromTemplate } from './safe-dom';
 import { PublicProxyCatalog } from '../shared/public-proxy-catalog';
 import { Storage } from '../shared/storage';
 import { poolMemberKey, resolvePoolMembers } from '../shared/public-pool';
+import { GeoBlockConfig } from '../shared/constants';
 import { countryCodeToFlag, getConnectionTypeLabel } from './public-proxies-modal';
 
 // Константы для типов прокси
@@ -138,6 +139,22 @@ export async function createPublicPoolConfigBlock(
     });
     container.appendChild(status);
 
+    // Строка с числом убранных по гео-блоку прокси и кнопкой возврата
+    const geoRemoved = createElementFromTemplate<HTMLDivElement>('div', {
+        className: 'pool-geo-removed'
+    });
+    const geoRemovedText = createElementFromTemplate<HTMLSpanElement>('span', {
+        className: 'pool-geo-removed-text'
+    });
+    const geoRestoreBtn = createElementFromTemplate<HTMLButtonElement>('button', {
+        type: 'button',
+        className: 'pool-geo-restore-btn',
+        textContent: I18n.getMessage('publicPoolGeoRestore')
+    });
+    geoRemoved.appendChild(geoRemovedText);
+    geoRemoved.appendChild(geoRestoreBtn);
+    container.appendChild(geoRemoved);
+
     async function loadCatalog(): Promise<NormalizedPublicProxy[]> {
         try {
             return await PublicProxyCatalog.get();
@@ -168,19 +185,56 @@ export async function createPublicPoolConfigBlock(
         status.classList.remove('pool-status--empty');
     }
 
-    await updatePoolStatus();
+    // Число исключений пресета из каталога (задача 29 плана PLAN-020) и наличие
+    // остановленных по стрику сайтов — видимость строки и кнопки зависит от обоих.
+    async function updateGeoRemoved(): Promise<void> {
+        const [catalog, presetExclusions, geoSites] = await Promise.all([
+            loadCatalog(),
+            Storage.getPresetGeoExclusions(preset.id),
+            Storage.getPublicPoolGeoSites(),
+        ]);
+        const catalogKeys = new Set(catalog.map(poolMemberKey));
+        const removedCount = Object.keys(presetExclusions).filter(key => catalogKeys.has(key)).length;
 
-    // Пересчёт по изменениям результатов проверки и каталога; отписка, когда
-    // блок вынут из DOM (как isAlive в модалке публичных прокси)
+        const now = Date.now();
+        const presetSites = geoSites[preset.id] ?? {};
+        const hasStoppedSite = Object.values(presetSites).some(
+            site => site.stoppedAt !== null && now - site.stoppedAt < GeoBlockConfig.SITE_STOP_MS
+        );
+
+        const visible = removedCount > 0 || hasStoppedSite;
+        geoRemoved.classList.toggle('pool-geo-removed--visible', visible);
+        if (visible) {
+            geoRemovedText.textContent = I18n.getMessage('publicPoolGeoRemoved', [String(removedCount)]);
+        }
+    }
+
+    geoRestoreBtn.addEventListener('click', () => {
+        void (async () => {
+            await Promise.all([
+                Storage.deletePresetGeoExclusions(preset.id),
+                Storage.deletePresetGeoSites(preset.id),
+            ]);
+            await updateGeoRemoved();
+        })();
+    });
+
+    await Promise.all([updatePoolStatus(), updateGeoRemoved()]);
+
+    // Пересчёт по изменениям результатов проверки, каталога и гео-исключений;
+    // отписка, когда блок вынут из DOM (как isAlive в модалке публичных прокси)
     const unsubscribe = Storage.onChange((changes) => {
-        const touched =
+        const poolTouched =
             'publicProxyCheckResults' in changes || 'publicProxyCatalog' in changes;
-        if (!touched) return;
+        const geoTouched =
+            'publicPoolGeoExclusions' in changes || 'publicPoolGeoSites' in changes;
+        if (!poolTouched && !geoTouched) return;
         if (!status.isConnected) {
             unsubscribe();
             return;
         }
-        void updatePoolStatus();
+        if (poolTouched) void updatePoolStatus();
+        if (geoTouched) void updateGeoRemoved();
     });
 
     return container;

@@ -550,6 +550,22 @@ describe('proxy-manager.ts - ProxyManagerService', () => {
             expect(route!.server).toBeNull();
             expect(route!.poolSize).toBe(2);
             expect(route!.viaProxyAll).toBe(false);
+            expect(route!.presetId).toBe('pool-preset');
+            expect(route!.poolRule).toBe('pool-site.com');
+
+            // Состав route.poolMembers сверяется с pools[] PAC, снятого из того же
+            // enable(): строки PAC маршрута и PAC-скрипта собирает resolvePools.
+            const setCall = (chrome.proxy.settings.set as jest.Mock).mock.calls[0];
+            const pac = setCall[0].value.pacScript.data;
+            const execPac = new Function(pac + '; return { domainPoolMap, pools };');
+            const { domainPoolMap, pools } = execPac() as { domainPoolMap: Record<string, number>; pools: string[][] };
+            const pacPoolMembers = pools[domainPoolMap['pool-site.com']];
+
+            expect(route!.poolMembers).toEqual([
+                { key: 'socks5://1.2.3.4:1080', ip: '1.2.3.4', pac: 'SOCKS5 1.2.3.4:1080' },
+                { key: 'socks5://5.6.7.8:1081', ip: '5.6.7.8', pac: 'SOCKS5 5.6.7.8:1081' },
+            ]);
+            expect(route!.poolMembers!.map(m => m.pac)).toEqual(pacPoolMembers);
         });
 
         it('should give ignore-list priority over pool routes', async () => {

@@ -653,5 +653,17 @@
   "publicPoolHttpHint": {
     "message": "HTTP-прокси не открывают HTTPS-сайты",
     "description": "Предупреждение о HTTP-прокси в публичном пуле"
+  },
+  "geoBlockedTitle": {
+    "message": "Сайт сообщает, что недоступен в стране прокси",
+    "description": "Geo-blocked title"
+  },
+  "publicPoolGeoRemoved": {
+    "message": "Убрано из-за гео-блока: $1",
+    "description": "Public pool geo removed message"
+  },
+  "publicPoolGeoRestore": {
+    "message": "Вернуть убранные",
+    "description": "Public pool geo restore message"
   }
 }

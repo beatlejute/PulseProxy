@@ -1,7 +1,10 @@
 import { ProxyManager } from './proxy-manager';
 import { IconManager } from './icon-manager';
+import { getMark } from './geo-block-marks';
+import { handleGeoBlockResponse, handleGeoBlockRedirect } from './geo-block-handler';
 import { PublicPoolScheduler } from './public-pool-scheduler';
 import { Storage } from '../shared/storage';
+import { I18n } from '../shared/i18n';
 import { SyncService } from '../storage/sync-service';
 import { StorageKeys, SYNC_STORAGE_KEYS, ProxyState, PublicPoolCheckConfig } from '../shared/constants';
 import { ExtensionMessage, StorageChanges, CheckProxyResult, CheckProxyBatchItemResult, CheckProxyBatchResponse, ProxyServer } from '../types';
@@ -69,6 +72,17 @@ Storage.onChange(async (changes: StorageChanges, area: string) => {
 
         if (StorageKeys.PRESETS in changes) {
             publicPoolScheduler.sync();
+        }
+
+        if (StorageKeys.PUBLIC_POOL_GEO_EXCLUSIONS in changes) {
+            ProxyManager.refreshIfConnected();
+        }
+
+        // Смена языка в настройках: перечитать каталог и переписать подсказки
+        // открытых вкладок — без перезапуска service worker.
+        if (StorageKeys.LANGUAGE in changes) {
+            await I18n.init();
+            await refreshAllTabBadges();
         }
     }
 
@@ -206,6 +220,32 @@ chrome.webRequest.onCompleted.addListener(
     },
     { urls: ['<all_urls>'] }
 );
+
+// Гео-блок на маршруте kind: 'own': 451 и сигнатуры помечают вкладку,
+// обычный ответ и запросы вне своего прокси метку не ставят.
+if (chrome.webRequest.onResponseStarted) {
+    chrome.webRequest.onResponseStarted.addListener(
+        handleGeoBlockResponse,
+        { urls: ['<all_urls>'], types: ['main_frame'] },
+        ['responseHeaders']
+    );
+    chrome.webRequest.onResponseStarted.addListener(
+        handleGeoBlockResponse,
+        { urls: ['https://api.openai.com/*', 'https://api.anthropic.com/*'] },
+        ['responseHeaders']
+    );
+}
+
+if (chrome.webRequest.onBeforeRedirect) {
+    chrome.webRequest.onBeforeRedirect.addListener(
+        handleGeoBlockRedirect,
+        { urls: ['<all_urls>'], types: ['main_frame'] }
+    );
+    chrome.webRequest.onBeforeRedirect.addListener(
+        handleGeoBlockRedirect,
+        { urls: ['https://api.openai.com/*', 'https://api.anthropic.com/*'] }
+    );
+}
 
 // Proxy connectivity check — use HTTP to avoid CONNECT tunnel issues with HTTP proxies
 const CHECK_PROXY_URL = 'http://example.com/';
@@ -380,6 +420,12 @@ async function checkProxyBatch(
 // Per-tab proxy badge: update badge when navigating to a new page
 async function updateTabBadge(tabId: number, url: string | undefined): Promise<void> {
     try {
+        const mark = getMark(tabId);
+        if (mark) {
+            IconManager.setTabProxyBadge(tabId, null, false, true);
+            return;
+        }
+
         if (!url) {
             IconManager.setTabProxyBadge(tabId, null);
             return;
@@ -480,6 +526,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 async function init() {
     await Storage.init();
     console.log('Background: Storage initialized');
+    // Каталог нужного языка готов до первой подсказки вкладки
+    await I18n.init();
     IconManager.update();
     await ProxyManager.init();
     publicPoolScheduler.sync();

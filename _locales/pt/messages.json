@@ -650,6 +650,18 @@
     "message": "HTTP proxies can't open HTTPS sites",
     "description": "TODO: needs native translation"
   },
+  "geoBlockedTitle": {
+    "message": "O site informa que não está disponível no país do proxy",
+    "description": "Geo-blocked title"
+  },
+  "publicPoolGeoRemoved": {
+    "message": "Removido após bloqueio geográfico: $1",
+    "description": "Public pool geo removed message"
+  },
+  "publicPoolGeoRestore": {
+    "message": "Restaurar removido",
+    "description": "Public pool geo restore message"
+  },
   "presetProxyPublicPool": {
     "message": "Public pool",
     "description": "TODO: needs native translation"

@@ -30,7 +30,7 @@ export const ProxyState = {
 export const SYNC_STORAGE_KEYS = ['presets', 'proxies', 'theme', 'language', 'syncEnabled', 'proxyByDefault', 'proxyCheckEnabled'] as const;
 
 // Ключи для локальных данных (chrome.storage.local)
-export const LOCAL_STORAGE_KEYS = ['currentState', 'targetState', 'migrationCompleted', 'errorProxy', 'publicProxiesWarningDismissed', 'publicProxiesFiltersCollapsed', 'publicProxyCheckResults', 'publicProxyCatalog'] as const;
+export const LOCAL_STORAGE_KEYS = ['currentState', 'targetState', 'migrationCompleted', 'errorProxy', 'publicProxiesWarningDismissed', 'publicProxiesFiltersCollapsed', 'publicProxyCheckResults', 'publicProxyCatalog', 'publicPoolGeoExclusions', 'publicPoolGeoSites'] as const;
 
 // ID пресета по умолчанию (Custom)
 export const DEFAULT_PRESET_ID = 'default-custom-preset';
@@ -52,6 +52,10 @@ export const StorageKeys = {
     PUBLIC_PROXIES_FILTERS_COLLAPSED: 'publicProxiesFiltersCollapsed',
     PUBLIC_PROXY_CHECK_RESULTS: 'publicProxyCheckResults',
     PUBLIC_PROXY_CATALOG: 'publicProxyCatalog',
+    // Исключения пула по гео-блоку: машинно-специфичны, в SYNC_STORAGE_KEYS не попадают
+    PUBLIC_POOL_GEO_EXCLUSIONS: 'publicPoolGeoExclusions',
+    // Серии блокировок по сайтам: машинно-специфичны, в SYNC_STORAGE_KEYS не попадают
+    PUBLIC_POOL_GEO_SITES: 'publicPoolGeoSites',
 } as const;
 
 // Фоновая проверка публичных прокси
@@ -120,3 +124,38 @@ export const PROXY_COLORS = [
 
 // Версия формата экспорта
 export const EXPORT_FORMAT_VERSION = 1;
+// Гео-блок: константы классификатора
+export const GeoBlockConfig = {
+  POOL_STATUS_CODES: [403, 451] as number[],
+  OWN_STATUS_CODES: [451] as number[],
+  CHALLENGE_HEADER: 'cf-mitigated',
+  CHALLENGE_VALUE: 'challenge',
+  SITE_STREAK_LIMIT: 5,
+  SITE_STOP_MS: 24 * 60 * 60 * 1000,
+  BADGE_TEXT: '⛔',
+  BADGE_COLOR: '#FF6969',
+} as const;
+
+export interface GeoBlockSignature {
+  id: string;
+  service: string;
+  hosts: string[];
+  routes: ('pool' | 'own')[];
+  requestType: 'main_frame' | 'any';
+  signalType: 'status' | 'redirect';
+  statusCode?: number;
+  redirectHost?: string;
+  redirectHostStartsWith?: string;
+  redirectPathRegex?: RegExp;
+}
+
+export const GeoBlockSignatures: GeoBlockSignature[] = [
+  { id: 'chatgpt', service: 'ChatGPT', hosts: ['chatgpt.com'], routes: ['pool', 'own'], requestType: 'main_frame', signalType: 'status', statusCode: 403 },
+  { id: 'openai-api', service: 'OpenAI API', hosts: ['api.openai.com'], routes: ['pool', 'own'], requestType: 'any', signalType: 'status', statusCode: 403 },
+  { id: 'anthropic-api', service: 'Anthropic API', hosts: ['api.anthropic.com'], routes: ['pool', 'own'], requestType: 'any', signalType: 'status', statusCode: 403 },
+  { id: 'claude', service: 'Claude', hosts: ['claude.ai'], routes: ['pool', 'own'], requestType: 'main_frame', signalType: 'redirect', redirectHostStartsWith: 'https://claude.com/app-unavailable-in-region', statusCode: 302 },
+  { id: 'netflix', service: 'Netflix', hosts: ['www.netflix.com', 'help.netflix.com'], routes: ['pool', 'own'], requestType: 'main_frame', signalType: 'status', statusCode: 403 },
+  { id: 'spotify', service: 'Spotify', hosts: ['accounts.spotify.com'], routes: ['pool', 'own'], requestType: 'main_frame', signalType: 'redirect', redirectHost: 'www.spotify.com', redirectPathRegex: /^\/[^/]+\/why-not-available\//, statusCode: 301 },
+  { id: 'any-451', service: 'Any site', hosts: ['*'], routes: ['pool', 'own'], requestType: 'main_frame', signalType: 'status', statusCode: 451 },
+  { id: 'any-403-pool', service: 'Any site (pool)', hosts: ['*'], routes: ['pool'], requestType: 'main_frame', signalType: 'status', statusCode: 403 },
+];

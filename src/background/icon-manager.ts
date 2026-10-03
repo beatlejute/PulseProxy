@@ -1,6 +1,7 @@
 import type { ProxyRoute } from './proxy-manager';
 import { Storage } from '../shared/storage';
-import { ProxyState, IconPaths, PublicPoolCheckConfig } from '../shared/constants';
+import { I18n } from '../shared/i18n';
+import { ProxyState, IconPaths, PublicPoolCheckConfig, GeoBlockConfig } from '../shared/constants';
 import { ProxyStateType, ThemeType, ProxyServer } from '../types';
 
 type IconPathObject = { [size: string]: string };
@@ -41,7 +42,19 @@ class IconManagerService {
      *   Uses the proxy's color marker as badge background if set.
      * - null route: clears the badge.
      */
-    setTabProxyBadge(tabId: number, route: ProxyRoute | null, isError = false): void {
+    setTabProxyBadge(tabId: number, route: ProxyRoute | null, isError = false, geoBlocked = false): void {
+        if (geoBlocked) {
+            chrome.action.setBadgeText({ tabId, text: GeoBlockConfig.BADGE_TEXT }).catch(() => {});
+            chrome.action.setBadgeBackgroundColor({ tabId, color: GeoBlockConfig.BADGE_COLOR }).catch(() => {});
+            // Подсказки — через проектный I18n (язык из настроек), не chrome.i18n
+            // (язык интерфейса браузера): остальной интерфейс берёт тексты оттуда.
+            chrome.action.setTitle({ tabId, title: I18n.getMessage('geoBlockedTitle') }).catch(() => {});
+            return;
+        }
+
+        // Restore standard tooltip when geo-block is cleared
+        chrome.action.setTitle({ tabId, title: I18n.getMessage('extensionName') }).catch(() => {});
+
         if (!route) {
             this.clearTabBadge(tabId);
             return;

@@ -650,6 +650,18 @@
     "message": "HTTP proxies can't open HTTPS sites",
     "description": "TODO: needs native translation"
   },
+  "geoBlockedTitle": {
+    "message": "网站报告在代理所在国家不可用",
+    "description": "Geo-blocked title"
+  },
+  "publicPoolGeoRemoved": {
+    "message": "因地理封锁而移除: $1",
+    "description": "Public pool geo removed message"
+  },
+  "publicPoolGeoRestore": {
+    "message": "恢复移除",
+    "description": "Public pool geo restore message"
+  },
   "presetProxyPublicPool": {
     "message": "Public pool",
     "description": "TODO: needs native translation"

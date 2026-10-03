@@ -20,6 +20,41 @@ export function poolSignature(members: NormalizedPublicProxy[]): string {
     return members.map(poolMemberKey).sort().join(',');
 }
 
+// FNV-1a 32-bit: тот же хеш, что в PAC-скрипте (функция fnv1a в generatePacScript,
+// proxy-manager.ts). Побитово совпадает с ним: беззнаковый сдвиг, Math.imul, charCodeAt.
+function fnv1a32(input: string): number {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < input.length; i++) {
+        hash ^= input.charCodeAt(i);
+        hash = Math.imul(hash, 0x01000193);
+    }
+    return hash >>> 0;
+}
+
+// Ключ rendezvous-хеша: «*.example.com» и «example.com» дают один ключ
+// (poolKey в PAC). Применяется внутри pickPoolChain, поэтому нормализация
+// идемпотентна: уже нормализованный ключ не меняется.
+function rendezvousKey(ruleKey: string): string {
+    return ruleKey.indexOf('*.') === 0 ? ruleKey.substring(2) : ruleKey;
+}
+
+// Цепочка пула до CHAIN_LENGTH элементов для правила пресета.
+// Участники ранжируются по убыванию FNV-1a от «ruleKey|строка PAC» — тем же
+// правилом, что и pickFromPool в PAC-скрипте, поэтому цепочка TypeScript совпадает
+// с цепочкой FindProxyForURL сгенерированного PAC. При равных хешах порядок
+// исходного пула: сортировка в PAC устойчива, а сравнение по индексу даёт то же самое.
+// Пустой пул даёт пустую цепочку: заглушку EMPTY_POOL_SENTINEL подставляет вызывающий
+// код, как и в PAC, где пустой пул не должен выпускать трафик в DIRECT.
+export function pickPoolChain(pool: string[], ruleKey: string): string[] {
+    if (!pool || pool.length === 0) return [];
+
+    const key = rendezvousKey(ruleKey);
+    const scored = pool.map((proxy, index) => ({ proxy, index, hash: fnv1a32(key + '|' + proxy) }));
+    scored.sort((a, b) => (b.hash - a.hash) || (a.index - b.index));
+
+    return scored.slice(0, PublicPoolCheckConfig.CHAIN_LENGTH).map((entry) => entry.proxy);
+}
+
 // Дефолтная конфигурация публичного пула.
 export const DEFAULT_PUBLIC_POOL_CONFIG: PublicPoolConfig = { protocols: ['socks5'] };
 

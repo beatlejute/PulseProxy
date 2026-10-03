@@ -2,6 +2,16 @@
 
 All notable changes to PulseProxy VPN will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- Geo-block detection: when a site answers "not available in your country", the blocked proxy is removed from the pool and replaced with another one automatically
+- **"Restore removed" button**: returns proxies removed after a geo-block back to the pool
+- Tab badge `⛔` for a geo-block on your own proxy
+
+### Known limitations
+- Geo-block detection relies on `webRequest` events. When the site's own service worker serves the navigation response, no request event is emitted, so the geo-block goes unrecognized: the blocked proxy is neither replaced in the pool nor marked with the `⛔` badge. This applies to both the pool route and your own proxy. This is a limitation of detection, not a defect, and no workaround is provided.
+
 ## [1.5.0] - 2026-09-28
 
 ### Added

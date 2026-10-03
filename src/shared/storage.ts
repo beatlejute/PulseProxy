@@ -1,7 +1,7 @@
-import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, Preset, ProxyServer, ExportData, ImportValidationResult, PublicProxyCheckResults, PublicPoolConfig, PublicProxyCatalogCache } from '../types';
+import { StorageData, StorageKey, ProxyStateType, ThemeType, SupportedLanguage, StorageChanges, Preset, ProxyServer, ExportData, ImportValidationResult, PublicProxyCheckResults, PublicPoolConfig, PublicProxyCatalogCache, PublicPoolGeoExclusions, PublicPoolGeoSite, PublicPoolGeoSites, PublicPoolGeoSiteState } from '../types';
 import { pruneCheckResults, mergeCheckResults } from '../storage/public-proxy-check-cache';
 import { IStorageBackend, ISettingsRepository, SyncMergeStats } from '../types/storage';
-import { StorageKeys, ProxyState, SYNC_STORAGE_KEYS, DEFAULT_PRESET_ID } from './constants';
+import { StorageKeys, ProxyState, SYNC_STORAGE_KEYS, DEFAULT_PRESET_ID, GeoBlockConfig } from './constants';
 import { PresetRepository, ChromeStorageBackend, StorageBackend } from '../storage/preset-repository';
 import { MigrationService } from '../storage/migration-service';
 import { ProxyRepository } from '../storage/proxy-repository';
@@ -9,6 +9,16 @@ import { SyncService } from '../storage/sync-service';
 import { ImportExportService } from '../storage/import-export-service';
 
 type StorageChangeCallback = (changes: StorageChanges, area: string) => void;
+
+// Остановка сайта действует, пока не истёк срок: now - stoppedAt < SITE_STOP_MS.
+// Время приходит параметром, чтобы тесты не зависели от часов.
+function toGeoSiteState(site: PublicPoolGeoSite | undefined, now: number): PublicPoolGeoSiteState {
+    const stoppedAt = site?.stoppedAt ?? null;
+    return {
+        streak: site?.streak ?? 0,
+        stopped: stoppedAt !== null && now - stoppedAt < GeoBlockConfig.SITE_STOP_MS,
+    };
+}
 
 class StorageService implements IStorageBackend, ISettingsRepository {
     private subscribers: StorageChangeCallback[] = [];
@@ -349,6 +359,128 @@ class StorageService implements IStorageBackend, ISettingsRepository {
     async mergePublicProxyCheckResults(updates: PublicProxyCheckResults): Promise<void> {
         const current = await this.getPublicProxyCheckResults();
         return this.setTyped(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS as StorageKey, mergeCheckResults(current, updates));
+    }
+
+    // === Исключения пула по гео-блоку ===
+    // Только local. Ключ publicPoolGeoExclusions.
+
+    async getPublicPoolGeoExclusions(): Promise<PublicPoolGeoExclusions> {
+        const raw = await this.getTyped(StorageKeys.PUBLIC_POOL_GEO_EXCLUSIONS as StorageKey) as PublicPoolGeoExclusions | undefined;
+        return raw ?? {};
+    }
+
+    async getPresetGeoExclusions(presetId: string): Promise<Record<string, number>> {
+        const all = await this.getPublicPoolGeoExclusions();
+        return all[presetId] ?? {};
+    }
+
+    async addPresetGeoExclusion(presetId: string, memberKey: string, excludedAt: number): Promise<void> {
+        const all = await this.getPublicPoolGeoExclusions();
+        const presetExclusions = all[presetId] ?? {};
+        // Запись без изменения данных поднимает onChanged и пересобирает PAC впустую
+        if (presetExclusions[memberKey] === excludedAt) {
+            return;
+        }
+        const updated: PublicPoolGeoExclusions = {
+            ...all,
+            [presetId]: { ...presetExclusions, [memberKey]: excludedAt },
+        };
+        return this.setTyped(StorageKeys.PUBLIC_POOL_GEO_EXCLUSIONS as StorageKey, updated);
+    }
+
+    async deletePresetGeoExclusions(presetId: string): Promise<void> {
+        const all = await this.getPublicPoolGeoExclusions();
+        // Записи пресета нет — не пишем ключ: запись поднимает onChanged и пересборку PAC на пустом изменении
+        if (all[presetId] === undefined) {
+            return;
+        }
+        const updated = { ...all };
+        delete updated[presetId];
+        return this.setTyped(StorageKeys.PUBLIC_POOL_GEO_EXCLUSIONS as StorageKey, updated);
+    }
+
+    // Каталог обновился: остаются исключения прокси из каталога и пресетов из списка.
+    async cleanGeoExclusions(presentMemberKeys: string[], existingPresetIds: string[]): Promise<void> {
+        const all = await this.getPublicPoolGeoExclusions();
+        const presentKeys = new Set(presentMemberKeys);
+        const existingPresets = new Set(existingPresetIds);
+        const updated: PublicPoolGeoExclusions = {};
+        let removed = false;
+        // Идём по исключениям, а не по каталогу: исключений единицы, каталог — сотни записей
+        for (const [presetId, presetExclusions] of Object.entries(all)) {
+            if (!existingPresets.has(presetId)) {
+                removed = true;
+                continue;
+            }
+            const cleaned: Record<string, number> = {};
+            for (const [memberKey, excludedAt] of Object.entries(presetExclusions)) {
+                if (presentKeys.has(memberKey)) {
+                    cleaned[memberKey] = excludedAt;
+                } else {
+                    removed = true;
+                }
+            }
+            if (Object.keys(cleaned).length > 0) {
+                updated[presetId] = cleaned;
+            }
+        }
+        // Ничего не удалено — ключ не трогаем, чтобы не поднимать onChanged
+        if (!removed) {
+            return;
+        }
+        return this.setTyped(StorageKeys.PUBLIC_POOL_GEO_EXCLUSIONS as StorageKey, updated);
+    }
+
+    // === Серии блокировок по сайтам ===
+    // Только local. Ключ publicPoolGeoSites.
+
+    async getPublicPoolGeoSites(): Promise<PublicPoolGeoSites> {
+        const raw = await this.getTyped(StorageKeys.PUBLIC_POOL_GEO_SITES as StorageKey) as PublicPoolGeoSites | undefined;
+        return raw ?? {};
+    }
+
+    async getPresetGeoSite(presetId: string, ruleKey: string, now: number): Promise<PublicPoolGeoSiteState> {
+        const all = await this.getPublicPoolGeoSites();
+        return toGeoSiteState(all[presetId]?.[ruleKey], now);
+    }
+
+    async incrementPresetGeoSite(presetId: string, ruleKey: string, now: number): Promise<PublicPoolGeoSiteState> {
+        const all = await this.getPublicPoolGeoSites();
+        const streak = toGeoSiteState(all[presetId]?.[ruleKey], now).streak + 1;
+        // Порог серии достигнут — замены для сайта встают на SITE_STOP_MS
+        const site: PublicPoolGeoSite = {
+            streak,
+            stoppedAt: streak >= GeoBlockConfig.SITE_STREAK_LIMIT ? now : null,
+        };
+        const updated: PublicPoolGeoSites = {
+            ...all,
+            [presetId]: { ...all[presetId], [ruleKey]: site },
+        };
+        await this.setTyped(StorageKeys.PUBLIC_POOL_GEO_SITES as StorageKey, updated);
+        return { streak, stopped: site.stoppedAt !== null };
+    }
+
+    async resetPresetGeoSite(presetId: string, ruleKey: string): Promise<void> {
+        const all = await this.getPublicPoolGeoSites();
+        const presetSites = all[presetId];
+        // Записи сайта нет — ключ не трогаем: запись поднимает onChanged без изменений
+        if (presetSites === undefined || presetSites[ruleKey] === undefined) {
+            return;
+        }
+        const sites = { ...presetSites };
+        delete sites[ruleKey];
+        return this.setTyped(StorageKeys.PUBLIC_POOL_GEO_SITES as StorageKey, { ...all, [presetId]: sites });
+    }
+
+    async deletePresetGeoSites(presetId: string): Promise<void> {
+        const all = await this.getPublicPoolGeoSites();
+        // Сайтов пресета нет — ключ не трогаем: запись поднимает onChanged без изменений
+        if (all[presetId] === undefined) {
+            return;
+        }
+        const updated = { ...all };
+        delete updated[presetId];
+        return this.setTyped(StorageKeys.PUBLIC_POOL_GEO_SITES as StorageKey, updated);
     }
 
     // === Свёрнутость блока фильтров публичных прокси ===

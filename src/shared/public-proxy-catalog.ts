@@ -2,6 +2,7 @@ import { PublicProxiesResponse, NormalizedPublicProxy, PublicProxyCatalogCache, 
 import { Storage } from './storage';
 import { fetchWithFallback, FetchWithFallbackOptions } from './fetch-with-fallback';
 import { PublicPoolCheckConfig } from './constants';
+import { poolMemberKey } from './public-pool';
 
 // URLs for the public proxy catalog.
 // Defined here so both background and popup share a single source of truth.
@@ -102,6 +103,16 @@ export const PublicProxyCatalog = {
                 proxies,
             };
             await Storage.setPublicProxyCatalog(newCache);
+
+            try {
+                const presentMemberKeys = proxies.map(poolMemberKey);
+                const allPresets = await Storage.getPresets();
+                const existingPresetIds = allPresets.map(p => p.id);
+                await Storage.cleanGeoExclusions(presentMemberKeys, existingPresetIds);
+            } catch (cleanupError) {
+                console.error('[PublicProxyCatalog] Failed to clean geo exclusions:', cleanupError);
+            }
+
             return proxies;
         } catch (error) {
             // 3. Network failed. If we have a stale cache, return it; otherwise

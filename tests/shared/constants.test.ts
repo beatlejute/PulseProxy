@@ -100,10 +100,17 @@ describe('constants.ts', () => {
             expect(LOCAL_STORAGE_KEYS).toContain('publicProxiesFiltersCollapsed');
             expect(LOCAL_STORAGE_KEYS).toContain('publicProxyCheckResults');
             expect(LOCAL_STORAGE_KEYS).toContain('publicProxyCatalog');
+            expect(LOCAL_STORAGE_KEYS).toContain('publicPoolGeoExclusions');
+            expect(LOCAL_STORAGE_KEYS).toContain('publicPoolGeoSites');
         });
 
-        it('should have 8 keys', () => {
-            expect(LOCAL_STORAGE_KEYS).toHaveLength(8);
+        it('should have 10 keys', () => {
+            expect(LOCAL_STORAGE_KEYS).toHaveLength(10);
+        });
+
+        it('should not leak local-only pool keys into sync', () => {
+            expect(SYNC_STORAGE_KEYS).not.toContain('publicPoolGeoExclusions');
+            expect(SYNC_STORAGE_KEYS).not.toContain('publicPoolGeoSites');
         });
     });
 
@@ -124,10 +131,12 @@ describe('constants.ts', () => {
             expect(StorageKeys.PUBLIC_PROXIES_FILTERS_COLLAPSED).toBe('publicProxiesFiltersCollapsed');
             expect(StorageKeys.PUBLIC_PROXY_CHECK_RESULTS).toBe('publicProxyCheckResults');
             expect(StorageKeys.PUBLIC_PROXY_CATALOG).toBe('publicProxyCatalog');
+            expect(StorageKeys.PUBLIC_POOL_GEO_EXCLUSIONS).toBe('publicPoolGeoExclusions');
+            expect(StorageKeys.PUBLIC_POOL_GEO_SITES).toBe('publicPoolGeoSites');
         });
 
-        it('should have 15 keys', () => {
-            expect(Object.keys(StorageKeys)).toHaveLength(15);
+        it('should have 17 keys', () => {
+            expect(Object.keys(StorageKeys)).toHaveLength(17);
         });
     });
 

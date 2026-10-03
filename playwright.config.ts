@@ -15,7 +15,9 @@ export default defineConfig({
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
-        headless: false,
+        // Без окна; окно для отладки — HEADED=1 (или флаг --headed).
+        channel: 'chromium',
+        headless: process.env.HEADED !== '1',
     },
     projects: [
         {

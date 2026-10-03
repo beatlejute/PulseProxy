@@ -176,3 +176,112 @@ describe('PublicProxyCatalog.get()', () => {
         expect(calls[1][0]).toContain(PUBLIC_PROXIES_FALLBACK_URL);
     });
 });
+
+describe('geo exclusions cleanup', () => {
+    beforeEach(async () => {
+        mockHelpers.resetAllMocks();
+        (global.fetch as jest.Mock).mockReset();
+        jest.resetModules();
+
+        const catalogModule = await import('../../src/shared/public-proxy-catalog');
+        PublicProxyCatalog = catalogModule.PublicProxyCatalog;
+
+        const storageModule = await import('../../src/shared/storage');
+        Storage = storageModule.Storage;
+
+        mockHelpers.setLocalStorageData({});
+    });
+
+    it('geo exclusions cleanup removes exclusions for dropped proxies', async () => {
+        const freshData = {
+            http: [{ ip: '1.1.1.1:8080', score: 100, type: 'Datacenter', country: 'US' }],
+            https: [],
+            socks4: [],
+            socks5: []
+        };
+
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue(freshData)
+        } as unknown as Response);
+
+        const presetId = 'preset-1';
+        const exclusions = {
+            [presetId]: {
+                'http://1.1.1.1:8080': 1000,
+                'http://2.2.2.2:9090': 2000
+            }
+        };
+
+        mockHelpers.setLocalStorageData({
+            publicPoolGeoExclusions: exclusions,
+            presets: [{ id: presetId, name: 'Test', enabled: true, domains: [] }]
+        });
+
+        const result = await PublicProxyCatalog.get({ ttlMs: 3600000 });
+
+        const storedExclusions = await Storage.getPublicPoolGeoExclusions();
+        expect(storedExclusions[presetId]).toEqual({ 'http://1.1.1.1:8080': 1000 });
+        expect(storedExclusions[presetId]['http://2.2.2.2:9090']).toBeUndefined();
+    });
+
+    it('geo exclusions cleanup preserves exclusions for existing proxies', async () => {
+        const freshData = {
+            http: [{ ip: '3.3.3.3:7070', score: 110, type: 'Datacenter', country: 'DE' }],
+            https: [],
+            socks4: [],
+            socks5: []
+        };
+
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue(freshData)
+        } as unknown as Response);
+
+        const presetId = 'preset-2';
+        const exclusions = {
+            [presetId]: {
+                'http://3.3.3.3:7070': 5000
+            }
+        };
+
+        mockHelpers.setLocalStorageData({
+            publicPoolGeoExclusions: exclusions,
+            presets: [{ id: presetId, name: 'Test', enabled: true, domains: [] }]
+        });
+
+        const result = await PublicProxyCatalog.get({ ttlMs: 3600000 });
+
+        const storedExclusions = await Storage.getPublicPoolGeoExclusions();
+        expect(storedExclusions[presetId]['http://3.3.3.3:7070']).toBe(5000);
+    });
+
+    it('geo exclusions cleanup error does not prevent catalog storage', async () => {
+        const freshData = {
+            http: [{ ip: '4.4.4.4:6060', score: 120, type: 'Datacenter', country: 'UK' }],
+            https: [],
+            socks4: [],
+            socks5: []
+        };
+
+        (global.fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            status: 200,
+            json: jest.fn().mockResolvedValue(freshData)
+        } as unknown as Response);
+
+        const cleanupError = new Error('Storage error during cleanup');
+        jest.spyOn(Storage, 'cleanGeoExclusions').mockRejectedValueOnce(cleanupError);
+        jest.spyOn(console, 'error').mockImplementation();
+
+        const result = await PublicProxyCatalog.get({ ttlMs: 3600000 });
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toMatchObject({ protocol: 'http', ip: '4.4.4.4', port: 6060 });
+
+        const stored = await Storage.getPublicProxyCatalog();
+        expect(stored?.proxies).toEqual(result);
+    });
+});

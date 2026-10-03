@@ -8,10 +8,19 @@ import { poolSignature, resolvePoolMembers } from '../shared/public-pool';
 
 // Routing decision for a URL: which proxy serves it and whether it matched
 // only via the "proxy all sites by default" fallback (no preset rule).
+export interface PoolMemberRoute {
+    key: string; // protocol://ip:port
+    ip: string;
+    pac: string; // PAC-строка: "PROXY host:port" и т.п.
+}
+
 export interface ProxyRoute {
     kind: 'own' | 'pool';
     server: ProxyServer | null;   // для kind='pool' всегда null
     poolSize?: number;            // для kind='pool': число членов пула
+    presetId?: string;            // для kind='pool': id пресета
+    poolRule?: string;            // для kind='pool': правило (домен) пресета, совпавшее с хостом
+    poolMembers?: PoolMemberRoute[]; // для kind='pool': состав пула в порядке pools[] PAC
     viaProxyAll: boolean;
 }
 
@@ -119,6 +128,8 @@ class ProxyManagerService {
     private domainProxyMap: Map<string, string> = new Map();
     private domainProxyServerMap: Map<string, ProxyServer> = new Map();
     private domainPoolRouteMap: Map<string, number> = new Map();
+    private domainPoolPresetIdMap: Map<string, string> = new Map();
+    private domainPoolMembersMap: Map<string, PoolMemberRoute[]> = new Map();
     private ignoreDomains: Set<string> = new Set();
     private proxyByDefault: boolean = false;
     private defaultProxyLabel: string = '';
@@ -181,7 +192,17 @@ class ProxyManagerService {
         }
 
         for (const [domain, poolSize] of this.domainPoolRouteMap) {
-            if (matchesDomain(host, domain)) return { kind: 'pool', server: null, poolSize, viaProxyAll: false };
+            if (matchesDomain(host, domain)) {
+                return {
+                    kind: 'pool',
+                    server: null,
+                    poolSize,
+                    presetId: this.domainPoolPresetIdMap.get(domain),
+                    poolRule: domain,
+                    poolMembers: this.domainPoolMembersMap.get(domain),
+                    viaProxyAll: false,
+                };
+            }
         }
 
         for (const [domain, server] of this.domainProxyServerMap) {
@@ -492,6 +513,8 @@ class ProxyManagerService {
         this.domainProxyMap = new Map();
         this.domainProxyServerMap = new Map();
         this.domainPoolRouteMap = new Map();
+        this.domainPoolPresetIdMap = new Map();
+        this.domainPoolMembersMap = new Map();
     }
 
     private async updateRoutingCache(): Promise<void> {
@@ -509,8 +532,10 @@ class ProxyManagerService {
         this.domainProxyMap = new Map();
         this.domainProxyServerMap = new Map();
         this.domainPoolRouteMap = new Map();
+        this.domainPoolPresetIdMap = new Map();
+        this.domainPoolMembersMap = new Map();
 
-        const { poolSizes } = await this.resolvePools(activePresets);
+        const { poolSizes, poolPresetIds, poolMembers } = await this.resolvePools(activePresets);
 
 // Keep routing precedence consistent with PAC: last preset wins between
         // own and pool (order of Storage.getActivePresets()); isDefault stays DIRECT.
@@ -536,8 +561,12 @@ class ProxyManagerService {
                 for (const d of preset.domains) {
                     if (lastOwner.get(d) === 'pool') {
                         const poolSize = poolSizes.get(d);
-                        if (poolSize !== undefined) {
+                        const presetId = poolPresetIds.get(d);
+                        const members = poolMembers.get(d);
+                        if (poolSize !== undefined && presetId !== undefined && members !== undefined) {
                             this.domainPoolRouteMap.set(d, poolSize);
+                            this.domainPoolPresetIdMap.set(d, presetId);
+                            this.domainPoolMembersMap.set(d, members);
                         }
                     }
                 }
@@ -600,6 +629,8 @@ class ProxyManagerService {
         pools: string[][];
         domainPoolMap: Record<string, number>;
         poolSizes: Map<string, number>;
+        poolPresetIds: Map<string, string>;
+        poolMembers: Map<string, PoolMemberRoute[]>;
         signature: string;
     }> {
         const [catalogCache, results] = await Promise.all([
@@ -610,27 +641,55 @@ class ProxyManagerService {
         const pools: string[][] = [];
         const domainPoolMap: Record<string, number> = {};
         const poolSizes = new Map<string, number>();
+        const poolPresetIds = new Map<string, string>();
+        const poolMembers = new Map<string, PoolMemberRoute[]>();
         const signatures: string[] = [];
 
         for (const preset of activePresets) {
             if (preset.isDefault || !preset.publicPool) continue;
 
             const { members } = resolvePoolMembers(preset.publicPool, catalog, results, Date.now());
+
+            // Geo-block exclusions: read excluded member keys for this preset
+            const presetGeoExclusions = await Storage.getPresetGeoExclusions(preset.id);
+            const excludedKeys = new Set(Object.keys(presetGeoExclusions));
+
+            // Filter out excluded members
+            const filteredMembers = members.filter(member => {
+                const memberKey = `${member.protocol}://${member.ip}:${member.port}`;
+                return !excludedKeys.has(memberKey);
+            });
+
+            // If exclusions would empty the pool but original pool was not empty,
+            // do not apply exclusions for this preset (decision 4: at least one proxy remains)
+            const finalMembers = filteredMembers.length === 0 && members.length > 0
+                ? members
+                : filteredMembers;
+
+            // Одна сборка обслуживает и pools[] PAC, и состав маршрута: строки PAC
+            // берутся из memberRoutes, поэтому состав маршрута и PAC не расходятся.
+            const memberRoutes: PoolMemberRoute[] = finalMembers.map(member => ({
+                key: `${member.protocol}://${member.ip}:${member.port}`,
+                ip: member.ip,
+                pac: this.formatProxyForPac({
+                    type: member.protocol,
+                    host: member.ip,
+                    port: member.port,
+                }),
+            }));
             const poolIndex = pools.length;
-            pools.push(members.map(member => this.formatProxyForPac({
-                type: member.protocol,
-                host: member.ip,
-                port: member.port,
-            })));
-            signatures.push(poolSignature(members));
+            pools.push(memberRoutes.map(route => route.pac));
+            signatures.push(poolSignature(finalMembers));
 
             for (const domain of preset.domains) {
                 domainPoolMap[domain] = poolIndex;
-                poolSizes.set(domain, members.length);
+                poolSizes.set(domain, finalMembers.length);
+                poolPresetIds.set(domain, preset.id);
+                poolMembers.set(domain, memberRoutes);
             }
         }
 
-        return { pools, domainPoolMap, poolSizes, signature: signatures.join(';') };
+        return { pools, domainPoolMap, poolSizes, poolPresetIds, poolMembers, signature: signatures.join(';') };
     }
 
     /**

@@ -621,5 +621,17 @@
   "publicPoolHttpHint": {
     "message": "HTTP proxies can't open HTTPS sites",
     "description": "Hint warning about HTTP proxies in public pool"
+  },
+  "geoBlockedTitle": {
+    "message": "The site reports it is not available in the proxy's country",
+    "description": "Geo-blocked title"
+  },
+  "publicPoolGeoRemoved": {
+    "message": "Removed after geo-block: $1",
+    "description": "Public pool geo removed message"
+  },
+  "publicPoolGeoRestore": {
+    "message": "Restore removed",
+    "description": "Public pool geo restore message"
   }
 }

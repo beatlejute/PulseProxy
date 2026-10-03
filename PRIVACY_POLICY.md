@@ -70,7 +70,7 @@ These requests contain no personal data. The health-check request is deliberatel
 |------------|---------|
 | `proxy` | Core functionality — configure browser proxy settings |
 | `storage` | Save your preferences, proxies, and presets locally |
-| `webRequest` | Intercept authentication challenges from proxy servers |
+| `webRequest` | Intercept authentication challenges from proxy servers. The extension reads the response code and redirect address to detect country-based blocking by the proxy. The data is processed on the device. Only the domain of the preset rule and the address of the removed public proxy are saved. |
 | `webRequestAuthProvider` | Provide saved credentials for proxy authentication |
 | `webNavigation` | Detect which site a tab loads, to show the per-tab proxy badge and verify the proxy health check |
 | `tabs` | Per-tab badges and opening the extension in a full browser tab |

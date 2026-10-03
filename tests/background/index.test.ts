@@ -14,6 +14,7 @@ const mockProxyManager = {
     generateBatchCheckPacScript: jest.fn().mockResolvedValue('function FindProxyForURL(url, host) { return "DIRECT"; }'),
     getRouteForUrl: jest.fn().mockReturnValue(null),
     getProxyForUrl: jest.fn().mockReturnValue(null),
+    refreshIfConnected: jest.fn().mockResolvedValue(undefined),
 };
 
 const mockIconManager = {
@@ -54,6 +55,15 @@ jest.mock('../../src/background/icon-manager', () => ({
 
 jest.mock('../../src/shared/storage', () => ({
     Storage: mockStorage
+}));
+
+const mockI18n = {
+    init: jest.fn().mockResolvedValue(undefined),
+    getMessage: jest.fn((key: string) => key),
+};
+
+jest.mock('../../src/shared/i18n', () => ({
+    I18n: mockI18n
 }));
 
 const mockPublicPoolScheduler = {
@@ -230,6 +240,19 @@ describe('Background Script', () => {
             }, 'local');
 
             expect(mockIconManager.update).toHaveBeenCalled();
+        });
+
+        it('should re-read the i18n catalog when language changes in local storage', () => {
+            // Настоящий колбэк из импорта модуля: storageChangeCallback в этом describe —
+            // локальная заглушка, продуктовый обработчик она не исполняет.
+            registeredStorageCallbacks[0]({
+                [StorageKeys.LANGUAGE]: {
+                    newValue: 'en',
+                    oldValue: 'ru'
+                }
+            }, 'local');
+
+            expect(mockI18n.init).toHaveBeenCalled();
         });
 
         it('should reinitialize proxy when presets change in sync storage', () => {
@@ -1118,6 +1141,49 @@ describe('Background Script', () => {
 
             expect(mockIconManager.setTabProxyBadge).not.toHaveBeenCalled();
             expect(chrome.tabs.onUpdated.removeListener).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('geo exclusions storage change', () => {
+        let storageChangeCallback: (changes: Record<string, unknown>, area: string) => void;
+
+        beforeEach(() => {
+            jest.clearAllMocks();
+            (mockProxyManager.refreshIfConnected as jest.Mock).mockClear();
+            storageChangeCallback = registeredStorageCallbacks[0];
+        });
+
+        it('изменение publicPoolGeoExclusions в local storage вызывает refreshIfConnected', () => {
+            storageChangeCallback({
+                [StorageKeys.PUBLIC_POOL_GEO_EXCLUSIONS]: {
+                    newValue: ['US', 'UK'],
+                    oldValue: []
+                }
+            }, 'local');
+
+            expect(mockProxyManager.refreshIfConnected).toHaveBeenCalled();
+        });
+
+        it('изменение publicPoolGeoSites в local storage НЕ вызывает refreshIfConnected', () => {
+            storageChangeCallback({
+                [StorageKeys.PUBLIC_POOL_GEO_SITES]: {
+                    newValue: { example: ['example.com'] },
+                    oldValue: {}
+                }
+            }, 'local');
+
+            expect(mockProxyManager.refreshIfConnected).not.toHaveBeenCalled();
+        });
+
+        it('изменение publicPoolGeoExclusions в sync storage НЕ вызывает refreshIfConnected', () => {
+            storageChangeCallback({
+                [StorageKeys.PUBLIC_POOL_GEO_EXCLUSIONS]: {
+                    newValue: ['US', 'UK'],
+                    oldValue: []
+                }
+            }, 'sync');
+
+            expect(mockProxyManager.refreshIfConnected).not.toHaveBeenCalled();
         });
     });
 });

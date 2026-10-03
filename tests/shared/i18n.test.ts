@@ -87,12 +87,23 @@ describe('i18n.ts - I18nService', () => {
 
         it('should load messages for the language', async () => {
             mockHelpers.setLocalStorageData({ language: 'en' });
-            
+
             await I18n.init();
-            
+
             expect(global.fetch).toHaveBeenCalledWith(
                 expect.stringContaining('_locales/en/messages.json')
             );
+        });
+
+        it('should drop the previous catalog when re-initialized with the default language', async () => {
+            mockHelpers.setLocalStorageData({ language: 'ru' });
+            await I18n.init();
+            expect(I18n.getMessage('buttonConnect')).toBe('Подключить');
+
+            mockHelpers.setLocalStorageData({ language: 'en' });
+            await I18n.init();
+
+            expect(I18n.getMessage('buttonConnect')).toBe('Connect');
         });
     });
 

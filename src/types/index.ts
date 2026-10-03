@@ -72,6 +72,8 @@ export interface LocalStorageData {
     publicProxiesFiltersCollapsed: boolean; // Блок фильтров публичных прокси свёрнут
     publicProxyCheckResults: PublicProxyCheckResults; // Кеш результатов фоновой проверки публичных прокси
     publicProxyCatalog: PublicProxyCatalogCache; // Кэш нормализованного каталога публичных прокси
+    publicPoolGeoExclusions: PublicPoolGeoExclusions;
+    publicPoolGeoSites: PublicPoolGeoSites;
 }
 
 // Объединённый тип данных хранилища
@@ -310,7 +312,10 @@ export type I18nKey =
     | 'publicPoolProtocols'
     | 'publicPoolStatus'
     | 'publicPoolEmpty'
-    | 'publicPoolHttpHint';
+    | 'publicPoolHttpHint'
+    | 'publicPoolGeoRemoved'
+    | 'publicPoolGeoRestore'
+    | 'geoBlockedTitle';
 
 // Структура экспортируемых данных
 export interface ExportData {
@@ -381,4 +386,32 @@ export interface PublicProxyFilters {
     connectionType?: string;
     country?: string;
     minScore?: number;
+}
+
+// Исключения публичного пула по гео-блоку. Срока у исключения нет:
+// запись снимает очистка по каталогу или сброс пресета.
+export interface PublicPoolGeoExclusions {
+    [presetId: string]: {
+        // ключ участника пула protocol://ip:port (строит poolMemberKey, shared/public-pool.ts) → время исключения, мс
+        [memberKey: string]: number;
+    };
+}
+
+// Состояние сайта пресета: серия блокировок подряд и время остановки замен
+export interface PublicPoolGeoSite {
+    streak: number;            // блокировок подряд на этом сайте
+    stoppedAt: number | null;  // время остановки замен; null — замены идут
+}
+
+// Состояние сайта для вызывающего кода: остановка уже сверена со сроком
+export interface PublicPoolGeoSiteState {
+    streak: number;   // блокировок подряд на этом сайте
+    stopped: boolean; // замены для сайта остановлены (now - stoppedAt < SITE_STOP_MS)
+}
+
+export interface PublicPoolGeoSites {
+    [presetId: string]: {
+        // ключ poolKey(правила пресета): "*.example.com" и "example.com" дают "example.com"
+        [ruleKey: string]: PublicPoolGeoSite;
+    };
 }

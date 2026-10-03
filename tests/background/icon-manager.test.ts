@@ -1,7 +1,29 @@
 import { mockHelpers } from '../setup';
+import * as fs from 'fs';
+import * as path from 'path';
 
 // Динамический импорт для правильного порядка инициализации
 let IconManager: typeof import('../../src/background/icon-manager').IconManager;
+
+// Тексты подсказок сверяются с настоящими каталогами, а не с ключом:
+// ключ вернул бы и сломанный I18n, и chrome.i18n.getMessage из мока.
+const readCatalog = (lang: string): Record<string, { message: string }> =>
+    JSON.parse(fs.readFileSync(path.join(__dirname, '../../_locales', lang, 'messages.json'), 'utf-8'));
+
+const ruCatalog = readCatalog('ru');
+const enCatalog = readCatalog('en');
+
+// setup.ts мокает fetch пустышкой; I18n читает каталог через fetch(chrome.runtime.getURL(...))
+const mockLocaleFetch = (): void => {
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        const match = /_locales\/([a-z]{2})\/messages\.json/.exec(url);
+        if (!match) return Promise.reject(new Error(`Unexpected fetch: ${url}`));
+        return Promise.resolve({ json: () => Promise.resolve(readCatalog(match[1])) });
+    });
+};
+
+// Тот же экземпляр, что видит IconManager: один реестр модулей после jest.resetModules()
+const loadI18n = async () => (await import('../../src/shared/i18n')).I18n;
 
 describe('icon-manager.ts - IconManagerService', () => {
     beforeEach(async () => {
@@ -192,6 +214,7 @@ describe('icon-manager.ts - IconManagerService', () => {
         beforeEach(() => {
             (chrome.action.setBadgeText as jest.Mock).mockReturnValue(Promise.resolve());
             (chrome.action.setBadgeBackgroundColor as jest.Mock).mockReturnValue(Promise.resolve());
+            (chrome.action.setTitle as jest.Mock).mockReturnValue(Promise.resolve());
         });
 
         const ownRoute = (server: unknown, viaProxyAll = false) => ({ kind: 'own', server, viaProxyAll });
@@ -239,6 +262,122 @@ describe('icon-manager.ts - IconManagerService', () => {
 
                 expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 105, text: '🇺🇸' });
                 expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 105, color: '#4CAF50' });
+            });
+        });
+
+        describe('geo-block badge', () => {
+            const geoBlockedRoute = () => ownRoute({ name: '🇺🇸 US Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const });
+
+            beforeEach(async () => {
+                mockLocaleFetch();
+                mockHelpers.setLocalStorageData({ language: 'en' });
+                await (await loadI18n()).init();
+            });
+
+            it('geo-block on own route → badge ⛔ color #FF6969 title geoBlockedTitle', () => {
+                IconManager.setTabProxyBadge(111, geoBlockedRoute(), false, true);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 111, text: '⛔' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 111, color: '#FF6969' });
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 111, title: enCatalog.geoBlockedTitle.message });
+            });
+
+            it('geo-block on pool route → badge ⛔ color #FF6969 title geoBlockedTitle', () => {
+                const route = poolRoute(3);
+
+                IconManager.setTabProxyBadge(112, route, false, true);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 112, text: '⛔' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 112, color: '#FF6969' });
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 112, title: enCatalog.geoBlockedTitle.message });
+            });
+
+            it('geo-block on ALL route → badge ⛔ color #FF6969 title geoBlockedTitle', () => {
+                const route = ownRoute({ name: '🇺🇸 US Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const }, true);
+
+                IconManager.setTabProxyBadge(113, route, false, true);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 113, text: '⛔' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 113, color: '#FF6969' });
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 113, title: enCatalog.geoBlockedTitle.message });
+            });
+
+            it('without geo-block on own route → normal badge', () => {
+                IconManager.setTabProxyBadge(114, geoBlockedRoute(), false, false);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 114, text: '🇺🇸' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 114, color: '#4CAF50' });
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 114, title: enCatalog.extensionName.message });
+            });
+
+            it('without geo-block on pool route → normal badge', () => {
+                const route = poolRoute(3);
+
+                IconManager.setTabProxyBadge(115, route, false, false);
+
+                expect(chrome.action.setBadgeText).toHaveBeenCalledWith({ tabId: 115, text: '🌐' });
+                expect(chrome.action.setBadgeBackgroundColor).toHaveBeenCalledWith({ tabId: 115, color: '#845EF7' });
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 115, title: enCatalog.extensionName.message });
+            });
+
+            it('geo-block cleared → restores standard title', () => {
+                const route = ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const });
+
+                IconManager.setTabProxyBadge(116, route, false, true);
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 116, title: enCatalog.geoBlockedTitle.message });
+
+                (chrome.action.setTitle as jest.Mock).mockClear();
+                IconManager.setTabProxyBadge(116, route, false, false);
+
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 116, title: enCatalog.extensionName.message });
+            });
+        });
+
+        describe('tooltip language', () => {
+            // Язык браузера в моке — en (tests/__mocks__/chrome.ts): подсказка на языке
+            // настроек, а не браузера, различима только при несовпадении этих языков.
+            beforeEach(() => {
+                (chrome.i18n.getUILanguage as jest.Mock).mockReturnValue('en');
+            });
+
+            it('tooltip language: ru in storage → geo-block tooltip is the ru catalog text', async () => {
+                mockLocaleFetch();
+                mockHelpers.setLocalStorageData({ language: 'ru' });
+                await (await loadI18n()).init();
+
+                IconManager.setTabProxyBadge(201, ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const }), false, true);
+
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 201, title: ruCatalog.geoBlockedTitle.message });
+            });
+
+            it('tooltip language: ru in storage → standard tooltip is the ru catalog text', async () => {
+                mockLocaleFetch();
+                mockHelpers.setLocalStorageData({ language: 'ru' });
+                await (await loadI18n()).init();
+
+                IconManager.setTabProxyBadge(202, ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const }), false, false);
+
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 202, title: ruCatalog.extensionName.message });
+            });
+
+            it('tooltip language: switch ru → en in storage without restart → next geo-block tooltip is the en catalog text', async () => {
+                mockLocaleFetch();
+                mockHelpers.setLocalStorageData({ language: 'ru' });
+                const I18n = await loadI18n();
+                await I18n.init();
+
+                IconManager.setTabProxyBadge(203, ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const }), false, true);
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 203, title: ruCatalog.geoBlockedTitle.message });
+
+                // Смена языка в настройках: background перечитывает каталог (Storage.onChange → I18n.init)
+                mockHelpers.setLocalStorageData({ language: 'en' });
+                await I18n.init();
+                (chrome.action.setTitle as jest.Mock).mockClear();
+
+                IconManager.setTabProxyBadge(204, ownRoute({ name: 'My Proxy', host: '1.2.3.4', port: 8080, scheme: 'http' as const }), false, true);
+
+                expect(chrome.action.setTitle).toHaveBeenCalledWith({ tabId: 204, title: enCatalog.geoBlockedTitle.message });
+                expect(enCatalog.geoBlockedTitle.message).not.toBe(ruCatalog.geoBlockedTitle.message);
             });
         });
 

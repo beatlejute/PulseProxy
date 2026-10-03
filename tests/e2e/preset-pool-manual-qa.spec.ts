@@ -17,7 +17,7 @@
  * См. .workflow/src/skills/shared/testing-conventions.md
  */
 
-import { test, expect, BrowserContext, Page } from '@playwright/test';
+import { test, expect, BrowserContext, Page, Worker } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -31,6 +31,7 @@ const REPORTS_DIR = path.join(REPO_ROOT, 'reports');
 const REPORT_JSON = path.join(REPORTS_DIR, 'PLAN-017-preset-pool.json');
 const SCREENSHOT_DARK = path.join(REPORTS_DIR, 'PLAN-017-preset-pool-dark.png');
 const SCREENSHOT_LIGHT = path.join(REPORTS_DIR, 'PLAN-017-preset-pool-light.png');
+const RESTORE_REPORT_JSON = path.join(REPORTS_DIR, 'geo-block-restore.json');
 
 /** Ширина попапа, на которой проверяется отсутствие переполнения */
 const POPUP_WIDTH = 280;
@@ -336,5 +337,169 @@ test.describe('Manual QA: редактор пресета с публичным 
         expect.soft(report.afterDefault.publicPool).toBeNull();
         expect.soft(report.afterDefault.blockVisible).toBe(false);
         await page.close();
+    });
+});
+
+interface RestoreReport {
+    tc1: { removedText: string; buttonVisible: boolean };
+    tc2: { buttonVisible: boolean; exclusionsLeft: number; sitesLeft: number };
+    tc3: { poolSize: number };
+}
+
+/** Домен пула этого пресета: не пересекается с доменами других test.describe в этом файле */
+const RESTORE_DOMAIN = 'geo-restore-qa.example.com';
+
+/** Каталог из 4 socks5-прокси (задача 31 плана PLAN-020): фиксированные ip:port, не пересекающиеся с sources/proxys.json */
+const RESTORE_CATALOG = [1, 2, 3, 4].map(n => ({
+    protocol: 'socks5',
+    ip: `203.0.113.${n}`,
+    port: 1080 + n,
+    score: 4.5,
+    connectionType: 'residential',
+    country: 'US',
+}));
+
+function restoreMemberKey(p: { protocol: string; ip: string; port: number }): string {
+    return `${p.protocol}://${p.ip}:${p.port}`;
+}
+
+/** Из 4 участников каталога 2 первых считаются убранными по гео-блоку в подготовке теста */
+const RESTORE_EXCLUDED_KEYS = [restoreMemberKey(RESTORE_CATALOG[0]), restoreMemberKey(RESTORE_CATALOG[1])];
+
+test.describe('Manual QA: восстановление прокси, убранных по гео-блоку (задача 31 плана PLAN-020)', () => {
+    let context: BrowserContext;
+    let popupUrl: string;
+    let presetId: string;
+    let serviceWorker: Worker;
+
+    const restoreReport: RestoreReport = {
+        tc1: { removedText: '', buttonVisible: false },
+        tc2: { buttonVisible: true, exclusionsLeft: -1, sitesLeft: -1 },
+        tc3: { poolSize: -1 },
+    };
+
+    test.beforeAll(async () => {
+        test.setTimeout(180000);
+        if (!fs.existsSync(REPORTS_DIR)) fs.mkdirSync(REPORTS_DIR, { recursive: true });
+
+        const ext = await launchExtension();
+        context = ext.context;
+        popupUrl = ext.popupUrl;
+        serviceWorker = context.serviceWorkers()[0];
+
+        const init = await openPopup(context, popupUrl);
+        await init.evaluate(() => new Promise(resolve => chrome.storage.local.set({ syncEnabled: false }, resolve)));
+        await init.evaluate((proxies) => new Promise(resolve => chrome.storage.local.set({
+            publicProxyCatalog: { fetchedAt: Date.now(), proxies },
+        }, resolve)), RESTORE_CATALOG);
+
+        presetId = await init.evaluate((domain) => new Promise<string>(resolve => {
+            const preset = {
+                id: crypto.randomUUID(),
+                name: 'Geo Restore QA',
+                domains: [domain],
+                enabled: true,
+                isDefault: false,
+                order: 0,
+                proxyId: null,
+                publicPool: { protocols: ['socks5'] },
+                createdAt: Date.now(),
+                updatedAt: Date.now(),
+            };
+            chrome.storage.local.set({ presets: [preset], proxies: [] }, () => resolve(preset.id));
+        }), RESTORE_DOMAIN);
+
+        // Подготовка (задача 31): 2 из 4 прокси каталога — в publicPoolGeoExclusions,
+        // один остановленный сайт (стрик блокировок) — в publicPoolGeoSites
+        await init.evaluate(({ id, excludedKeys, domain }) => new Promise(resolve => {
+            const now = Date.now();
+            const exclusions: Record<string, number> = {};
+            excludedKeys.forEach((key) => { exclusions[key] = now; });
+            chrome.storage.local.set({
+                publicPoolGeoExclusions: { [id]: exclusions },
+                publicPoolGeoSites: { [id]: { [domain]: { streak: 3, stoppedAt: now } } },
+            }, resolve);
+        }), { id: presetId, excludedKeys: RESTORE_EXCLUDED_KEYS, domain: RESTORE_DOMAIN });
+
+        await init.evaluate(() => new Promise(resolve => chrome.storage.local.set({ targetState: 'connected' }, resolve)));
+        await init.close();
+
+        for (let i = 0; i < 40; i++) {
+            const current = await serviceWorker.evaluate(() => new Promise<string>(resolve =>
+                chrome.storage.local.get('currentState', (r) => resolve(r.currentState || ''))
+            ));
+            if (current === 'connected') break;
+            await new Promise(resolve => setTimeout(resolve, 250));
+        }
+    });
+
+    test.afterAll(async () => {
+        fs.writeFileSync(RESTORE_REPORT_JSON, JSON.stringify(restoreReport, null, 2));
+        await context?.close();
+    });
+
+    test('TC1: строка "Removed after geo-block" и кнопка восстановления видны', async () => {
+        test.setTimeout(60000);
+        const page = await openNarrowPopup(context, popupUrl);
+        await openPresetEditor(page);
+        await page.waitForTimeout(400);
+
+        const geoRemoved = page.locator('.pool-geo-removed');
+        restoreReport.tc1.removedText = (await geoRemoved.locator('.pool-geo-removed-text').textContent() || '').trim();
+        restoreReport.tc1.buttonVisible = await geoRemoved.locator('.pool-geo-restore-btn').isVisible();
+
+        expect.soft(restoreReport.tc1.removedText).toBe('Removed after geo-block: 2');
+        expect.soft(restoreReport.tc1.buttonVisible).toBe(true);
+        await page.close();
+    });
+
+    test('TC2: клик по кнопке скрывает строку и очищает оба ключа хранилища', async () => {
+        test.setTimeout(60000);
+        const page = await openNarrowPopup(context, popupUrl);
+        await openPresetEditor(page);
+        await page.waitForTimeout(400);
+
+        await page.locator('.pool-geo-restore-btn').click();
+        await page.waitForTimeout(600);
+
+        restoreReport.tc2.buttonVisible = await page.locator('.pool-geo-removed')
+            .evaluate(el => el.classList.contains('pool-geo-removed--visible'));
+
+        const stored = await page.evaluate((id) => new Promise<{ exclusions: number; sites: number }>(resolve => {
+            chrome.storage.local.get(['publicPoolGeoExclusions', 'publicPoolGeoSites'], (r) => {
+                const exclusions = Object.keys((r.publicPoolGeoExclusions || {})[id] || {}).length;
+                const sites = Object.keys((r.publicPoolGeoSites || {})[id] || {}).length;
+                resolve({ exclusions, sites });
+            });
+        }), presetId);
+        restoreReport.tc2.exclusionsLeft = stored.exclusions;
+        restoreReport.tc2.sitesLeft = stored.sites;
+
+        expect.soft(restoreReport.tc2.buttonVisible).toBe(false);
+        expect.soft(restoreReport.tc2.exclusionsLeft).toBe(0);
+        expect.soft(restoreReport.tc2.sitesLeft).toBe(0);
+        await page.close();
+    });
+
+    test('TC3: состав pools[] PAC для домена пресета после восстановления', async () => {
+        test.setTimeout(60000);
+        const pacData = await serviceWorker.evaluate(() => new Promise<string>(resolve => {
+            chrome.proxy.settings.get({}, (details: any) => resolve(details?.value?.pacScript?.data || ''));
+        }));
+
+        const domainPoolMapMatch = pacData.match(/var domainPoolMap = (\{.*?\});/);
+        const poolsMatch = pacData.match(/var pools = (\[.*?\]);/);
+        let poolSize = -1;
+        if (domainPoolMapMatch && poolsMatch) {
+            const domainPoolMap = JSON.parse(domainPoolMapMatch[1]);
+            const pools = JSON.parse(poolsMatch[1]);
+            const idx = domainPoolMap[RESTORE_DOMAIN];
+            if (idx !== undefined && Array.isArray(pools[idx])) {
+                poolSize = pools[idx].length;
+            }
+        }
+        restoreReport.tc3.poolSize = poolSize;
+
+        expect.soft(poolSize).toBe(4);
     });
 });

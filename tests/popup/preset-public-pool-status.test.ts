@@ -99,6 +99,148 @@ describe('pool status live update', () => {
     });
 });
 
+describe('geo exclusions', () => {
+    let geoExclusions: Record<string, Record<string, number>> = {};
+    let geoSites: Record<string, Record<string, { streak: number; stoppedAt: number | null }>> = {};
+
+    function geoRemovedEl(block: HTMLElement): HTMLDivElement {
+        return block.querySelector('div.pool-geo-removed') as HTMLDivElement;
+    }
+
+    function geoRemovedTextEl(block: HTMLElement): HTMLSpanElement {
+        return block.querySelector('span.pool-geo-removed-text') as HTMLSpanElement;
+    }
+
+    function geoRestoreBtnEl(block: HTMLElement): HTMLButtonElement {
+        return block.querySelector('button.pool-geo-restore-btn') as HTMLButtonElement;
+    }
+
+    beforeEach(() => {
+        geoExclusions = {};
+        geoSites = {};
+        jest.spyOn(Storage, 'getPresetGeoExclusions').mockImplementation(async (presetId: string) => {
+            return geoExclusions[presetId] ?? {};
+        });
+        jest.spyOn(Storage, 'getPublicPoolGeoSites').mockImplementation(async () => {
+            return geoSites;
+        });
+        jest.spyOn(Storage, 'deletePresetGeoExclusions').mockImplementation(async (presetId: string) => {
+            delete geoExclusions[presetId];
+        });
+        jest.spyOn(Storage, 'deletePresetGeoSites').mockImplementation(async (presetId: string) => {
+            delete geoSites[presetId];
+        });
+    });
+
+    it('geo exclusions: no exclusions and stops — no strings and buttons', async () => {
+        mockCatalog(CATALOG);
+        const block = await render(CONFIG);
+        await flush();
+
+        const geoRemoved = geoRemovedEl(block);
+        expect(geoRemoved.classList.contains('pool-geo-removed--visible')).toBe(false);
+    });
+
+    it('geo exclusions: 2 exclusions — string with number and button', async () => {
+        mockCatalog(CATALOG);
+        const key1 = `socks5://1.1.1.1:1080`;
+        const key2 = `socks5://2.2.2.2:1080`;
+        geoExclusions['preset'] = {
+            [key1]: Date.now(),
+            [key2]: Date.now(),
+        };
+
+        const block = await render(CONFIG);
+        await flush();
+
+        const geoRemoved = geoRemovedEl(block);
+        expect(geoRemoved.classList.contains('pool-geo-removed--visible')).toBe(true);
+        expect(geoRemovedTextEl(block).textContent).toBe('publicPoolGeoRemoved');
+        expect(geoRestoreBtnEl(block)).toBeTruthy();
+    });
+
+    it('geo exclusions: exclusion not in catalog — not counted', async () => {
+        mockCatalog(CATALOG);
+        const keyInCatalog = `socks5://1.1.1.1:1080`;
+        const keyNotInCatalog = `socks5://9.9.9.9:9090`;
+        geoExclusions['preset'] = {
+            [keyInCatalog]: Date.now(),
+            [keyNotInCatalog]: Date.now(),
+        };
+
+        const block = await render(CONFIG);
+        await flush();
+
+        const geoRemoved = geoRemovedEl(block);
+        expect(geoRemoved.classList.contains('pool-geo-removed--visible')).toBe(true);
+        // Called with removed count = 1 (only the one in catalog)
+        const calls = (I18n.getMessage as jest.Mock).mock.calls;
+        const geoCall = calls.find(c => c[0] === 'publicPoolGeoRemoved');
+        expect(geoCall?.[1]?.[0]).toBe('1');
+    });
+
+    it('geo exclusions: only stopped site — button visible', async () => {
+        mockCatalog(CATALOG);
+        const now = Date.now();
+        geoSites['preset'] = {
+            'example.com': {
+                streak: 5,
+                stoppedAt: now - 1000, // 1 second ago, still within 24h
+            },
+        };
+
+        const block = await render(CONFIG);
+        await flush();
+
+        const geoRemoved = geoRemovedEl(block);
+        expect(geoRemoved.classList.contains('pool-geo-removed--visible')).toBe(true);
+        expect(geoRestoreBtnEl(block)).toBeTruthy();
+    });
+
+    it('geo exclusions: click deletes records, other preset untouched', async () => {
+        mockCatalog(CATALOG);
+        const key1 = `socks5://1.1.1.1:1080`;
+        geoExclusions['preset'] = { [key1]: Date.now() };
+        geoExclusions['other-preset'] = { [key1]: Date.now() };
+        geoSites['preset'] = {
+            'example.com': { streak: 2, stoppedAt: null },
+        };
+        geoSites['other-preset'] = {
+            'other.com': { streak: 3, stoppedAt: null },
+        };
+
+        const block = await render(CONFIG);
+        await flush();
+
+        const btn = geoRestoreBtnEl(block);
+        btn.click();
+        await flush();
+
+        expect(geoExclusions['preset']).toBeUndefined();
+        expect(geoSites['preset']).toBeUndefined();
+        expect(geoExclusions['other-preset']).toBeDefined();
+        expect(geoSites['other-preset']).toBeDefined();
+    });
+
+    it('geo exclusions: storage change updates string', async () => {
+        mockCatalog(CATALOG);
+        const block = await render(CONFIG);
+        await flush();
+
+        const geoRemoved = geoRemovedEl(block);
+        expect(geoRemoved.classList.contains('pool-geo-removed--visible')).toBe(false);
+
+        const key1 = `socks5://1.1.1.1:1080`;
+        geoExclusions['preset'] = { [key1]: Date.now() };
+        mockHelpers.triggerStorageChange({
+            publicPoolGeoExclusions: { oldValue: {}, newValue: geoExclusions },
+        }, 'local');
+        await flush();
+
+        expect(geoRemoved.classList.contains('pool-geo-removed--visible')).toBe(true);
+    });
+});
+
 describe('pool status lifecycle', () => {
     it('unsubscribes when block is removed from DOM', async () => {
         mockCatalog(CATALOG);

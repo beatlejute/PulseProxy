@@ -57,6 +57,10 @@ beforeEach(() => {
     // Default results mock
     mockStorage.getPublicProxyCheckResults.mockResolvedValue({});
 
+    // Default geo exclusions/sites mocks (задача 29 плана PLAN-020)
+    mockStorage.getPresetGeoExclusions.mockResolvedValue({});
+    mockStorage.getPublicPoolGeoSites.mockResolvedValue({});
+
     // Mock Storage.onChange to return unsubscribe function
     mockStorage.onChange.mockReturnValue(() => {});
 

@@ -23,6 +23,10 @@ class I18nService {
         // Загрузить переводы для текущего языка
         if (this.currentLanguage !== DEFAULT_LANGUAGE) {
             await this.loadMessages(this.currentLanguage);
+        } else {
+            // Повторный init() со сменой языка на DEFAULT_LANGUAGE: без сброса
+            // getMessage продолжил бы отдавать каталог прежнего языка.
+            this.messages = this.fallbackMessages;
         }
     }
 

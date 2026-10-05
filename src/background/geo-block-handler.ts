@@ -139,6 +139,12 @@ async function handlePoolRedirect(
     await processPoolGeoBlock(details, url, route);
 }
 
+// Одновременные гео-ответы одного пресета — дубли одного события: у второго
+// маршрут уже без исключённого первой обработкой участника, и без свода он
+// падает в fallback на голову, исключая второго участника одним событием
+// (дефект QA-183). Исключение за время обработки пресета пишет только первая.
+const poolGeoBlockRuns = new Map<string, number>();
+
 async function processPoolGeoBlock(
     details: chrome.webRequest.OnResponseStartedDetails | chrome.webRequest.OnBeforeRedirectDetails,
     url: string,
@@ -158,6 +164,28 @@ async function processPoolGeoBlock(
         return;
     }
 
+    const skipExclusion = (poolGeoBlockRuns.get(presetId) ?? 0) > 0;
+    poolGeoBlockRuns.set(presetId, (poolGeoBlockRuns.get(presetId) ?? 0) + 1);
+    try {
+        await applyPoolGeoBlock(details, url, route, skipExclusion);
+    } finally {
+        const runs = (poolGeoBlockRuns.get(presetId) ?? 1) - 1;
+        if (runs <= 0) {
+            poolGeoBlockRuns.delete(presetId);
+        } else {
+            poolGeoBlockRuns.set(presetId, runs);
+        }
+    }
+}
+
+async function applyPoolGeoBlock(
+    details: chrome.webRequest.OnResponseStartedDetails | chrome.webRequest.OnBeforeRedirectDetails,
+    url: string,
+    route: NonNullable<ReturnType<typeof ProxyManager.getRouteForUrl>>,
+    skipExclusion: boolean,
+): Promise<void> {
+    const presetId = route.presetId || '';
+    const poolRule = route.poolRule || '';
     const now = Date.now();
     const siteState = await Storage.getPresetGeoSite(presetId, poolRule, now);
 
@@ -197,11 +225,7 @@ async function processPoolGeoBlock(
     }
 
     // Не опустошать пресет: исключение не делаем, если в пуле пресета не останется участников
-    const exclusions = await Storage.getPresetGeoExclusions(presetId);
-    const presetExclusions = exclusions[presetId] || {};
-    const currentExcludedKeys = Object.keys(presetExclusions);
-
-    if (excludedMemberKey) {
+    if (excludedMemberKey && !skipExclusion) {
         const wouldEmptyPool = members.length === 1 && members[0].key === excludedMemberKey;
         if (!wouldEmptyPool) {
             await Storage.addPresetGeoExclusion(presetId, excludedMemberKey, now);
